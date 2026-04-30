@@ -12,8 +12,8 @@ button{font-family:inherit;cursor:pointer;}
 .pr{display:flex;gap:4px;background:#EDEAE4;border:1px solid #E5E0D8;border-radius:99px;padding:3px;}
 .p{padding:6px 14px;border-radius:99px;border:none;background:transparent;font-size:13px;color:#8A8479;}
 .p.on{background:#1A1814;color:#fff;font-weight:500;}
-.tb-bar{display:flex;border-bottom:1px solid #E5E0D8;margin-bottom:16px;max-width:700px;margin-left:auto;margin-right:auto;}
-.tb{flex:1;padding:9px 8px;border:none;background:none;font-size:14px;color:#8A8479;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;}
+.tb-bar{display:flex;border-bottom:1px solid #E5E0D8;margin-bottom:16px;max-width:980px;margin-left:auto;margin-right:auto;}
+.tb{flex:1;padding:9px 6px;border:none;background:none;font-size:13px;color:#8A8479;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;}
 .tb.on{color:#1A1814;border-bottom-color:#1A1814;font-weight:500;}
 .card{background:#fff;border:1px solid #E5E0D8;border-radius:14px;padding:18px;}
 .inp{width:100%;padding:10px 12px;border:1px solid #E5E0D8;border-radius:8px;font-family:inherit;font-size:14px;color:#1A1814;background:#F7F5F0;outline:none;-webkit-appearance:none;}
@@ -32,6 +32,14 @@ button{font-family:inherit;cursor:pointer;}
 .sd.no{background:#C0392B;}
 @keyframes pu{0%,100%{opacity:1}50%{opacity:.3}}
 .who-btn{padding:14px 10px;border-radius:10px;border:2px solid #E5E0D8;background:none;font-size:15px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;width:100%;}
+.dur-btn{padding:8px 4px;border-radius:8px;border:1px solid #E5E0D8;background:#fff;font-size:12px;color:#8A8479;cursor:pointer;text-align:center;}
+.dur-btn.on{background:#1A1814;color:#fff;border-color:#1A1814;font-weight:500;}
+/* edit modal */
+.modal-bg{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.off{display:none;}
+.modal{background:#fff;border-radius:14px;padding:22px;max-width:440px;width:100%;max-height:90vh;overflow-y:auto;}
+.dur-btn{padding:8px 4px;border-radius:8px;border:1px solid #E5E0D8;background:#fff;font-size:12px;font-weight:400;color:#8A8479;cursor:pointer;text-align:center;}
+.dur-btn.on{background:#1A1814;color:#fff;border-color:#1A1814;font-weight:500;}
 /* week */
 .wk-w{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #E5E0D8;border-radius:14px;background:#fff;}
 .wk-g{display:grid;grid-template-columns:38px repeat(7,minmax(60px,1fr));min-width:500px;}
@@ -52,8 +60,13 @@ button{font-family:inherit;cursor:pointer;}
 .mo-c.tdc{background:#FAFAF7;}
 .mo-ev{border-radius:4px;padding:2px 5px;font-size:10px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 @media(max-width:480px){.mo-c{min-height:54px;}.mo-ev{font-size:9px;}}
+/* costs */
+.cost-card{background:#fff;border:1px solid #E5E0D8;border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.cost-hdr{padding:14px 18px;border-bottom:1px solid #F0EDE8;display:flex;align-items:center;justify-content:space-between;}
+.cost-row{padding:12px 18px;border-bottom:1px solid #F0EDE8;display:flex;align-items:center;gap:12px;}
+.cost-row:last-child{border-bottom:none;}
+.cost-total{padding:14px 18px;background:#F7F5F0;display:flex;align-items:center;justify-content:space-between;font-weight:500;}
 /* layout */
-.wrap{max-width:700px;margin:0 auto;}
 @media(min-width:700px){
   .dg{display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start;max-width:980px;margin:0 auto;}
   .tb-bar,.hdr{max-width:980px;}
@@ -78,7 +91,7 @@ button{font-family:inherit;cursor:pointer;}
 
 <div id="main-app" style="display:none;">
 
-  <div class="hdr" style="max-width:700px;margin:0 auto 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+  <div class="hdr" style="max-width:980px;margin:0 auto 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
     <div>
       <div style="font-size:22px;font-weight:500;">Room Booking</div>
       <div style="font-size:11px;color:#8A8479;margin-top:2px;">Rosswell · Donna · Helen</div>
@@ -95,26 +108,50 @@ button{font-family:inherit;cursor:pointer;}
   <div class="tb-bar">
     <button class="tb on" id="tb-book"   onclick="goTab('book')">📅 Book</button>
     <button class="tb"    id="tb-view"   onclick="goTab('view')">🗂 Bookings</button>
+    <button class="tb"    id="tb-costs"  onclick="goTab('costs')">💷 Costs</button>
     <button class="tb"    id="tb-people" onclick="goTab('people')">👥 People</button>
   </div>
 
   <div class="dg">
 
+    <!-- BOOK -->
     <div id="pane-book">
       <div class="card">
         <div style="font-size:17px;font-weight:500;margin-bottom:14px;">New booking</div>
         <div class="fm e" id="ferr"></div>
         <div class="fm ok" id="fok">Booking added ✓</div>
         <div style="margin-bottom:10px;"><label class="lbl" for="fdt">Date</label><input class="inp" type="date" id="fdt"/></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-          <div><label class="lbl" for="ffr">From</label><input class="inp" type="time" id="ffr" value="09:00"/></div>
-          <div><label class="lbl" for="fto">Until</label><input class="inp" type="time" id="fto" value="10:00"/></div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="ffr">Start time</label>
+          <input class="inp" type="time" id="ffr" value="09:00" oninput="calcEnd()"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl">Duration</label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            <button type="button" class="dur-btn" data-mins="15"     onclick="selectDur(this)">15 min</button>
+            <button type="button" class="dur-btn" data-mins="30"     onclick="selectDur(this)">30 min</button>
+            <button type="button" class="dur-btn" data-mins="45"     onclick="selectDur(this)">45 min</button>
+            <button type="button" class="dur-btn on" data-mins="60"  onclick="selectDur(this)">1 hr</button>
+            <button type="button" class="dur-btn" data-mins="90"     onclick="selectDur(this)">1.5 hr</button>
+            <button type="button" class="dur-btn" data-mins="120"    onclick="selectDur(this)">2 hr</button>
+            <button type="button" class="dur-btn" data-mins="180"    onclick="selectDur(this)">3 hr</button>
+            <button type="button" class="dur-btn" data-mins="custom" onclick="selectDur(this)">Custom</button>
+          </div>
+        </div>
+        <div style="margin-bottom:10px;display:none;" id="custom-end-row">
+          <label class="lbl" for="fto">Custom end time</label>
+          <input class="inp" type="time" id="fto" value="10:00" oninput="calcDurFromEnd()"/>
+        </div>
+        <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:#8A8479;">Ends at</span>
+          <strong id="end-display">10:00</strong>
         </div>
         <div style="margin-bottom:12px;"><label class="lbl" for="fnt">Purpose (optional)</label><input class="inp" type="text" id="fnt" placeholder="e.g. Client call…"/></div>
         <button class="btn-main" id="sbtn" onclick="doAdd()">Add booking</button>
       </div>
     </div>
 
+    <!-- VIEW -->
     <div id="pane-view" style="display:none;">
       <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8A8479;margin-bottom:12px;">
         <div class="sd" id="sd2"></div><span id="sl2">—</span>
@@ -142,6 +179,38 @@ button{font-family:inherit;cursor:pointer;}
       </div>
     </div>
 
+    <!-- COSTS -->
+    <div id="pane-costs" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div style="font-size:17px;font-weight:500;">Monthly costs</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="ar" onclick="shiftCost(-1)" aria-label="Previous month">&#8249;</button>
+          <span style="font-size:14px;font-weight:500;min-width:120px;text-align:center;" id="cost-period"></span>
+          <button class="ar" onclick="shiftCost(1)" aria-label="Next month">&#8250;</button>
+        </div>
+      </div>
+
+      <!-- Hourly rate setting -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:500;margin-bottom:10px;">Room rate</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="position:relative;flex:1;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8A8479;font-size:14px;">£</span>
+            <input class="inp" type="number" id="rate-inp" min="0" step="0.50" placeholder="0.00"
+              style="padding-left:28px;"
+              onchange="saveRate()"
+              aria-label="Hourly rate in pounds"/>
+          </div>
+          <span style="font-size:13px;color:#8A8479;white-space:nowrap;">per hour</span>
+        </div>
+        <p style="font-size:12px;color:#8A8479;margin-top:8px;">Set the hourly room rate. Costs are calculated automatically from booking durations.</p>
+      </div>
+
+      <!-- Cost breakdown -->
+      <div id="cost-body"></div>
+    </div>
+
+    <!-- PEOPLE -->
     <div id="pane-people" style="display:none;">
       <div class="card">
         <div style="font-size:17px;font-weight:500;margin-bottom:12px;">Manage people</div>
@@ -154,6 +223,45 @@ button{font-family:inherit;cursor:pointer;}
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Edit booking modal -->
+<div class="modal-bg off" id="edit-modal">
+  <div class="modal">
+    <div style="font-size:17px;font-weight:500;margin-bottom:14px;">Edit booking</div>
+    <div class="fm e" id="eerr"></div>
+    <div style="margin-bottom:10px;"><label class="lbl" for="e-date">Date</label><input class="inp" type="date" id="e-date"/></div>
+    <div style="margin-bottom:10px;">
+      <label class="lbl" for="e-from">Start time</label>
+      <input class="inp" type="time" id="e-from" oninput="calcEditEnd()"/>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label class="lbl">Duration</label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="e-dur-grid">
+        <button type="button" class="dur-btn" data-mins="15"     onclick="selectEditDur(this)">15 min</button>
+        <button type="button" class="dur-btn" data-mins="30"     onclick="selectEditDur(this)">30 min</button>
+        <button type="button" class="dur-btn" data-mins="45"     onclick="selectEditDur(this)">45 min</button>
+        <button type="button" class="dur-btn" data-mins="60"     onclick="selectEditDur(this)">1 hr</button>
+        <button type="button" class="dur-btn" data-mins="90"     onclick="selectEditDur(this)">1.5 hr</button>
+        <button type="button" class="dur-btn" data-mins="120"    onclick="selectEditDur(this)">2 hr</button>
+        <button type="button" class="dur-btn" data-mins="180"    onclick="selectEditDur(this)">3 hr</button>
+        <button type="button" class="dur-btn" data-mins="custom" onclick="selectEditDur(this)">Custom</button>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;display:none;" id="e-custom-row">
+      <label class="lbl" for="e-to">Custom end time</label>
+      <input class="inp" type="time" id="e-to" oninput="calcEditDurFromEnd()"/>
+    </div>
+    <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="color:#8A8479;">Ends at</span>
+      <strong id="e-end-display">—</strong>
+    </div>
+    <div style="margin-bottom:16px;"><label class="lbl" for="e-note">Purpose (optional)</label><input class="inp" type="text" id="e-note" placeholder="e.g. Client call…"/></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeEdit()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #E5E0D8;background:#fff;font-size:14px;cursor:pointer;color:#8A8479;">Cancel</button>
+      <button onclick="saveEdit()" style="flex:2;padding:11px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:14px;font-weight:500;cursor:pointer;">Save changes</button>
+    </div>
   </div>
 </div>
 
@@ -170,7 +278,8 @@ const PAL=[
 const S={
   me:localStorage.getItem('rb_me')||'',
   bookings:[],people:['Rosswell','Donna','Helen'],
-  filt:'all',view:'list',cursor:new Date(),tab:'book'
+  rate: parseFloat(localStorage.getItem('rb_rate'))||0,
+  filt:'all',view:'list',cursor:new Date(),costCursor:new Date(),tab:'book'
 };
 function col(n){const i=S.people.indexOf(n);return PAL[(i<0?0:i)%PAL.length];}
 function ds(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
@@ -178,19 +287,82 @@ function p2(n){return String(n).padStart(2,'0');}
 function addD(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
 function wkMon(d){const r=new Date(d);const w=r.getDay();r.setDate(r.getDate()-(w===0?6:w-1));r.setHours(0,0,0,0);return r;}
 function xe(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(n){return'£'+n.toFixed(2);}
+function hrs(b){
+  const[sh,sm]=b.start.split(':').map(Number);
+  const[eh,em]=b.end.split(':').map(Number);
+  return((eh*60+em)-(sh*60+sm))/60;
+}
 
 document.getElementById('fdt').value=ds(new Date());
 
-// Always show the app immediately — don't wait for sync
+// ── Duration picker ───────────────────────────────────────────────────────
+let selectedMins=60; // default 1 hour
+
+function selectDur(btn){
+  document.querySelectorAll('.dur-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const val=btn.dataset.mins;
+  if(val==='custom'){
+    document.getElementById('custom-end-row').style.display='block';
+    selectedMins='custom';
+  } else {
+    document.getElementById('custom-end-row').style.display='none';
+    selectedMins=parseInt(val);
+    calcEnd();
+  }
+}
+
+function calcEnd(){
+  if(selectedMins==='custom') return;
+  const start=document.getElementById('ffr').value;
+  if(!start) return;
+  const[h,m]=start.split(':').map(Number);
+  const total=h*60+m+selectedMins;
+  const eh=Math.floor(total/60)%24;
+  const em=total%60;
+  const endStr=p2(eh)+':'+p2(em);
+  document.getElementById('end-display').textContent=endStr;
+  // Keep hidden fto in sync for submission
+  let fto=document.getElementById('fto');
+  if(fto) fto.value=endStr;
+}
+
+function calcDurFromEnd(){
+  const start=document.getElementById('ffr').value;
+  const end=document.getElementById('fto').value;
+  if(!start||!end) return;
+  const[sh,sm]=start.split(':').map(Number);
+  const[eh,em]=end.split(':').map(Number);
+  const diff=(eh*60+em)-(sh*60+sm);
+  document.getElementById('end-display').textContent=end;
+  selectedMins=diff>0?diff:'custom';
+}
+
+function getEndTime(){
+  if(selectedMins==='custom'){
+    return document.getElementById('fto')?document.getElementById('fto').value:'';
+  }
+  const start=document.getElementById('ffr').value;
+  if(!start) return '';
+  const[h,m]=start.split(':').map(Number);
+  const total=h*60+m+selectedMins;
+  return p2(Math.floor(total/60)%24)+':'+p2(total%60);
+}
+
+// Initialise end display on load
+setTimeout(()=>calcEnd(),100);
+document.getElementById('rate-inp').value=S.rate||'';
+
+// Boot — show app immediately, sync in background
 document.getElementById('loading-screen').style.display='none';
 document.getElementById('main-app').style.display='block';
 if(!S.me||!S.people.includes(S.me)) showWho();
 else applyMe();
-
-// Then try to sync in background
 load(true);
 setInterval(()=>load(false),15000);
 
+// ── Sync ──────────────────────────────────────────────────────────────────
 async function load(spin=true){
   if(spin) syncUI(true,'Loading…');
   try{
@@ -200,9 +372,11 @@ async function load(spin=true){
     const rec=j.record||{};
     S.bookings=Array.isArray(rec.bookings)?[...rec.bookings]:[];
     if(Array.isArray(rec.people)&&rec.people.length) S.people=[...rec.people];
+    // Sync rate from server if set there
+    if(rec.rate!=null) { S.rate=rec.rate; document.getElementById('rate-inp').value=S.rate||''; }
     S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
     syncUI(false,'Synced · '+S.bookings.length+' booking'+(S.bookings.length===1?'':'s'));
-    draw(); renderPeople();
+    draw(); renderPeople(); renderCosts();
     if(document.getElementById('who-screen').style.display==='block') showWho();
   }catch(e){ syncUI(false,'Sync error — '+e.message,true); }
 }
@@ -210,7 +384,8 @@ async function load(spin=true){
 async function save(){
   syncUI(true,'Saving…');
   try{
-    const encoded=encodeURIComponent(JSON.stringify({bookings:S.bookings,people:S.people}));
+    const payload={bookings:S.bookings,people:S.people,rate:S.rate};
+    const encoded=encodeURIComponent(JSON.stringify(payload));
     const r=await fetch(GAS+'?action=save&data='+encoded,{redirect:'follow'});
     if(!r.ok) throw new Error('HTTP '+r.status);
     syncUI(false,'Saved · '+S.bookings.length+' booking'+(S.bookings.length===1?'':'s'));
@@ -222,6 +397,16 @@ function syncUI(spin,txt,bad){
   ['sl','sl2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=txt;});
 }
 
+// ── Rate ──────────────────────────────────────────────────────────────────
+function saveRate(){
+  const v=parseFloat(document.getElementById('rate-inp').value)||0;
+  S.rate=v;
+  localStorage.setItem('rb_rate',v);
+  save();
+  renderCosts();
+}
+
+// ── Who ───────────────────────────────────────────────────────────────────
 function showWho(){
   document.getElementById('who-screen').style.display='block';
   document.getElementById('main-app').style.display='none';
@@ -246,16 +431,21 @@ function applyMe(){
   draw();
 }
 
+// ── Add booking ───────────────────────────────────────────────────────────
 async function doAdd(){
   if(!S.me){showWho();return;}
   const date=document.getElementById('fdt').value;
   const from=document.getElementById('ffr').value;
-  const to=document.getElementById('fto').value;
+  const to=getEndTime();
   const note=document.getElementById('fnt').value.trim();
   const eEl=document.getElementById('ferr'),oEl=document.getElementById('fok');
   eEl.style.display='none'; oEl.style.display='none';
   if(!date||!from||!to){eEl.textContent='Please fill in date and times.';eEl.style.display='block';return;}
   if(from>=to){eEl.textContent='End time must be after start time.';eEl.style.display='block';return;}
+  // Block past bookings
+  const nowD=new Date();
+  const bookingEnd=new Date(date+'T'+to);
+  if(bookingEnd<nowD){eEl.textContent='This booking is in the past — please choose a future date and time.';eEl.style.display='block';return;}
   syncUI(true,'Checking…');
   try{
     const r=await fetch(GAS,{redirect:'follow'});
@@ -269,23 +459,24 @@ async function doAdd(){
   await save();
   document.getElementById('fnt').value='';
   oEl.style.display='block'; setTimeout(()=>oEl.style.display='none',3000);
-  draw();
+  draw(); renderCosts();
 }
 
 async function delB(id){
   if(!confirm('Delete this booking?'))return;
   S.bookings=S.bookings.filter(b=>b.id!==id);
-  await save(); draw();
+  await save(); draw(); renderCosts();
 }
 
+// ── People ────────────────────────────────────────────────────────────────
 async function addP(){
   const inp=document.getElementById('pinp'); const n=inp.value.trim();
   if(!n||S.people.some(p=>p.toLowerCase()===n.toLowerCase())){inp.value='';return;}
-  S.people.push(n); inp.value=''; await save(); renderPeople();
+  S.people.push(n); inp.value=''; await save(); renderPeople(); renderCosts();
 }
 async function remP(n){
   if(S.people.length<=1)return; if(!confirm('Remove '+n+'?'))return;
-  S.people=S.people.filter(p=>p!==n); await save(); renderPeople();
+  S.people=S.people.filter(p=>p!==n); await save(); renderPeople(); renderCosts();
   if(S.me===n){S.me='';localStorage.removeItem('rb_me');showWho();}
 }
 function renderPeople(){
@@ -299,6 +490,212 @@ function renderPeople(){
   }).join('');
 }
 
+// ── COSTS ─────────────────────────────────────────────────────────────────
+function shiftCost(d){
+  S.costCursor=new Date(S.costCursor.getFullYear(),S.costCursor.getMonth()+d,1);
+  renderCosts();
+}
+
+function renderCosts(){
+  const el=document.getElementById('cost-body'); if(!el)return;
+  const periodEl=document.getElementById('cost-period'); if(!periodEl)return;
+
+  const yr=S.costCursor.getFullYear();
+  const mo=S.costCursor.getMonth();
+  periodEl.textContent=S.costCursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+
+  const rate=S.rate||0;
+
+  // Filter bookings to this month
+  const monthBookings=S.bookings.filter(b=>{
+    const d=new Date(b.date+'T12:00:00');
+    return d.getFullYear()===yr && d.getMonth()===mo;
+  });
+
+  if(!monthBookings.length){
+    el.innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#8A8479;">
+      No bookings in ${S.costCursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</div>`;
+    return;
+  }
+
+  // Group by person
+  const byPerson={};
+  S.people.forEach(n=>byPerson[n]={bookings:[],hours:0,cost:0});
+  monthBookings.forEach(b=>{
+    if(!byPerson[b.who]) byPerson[b.who]={bookings:[],hours:0,cost:0};
+    const h=hrs(b);
+    byPerson[b.who].bookings.push(b);
+    byPerson[b.who].hours+=h;
+    byPerson[b.who].cost+=h*rate;
+  });
+
+  let totalHours=0, totalCost=0;
+  const rows=S.people.filter(n=>byPerson[n]&&byPerson[n].bookings.length>0).map(n=>{
+    const p=byPerson[n]; const c=col(n);
+    totalHours+=p.hours; totalCost+=p.cost;
+    const hDisp=p.hours%1===0?p.hours+'h':(p.hours).toFixed(1)+'h';
+    return`<div class="cost-row">
+      <div style="width:34px;height:34px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;">${xe(n[0])}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:500;">${xe(n)}</div>
+        <div style="font-size:12px;color:#8A8479;margin-top:2px;">${p.bookings.length} booking${p.bookings.length===1?'':'s'} · ${hDisp}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:16px;font-weight:500;">${fmt(p.cost)}</div>
+        ${rate>0?`<div style="font-size:11px;color:#8A8479;">${fmt(rate)}/hr</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Breakdown list per person
+  const details=S.people.filter(n=>byPerson[n]&&byPerson[n].bookings.length>0).map(n=>{
+    const p=byPerson[n]; const c=col(n);
+    const bRows=p.bookings.map(b=>{
+      const h=hrs(b);
+      const hDisp=h%1===0?h+'h':h.toFixed(1)+'h';
+      const d=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+      return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px;border-top:1px solid #F7F5F0;font-size:13px;">
+        <div>
+          <span style="color:#1A1814;">${d}</span>
+          <span style="color:#8A8479;margin-left:8px;">${b.start}–${b.end}${b.note?' · '+xe(b.note):''}</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-shrink:0;">
+          <span style="color:#8A8479;font-size:12px;">${hDisp}</span>
+          <span style="font-weight:500;">${fmt(h*rate)}</span>
+        </div>
+      </div>`;
+    }).join('');
+    return`<div class="cost-card" style="margin-bottom:12px;">
+      <div class="cost-hdr">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;">${xe(n[0])}</div>
+          <span style="font-weight:500;">${xe(n)}</span>
+        </div>
+        <span style="font-size:16px;font-weight:500;">${fmt(p.cost)}</span>
+      </div>
+      ${bRows}
+    </div>`;
+  }).join('');
+
+  const thDisp=totalHours%1===0?totalHours+'h':totalHours.toFixed(1)+'h';
+
+  el.innerHTML=`
+    <div class="cost-card" style="margin-bottom:16px;">
+      <div class="cost-hdr" style="font-weight:500;font-size:15px;">
+        <span>Summary</span>
+        <span style="color:#8A8479;font-size:13px;font-weight:400;">${thDisp} total</span>
+      </div>
+      ${rows}
+      <div class="cost-total">
+        <span>Total for ${S.costCursor.toLocaleDateString('en-GB',{month:'long'})}</span>
+        <span style="font-size:18px;">${fmt(totalCost)}</span>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Booking breakdown</div>
+    ${details}`;
+}
+
+// ── Edit modal ────────────────────────────────────────────────────────────
+let editId=null;
+let editMins=60;
+
+function openEdit(id){
+  const b=S.bookings.find(x=>x.id===id); if(!b) return;
+  editId=id;
+  document.getElementById('e-date').value=b.date;
+  document.getElementById('e-from').value=b.start;
+  document.getElementById('e-note').value=b.note||'';
+  document.getElementById('eerr').style.display='none';
+  // Work out duration from start/end
+  const[sh,sm]=b.start.split(':').map(Number);
+  const[eh,em]=b.end.split(':').map(Number);
+  const diff=(eh*60+em)-(sh*60+sm);
+  editMins=diff;
+  // Select matching preset or custom
+  const presets=[15,30,45,60,90,120,180];
+  const match=presets.includes(diff);
+  document.querySelectorAll('#e-dur-grid .dur-btn').forEach(btn=>{
+    const v=btn.dataset.mins;
+    btn.classList.toggle('on', match ? parseInt(v)===diff : v==='custom');
+  });
+  document.getElementById('e-custom-row').style.display=match?'none':'block';
+  if(!match){ document.getElementById('e-to').value=b.end; editMins='custom'; }
+  document.getElementById('e-end-display').textContent=b.end;
+  document.getElementById('edit-modal').classList.remove('off');
+}
+
+function closeEdit(){
+  document.getElementById('edit-modal').classList.add('off');
+  editId=null;
+}
+
+function selectEditDur(btn){
+  document.querySelectorAll('#e-dur-grid .dur-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const val=btn.dataset.mins;
+  if(val==='custom'){
+    document.getElementById('e-custom-row').style.display='block';
+    editMins='custom';
+  } else {
+    document.getElementById('e-custom-row').style.display='none';
+    editMins=parseInt(val);
+    calcEditEnd();
+  }
+}
+
+function calcEditEnd(){
+  if(editMins==='custom') return;
+  const start=document.getElementById('e-from').value; if(!start) return;
+  const[h,m]=start.split(':').map(Number);
+  const total=h*60+m+editMins;
+  const end=p2(Math.floor(total/60)%24)+':'+p2(total%60);
+  document.getElementById('e-end-display').textContent=end;
+}
+
+function calcEditDurFromEnd(){
+  const start=document.getElementById('e-from').value;
+  const end=document.getElementById('e-to').value;
+  if(!start||!end) return;
+  document.getElementById('e-end-display').textContent=end;
+}
+
+function getEditEnd(){
+  if(editMins==='custom') return document.getElementById('e-to').value;
+  const start=document.getElementById('e-from').value; if(!start) return '';
+  const[h,m]=start.split(':').map(Number);
+  const total=h*60+m+editMins;
+  return p2(Math.floor(total/60)%24)+':'+p2(total%60);
+}
+
+async function saveEdit(){
+  const date=document.getElementById('e-date').value;
+  const from=document.getElementById('e-from').value;
+  const to=getEditEnd();
+  const note=document.getElementById('e-note').value.trim();
+  const errEl=document.getElementById('eerr');
+  errEl.style.display='none';
+  if(!date||!from||!to){errEl.textContent='Please fill in date and times.';errEl.style.display='block';return;}
+  if(from>=to){errEl.textContent='End time must be after start time.';errEl.style.display='block';return;}
+  // Check for clashes excluding this booking
+  const clash=S.bookings.find(b=>b.id!==editId&&b.date===date&&!(to<=b.start||from>=b.end));
+  if(clash){errEl.textContent='Clash with '+clash.who+' ('+clash.start+'–'+clash.end+').';errEl.style.display='block';return;}
+  // Update booking
+  const idx=S.bookings.findIndex(b=>b.id===editId);
+  if(idx>-1){
+    S.bookings[idx]={...S.bookings[idx],date,start:from,end:to,note};
+    S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+  }
+  closeEdit();
+  await save();
+  draw(); renderCosts();
+}
+
+// Close modal on background click
+document.getElementById('edit-modal').addEventListener('click',function(e){
+  if(e.target===this) closeEdit();
+});
+
+// ── Filter ────────────────────────────────────────────────────────────────
 function setF(f){
   S.filt=f;
   document.getElementById('ch-all').className='p'+(f==='all'?' on':'');
@@ -307,6 +704,7 @@ function setF(f){
 }
 function getFilt(){return S.filt==='mine'?S.bookings.filter(b=>b.who===S.me):[...S.bookings];}
 
+// ── View switching ────────────────────────────────────────────────────────
 function setV(v){
   S.view=v;
   document.getElementById('vb-list').className='p'+(v==='list'?' on':'');
@@ -337,31 +735,63 @@ function draw(){
   else drawMonth();
 }
 
+// ── List ──────────────────────────────────────────────────────────────────
 function drawList(){
   const el=document.getElementById('vbody'); if(!el)return;
   const tod=ds(new Date());
-  const fb=getFilt().filter(b=>b.date>=tod);
-  if(!fb.length){el.innerHTML='<p style="color:#8A8479;padding:20px 0;text-align:center;">No upcoming bookings'+(S.filt==='mine'?' for you':'')+'</p>';return;}
+  const all=getFilt();
+  const upcoming=all.filter(b=>b.date>=tod);
+  const past=all.filter(b=>b.date<tod);
+  if(!all.length){el.innerHTML='<p style="color:#8A8479;padding:20px 0;text-align:center;">No bookings'+(S.filt==='mine'?' for you':'')+'</p>';return;}
+  // Show upcoming first, then past bookings collapsed
+  const fb=upcoming;
   const g={};fb.forEach(b=>{if(!g[b.date])g[b.date]=[];g[b.date].push(b);});
-  el.innerHTML=Object.keys(g).sort().map(date=>{
-    const lbl=date===tod?'Today':new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    const rows=g[date].map(b=>{const c=col(b.who);
-      return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid #F0EDE8;border-left:3px solid ${c.mid};">
-        <div style="width:34px;height:34px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;">${xe(b.who[0].toUpperCase())}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:500;">${xe(b.who)}</div>
-          <div style="font-size:13px;color:#8A8479;">${xe(b.start)} – ${xe(b.end)}${b.note?' · '+xe(b.note):''}</div>
-        </div>
-        <button onclick="delB(${b.id})" style="color:#CCC;font-size:20px;padding:2px 8px;border:none;background:none;cursor:pointer;flex-shrink:0;">×</button>
+  const gp={};past.forEach(b=>{if(!gp[b.date])gp[b.date]=[];gp[b.date].push(b);});
+  function renderBookingGroup(grp,isPast){
+    return Object.keys(grp).sort().map(date=>{
+      const lbl=date===tod?'Today':new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      const rows=grp[date].map(b=>{
+        const c=col(b.who);
+        const h=hrs(b);
+        const cost=S.rate>0?` · ${fmt(h*S.rate)}`:'';
+        const opacity=isPast?'opacity:.55;':'';
+        return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid #F0EDE8;border-left:3px solid ${c.mid};${opacity}">
+          <div style="width:34px;height:34px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;">${xe(b.who[0].toUpperCase())}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:500;">${xe(b.who)}</div>
+            <div style="font-size:13px;color:#8A8479;">${xe(b.start)} – ${xe(b.end)}${b.note?' · '+xe(b.note):''}${cost}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button onclick="openEdit(${b.id})" style="font-size:12px;padding:4px 8px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#8A8479;cursor:pointer;" aria-label="Edit booking">Edit</button>
+            <button onclick="delB(${b.id})" style="color:#CCC;font-size:20px;padding:2px 8px;border:none;background:none;cursor:pointer;" aria-label="Delete booking">×</button>
+          </div>
+        </div>`;
+      }).join('');
+      return`<div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">${lbl}</div>
+        <div style="border:1px solid #E5E0D8;border-radius:12px;overflow:hidden;">${rows}</div>
       </div>`;
     }).join('');
-    return`<div style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">${lbl}</div>
-      <div style="border:1px solid #E5E0D8;border-radius:12px;overflow:hidden;">${rows}</div>
-    </div>`;
-  }).join('');
+  }
+
+  let html='';
+  if(upcoming.length){
+    html+=renderBookingGroup(g,false);
+  } else {
+    html+='<p style="color:#8A8479;padding:10px 0;text-align:center;font-size:13px;">No upcoming bookings'+(S.filt==='mine'?' for you':'')+'</p>';
+  }
+  if(past.length){
+    html+=`<details style="margin-top:8px;">
+      <summary style="font-size:12px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;padding:8px 0;list-style:none;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;">▶</span> Past bookings (${past.length})
+      </summary>
+      <div style="margin-top:8px;">${renderBookingGroup(gp,true)}</div>
+    </details>`;
+  }
+  el.innerHTML=html;
 }
 
+// ── Week ──────────────────────────────────────────────────────────────────
 function drawWeek(){
   const el=document.getElementById('vbody'); if(!el)return;
   const mon=wkMon(S.cursor);
@@ -388,7 +818,10 @@ function drawWeek(){
         const top=(sm/60)*H;
         const ht=Math.max(((eh*60+em-sh*60-sm)/60)*H,16);
         const c=col(b.who);
-        html+=`<div class="wk-ev" style="top:${top}px;height:${ht}px;background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${xe(b.who)}</div><div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div></div>`;
+        html+=`<div class="wk-ev" style="top:${top}px;height:${ht}px;background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};">
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${xe(b.who)}</div>
+          <div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>
+        </div>`;
       });
       html+='</div>';
     });
@@ -397,6 +830,7 @@ function drawWeek(){
   el.innerHTML=html;
 }
 
+// ── Month ─────────────────────────────────────────────────────────────────
 function drawMonth(){
   const el=document.getElementById('vbody'); if(!el)return;
   const yr=S.cursor.getFullYear(),mo=S.cursor.getMonth();
@@ -429,26 +863,30 @@ function drawMonth(){
   el.innerHTML=html;
 }
 
+// ── Tabs ──────────────────────────────────────────────────────────────────
 function goTab(t){
   S.tab=t;
-  ['book','view','people'].forEach(k=>{
+  ['book','view','costs','people'].forEach(k=>{
     document.getElementById('tb-'+k).className='tb'+(k===t?' on':'');
     document.getElementById('pane-'+k).style.display=k===t?'block':'none';
   });
   if(window.innerWidth>=700){
     document.getElementById('pane-book').style.display='block';
-    document.getElementById('pane-view').style.display=t==='people'?'none':'block';
+    document.getElementById('pane-view').style.display=(t==='people'||t==='costs')?'none':'block';
+    document.getElementById('pane-costs').style.display=t==='costs'?'block':'none';
     document.getElementById('pane-people').style.display=t==='people'?'block':'none';
   }
   if(t==='view'){load();draw();}
+  if(t==='costs') renderCosts();
 }
 window.addEventListener('resize',()=>{
-  if(window.innerWidth>=700&&S.tab!=='people'){
+  if(window.innerWidth>=700&&S.tab!=='people'&&S.tab!=='costs'){
     document.getElementById('pane-book').style.display='block';
     document.getElementById('pane-view').style.display='block';
   }
 });
 updateLbl();
+renderCosts();
 </script>
 </body>
 </html>
