@@ -13,7 +13,7 @@ button{font-family:inherit;cursor:pointer;}
 .p{padding:6px 14px;border-radius:99px;border:none;background:transparent;font-size:13px;color:#8A8479;}
 .p.on{background:#1A1814;color:#fff;font-weight:500;}
 .tb-bar{display:flex;border-bottom:1px solid #E5E0D8;margin-bottom:16px;max-width:980px;margin-left:auto;margin-right:auto;}
-.tb{flex:1;padding:9px 6px;border:none;background:none;font-size:13px;color:#8A8479;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;}
+.tb{flex:1;padding:9px 5px;border:none;background:none;font-size:12px;color:#8A8479;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;}
 .tb.on{color:#1A1814;border-bottom-color:#1A1814;font-weight:500;}
 .card{background:#fff;border:1px solid #E5E0D8;border-radius:14px;padding:18px;}
 .inp{width:100%;padding:10px 12px;border:1px solid #E5E0D8;border-radius:8px;font-family:inherit;font-size:14px;color:#1A1814;background:#F7F5F0;outline:none;-webkit-appearance:none;}
@@ -34,12 +34,10 @@ button{font-family:inherit;cursor:pointer;}
 .who-btn{padding:14px 10px;border-radius:10px;border:2px solid #E5E0D8;background:none;font-size:15px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;width:100%;}
 .dur-btn{padding:8px 4px;border-radius:8px;border:1px solid #E5E0D8;background:#fff;font-size:12px;color:#8A8479;cursor:pointer;text-align:center;}
 .dur-btn.on{background:#1A1814;color:#fff;border-color:#1A1814;font-weight:500;}
-/* edit modal */
-.modal-bg{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:700;padding:20px;}
 .modal-bg.off{display:none;}
-.modal{background:#fff;border-radius:14px;padding:22px;max-width:440px;width:100%;max-height:90vh;overflow-y:auto;}
-.dur-btn{padding:8px 4px;border-radius:8px;border:1px solid #E5E0D8;background:#fff;font-size:12px;font-weight:400;color:#8A8479;cursor:pointer;text-align:center;}
-.dur-btn.on{background:#1A1814;color:#fff;border-color:#1A1814;font-weight:500;}
+.modal{background:#fff;border-radius:14px;padding:22px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;}
 /* week */
 .wk-w{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #E5E0D8;border-radius:14px;background:#fff;}
 .wk-g{display:grid;grid-template-columns:38px repeat(7,minmax(60px,1fr));min-width:500px;}
@@ -57,7 +55,7 @@ button{font-family:inherit;cursor:pointer;}
 .mo-b{display:grid;grid-template-columns:repeat(7,1fr);}
 .mo-c{border-right:1px solid #E5E0D8;border-bottom:1px solid #E5E0D8;padding:5px 4px;min-height:76px;background:#fff;}
 .mo-c:nth-child(7n){border-right:none;}
-.mo-c.tdc{background:#FAFAF7;}
+.mo-c.tdc{background:#F0EDE6;border:2px solid #1A1814!important;}
 .mo-ev{border-radius:4px;padding:2px 5px;font-size:10px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 @media(max-width:480px){.mo-c{min-height:54px;}.mo-ev{font-size:9px;}}
 /* costs */
@@ -75,31 +73,142 @@ button{font-family:inherit;cursor:pointer;}
 </head>
 <body>
 
-<div id="who-screen" style="display:none;">
-  <div class="card" style="max-width:420px;margin:0 auto;">
+<!-- TextMagic Settings Modal -->
+<div class="modal-bg off" id="tm-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:17px;font-weight:500;">SMS settings — <span id="tm-who-lbl"></span></div>
+      <button onclick="closeTM()" style="background:none;border:none;font-size:22px;color:#8A8479;cursor:pointer;">×</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#F7F5F0;border-radius:8px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:14px;font-weight:500;">Enable SMS reminders</div>
+        <div style="font-size:12px;color:#8A8479;margin-top:2px;">SMS sent 2 days before each of your appointments</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;">
+        <input type="checkbox" id="tm-enabled" style="opacity:0;width:0;height:0;" onchange="tmToggle()"/>
+        <span id="tm-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+        <span id="tm-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+      </label>
+    </div>
+    <p style="font-size:13px;color:#8A8479;margin-bottom:12px;">Get your API key from <a href="https://app.textmagic.com/settings/api" target="_blank" style="color:#185FA5;">app.textmagic.com</a></p>
+    <div style="margin-bottom:10px;"><label class="lbl" for="tm-user">TextMagic username</label><input class="inp" type="text" id="tm-user" placeholder="your@email.com"/></div>
+    <div style="margin-bottom:10px;"><label class="lbl" for="tm-key">API key</label><input class="inp" type="password" id="tm-key" placeholder="Your API key"/></div>
+    <div style="margin-bottom:10px;"><label class="lbl" for="tm-mobile">Your callback mobile number</label><input class="inp" type="tel" id="tm-mobile" placeholder="e.g. 07498218609"/><div style="font-size:11px;color:#8A8479;margin-top:4px;">This number appears in the SMS so clients can call you back.</div></div>
+    <button onclick="testTM()" id="tm-test-btn" style="width:100%;padding:9px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;color:#8A8479;cursor:pointer;margin-bottom:8px;">🔍 Test connection</button>
+    <div id="tm-test-res" style="font-size:13px;padding:8px 12px;border-radius:8px;display:none;margin-bottom:10px;"></div>
+    <div style="background:#F7F5F0;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">SMS template</div>
+      <div style="font-size:13px;color:#1A1814;line-height:1.6;font-style:italic;">"Note: Hi [Firstname], you have an appt with [Your name] in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on [Date] at [Time]. Call [your mobile number]."</div>
+      <div style="font-size:11px;color:#8A8479;margin-top:6px;">~160 characters · sent 2 days before appointment</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button onclick="closeTM()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;">Cancel</button>
+      <button onclick="saveTM()" style="flex:1;padding:11px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contact picker modal -->
+<div class="modal-bg off" id="cp-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:17px;font-weight:500;">Select client</div>
+      <button onclick="closeCP()" style="background:none;border:none;font-size:22px;color:#8A8479;cursor:pointer;">×</button>
+    </div>
+    <div id="cp-binfo" style="font-size:12px;color:#8A8479;background:#F7F5F0;padding:8px 12px;border-radius:8px;margin-bottom:12px;"></div>
+    <input class="inp" type="text" id="cp-search" placeholder="Search TextMagic contacts…" oninput="searchCP()" aria-label="Search contacts" style="margin-bottom:8px;"/>
+    <div id="cp-results" style="max-height:260px;overflow-y:auto;border:1px solid #F0EDE8;border-radius:8px;">
+      <p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Type a name to search</p>
+    </div>
+  </div>
+</div>
+
+<!-- Bank holiday modal -->
+<div class="modal-bg off" id="bh-modal">
+  <div class="modal">
+    <div style="font-size:17px;font-weight:500;margin-bottom:10px;">🏦 Bank Holiday</div>
+    <div id="bh-info" style="font-size:13px;color:#8A8479;margin-bottom:16px;line-height:1.6;"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="bhBook()" style="padding:11px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Book anyway</button>
+      <button onclick="bhSkip()" style="padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:#8A8479;">Skip this date</button>
+      <button onclick="bhAbort()" style="padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:#C0392B;">Cancel all</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clash resolution modal -->
+<div class="modal-bg off" id="clash-modal">
+  <div class="modal">
+    <div style="font-size:17px;font-weight:500;margin-bottom:6px;">Booking clash</div>
+    <div id="clash-info" style="font-size:13px;color:#8A8479;margin-bottom:14px;line-height:1.6;"></div>
+    <div style="font-size:12px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Available slots on this day</div>
+    <div id="clash-slots" style="margin-bottom:14px;max-height:220px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="clashSkip()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:#8A8479;">Skip this date</button>
+      <button onclick="clashAbort()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:#C0392B;">Cancel all</button>
+    </div>
+  </div>
+</div>
+
+<!-- Who picker -->
+<div class="modal-bg off" id="who-screen">
+  <div class="modal">
     <div style="font-size:20px;font-weight:500;margin-bottom:6px;">Who are you?</div>
     <p style="font-size:13px;color:#8A8479;margin-bottom:16px;">Tap your name — this device will remember you.</p>
     <div id="who-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
   </div>
 </div>
 
-<div id="loading-screen" style="text-align:center;padding:60px 20px;">
-  <div style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:#8A8479;">
-    <div class="sd go"></div>Connecting…
+<!-- Edit booking modal -->
+<div class="modal-bg off" id="edit-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:17px;font-weight:500;">Edit booking</div>
+      <div style="font-size:11px;color:#8A8479;" id="edit-stamp"></div>
+    </div>
+    <div class="fm e" id="eerr"></div>
+    <div style="margin-bottom:10px;"><label class="lbl" for="e-date">Date</label><input class="inp" type="date" id="e-date"/></div>
+    <div style="margin-bottom:10px;"><label class="lbl" for="e-from">Start time</label><input class="inp" type="time" id="e-from" oninput="calcEditEnd()"/></div>
+    <div style="margin-bottom:10px;">
+      <label class="lbl">Duration</label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        <button type="button" class="dur-btn" data-mins="15"     onclick="selEditDur(this)">15 min</button>
+        <button type="button" class="dur-btn" data-mins="30"     onclick="selEditDur(this)">30 min</button>
+        <button type="button" class="dur-btn" data-mins="45"     onclick="selEditDur(this)">45 min</button>
+        <button type="button" class="dur-btn" data-mins="60"     onclick="selEditDur(this)">1 hr</button>
+        <button type="button" class="dur-btn" data-mins="90"     onclick="selEditDur(this)">1.5 hr</button>
+        <button type="button" class="dur-btn" data-mins="120"    onclick="selEditDur(this)">2 hr</button>
+        <button type="button" class="dur-btn" data-mins="180"    onclick="selEditDur(this)">3 hr</button>
+        <button type="button" class="dur-btn" data-mins="custom" onclick="selEditDur(this)">Custom</button>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;display:none;" id="e-custom-row">
+      <label class="lbl" for="e-to">Custom end time</label>
+      <input class="inp" type="time" id="e-to" oninput="editDurFromEnd()"/>
+    </div>
+    <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;">
+      <span style="color:#8A8479;">Ends at</span><strong id="e-end-display">—</strong>
+    </div>
+    <div style="margin-bottom:14px;"><label class="lbl" for="e-note">Client name</label><input class="inp" type="text" id="e-note" placeholder="e.g. Sam Smith"/></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeEdit()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;color:#8A8479;">Cancel</button>
+      <button onclick="saveEdit()" style="flex:2;padding:11px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Save changes</button>
+    </div>
   </div>
 </div>
 
-<div id="main-app" style="display:none;">
+<!-- Main app -->
+<div id="app">
+<div class="wrap" style="max-width:980px;margin:0 auto;">
 
-  <div class="hdr" style="max-width:980px;margin:0 auto 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+  <div class="hdr" style="max-width:980px;margin:0 auto 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-bottom:16px;border-bottom:1px solid #E5E0D8;">
     <div>
       <div style="font-size:22px;font-weight:500;">Room Booking</div>
       <div style="font-size:11px;color:#8A8479;margin-top:2px;">Rosswell · Donna · Helen</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8A8479;">
-        <div class="sd" id="sd"></div><span id="sl">—</span>
-      </div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8A8479;"><div class="sd" id="sd"></div><span id="sl">—</span></div>
       <span id="yp" style="font-size:13px;font-weight:500;padding:5px 12px;border-radius:99px;border:2px solid transparent;"></span>
       <span onclick="showWho()" style="font-size:12px;color:#8A8479;text-decoration:underline;cursor:pointer;">change</span>
     </div>
@@ -109,6 +218,7 @@ button{font-family:inherit;cursor:pointer;}
     <button class="tb on" id="tb-book"   onclick="goTab('book')">📅 Book</button>
     <button class="tb"    id="tb-view"   onclick="goTab('view')">🗂 Bookings</button>
     <button class="tb"    id="tb-costs"  onclick="goTab('costs')">💷 Costs</button>
+    <button class="tb"    id="tb-sms"    onclick="goTab('sms')"><span id="sms-tab-lbl">📱 Reminders</span></button>
     <button class="tb"    id="tb-people" onclick="goTab('people')">👥 People</button>
   </div>
 
@@ -121,41 +231,67 @@ button{font-family:inherit;cursor:pointer;}
         <div class="fm e" id="ferr"></div>
         <div class="fm ok" id="fok">Booking added ✓</div>
         <div style="margin-bottom:10px;"><label class="lbl" for="fdt">Date</label><input class="inp" type="date" id="fdt"/></div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="ffr">Start time</label>
-          <input class="inp" type="time" id="ffr" value="09:00" oninput="calcEnd()"/>
-        </div>
+        <div style="margin-bottom:10px;"><label class="lbl" for="ffr">Start time</label><input class="inp" type="time" id="ffr" value="09:00" oninput="calcEnd()"/></div>
         <div style="margin-bottom:10px;">
           <label class="lbl">Duration</label>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-            <button type="button" class="dur-btn" data-mins="15"     onclick="selectDur(this)">15 min</button>
-            <button type="button" class="dur-btn" data-mins="30"     onclick="selectDur(this)">30 min</button>
-            <button type="button" class="dur-btn" data-mins="45"     onclick="selectDur(this)">45 min</button>
-            <button type="button" class="dur-btn on" data-mins="60"  onclick="selectDur(this)">1 hr</button>
-            <button type="button" class="dur-btn" data-mins="90"     onclick="selectDur(this)">1.5 hr</button>
-            <button type="button" class="dur-btn" data-mins="120"    onclick="selectDur(this)">2 hr</button>
-            <button type="button" class="dur-btn" data-mins="180"    onclick="selectDur(this)">3 hr</button>
-            <button type="button" class="dur-btn" data-mins="custom" onclick="selectDur(this)">Custom</button>
+            <button type="button" class="dur-btn" data-mins="15"     onclick="selDur(this)">15 min</button>
+            <button type="button" class="dur-btn" data-mins="30"     onclick="selDur(this)">30 min</button>
+            <button type="button" class="dur-btn" data-mins="45"     onclick="selDur(this)">45 min</button>
+            <button type="button" class="dur-btn on" data-mins="60"  onclick="selDur(this)">1 hr</button>
+            <button type="button" class="dur-btn" data-mins="90"     onclick="selDur(this)">1.5 hr</button>
+            <button type="button" class="dur-btn" data-mins="120"    onclick="selDur(this)">2 hr</button>
+            <button type="button" class="dur-btn" data-mins="180"    onclick="selDur(this)">3 hr</button>
+            <button type="button" class="dur-btn" data-mins="custom" onclick="selDur(this)">Custom</button>
           </div>
         </div>
         <div style="margin-bottom:10px;display:none;" id="custom-end-row">
           <label class="lbl" for="fto">Custom end time</label>
-          <input class="inp" type="time" id="fto" value="10:00" oninput="calcDurFromEnd()"/>
+          <input class="inp" type="time" id="fto" value="10:00" oninput="durFromEnd()"/>
         </div>
         <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="color:#8A8479;">Ends at</span>
-          <strong id="end-display">10:00</strong>
+          <span style="color:#8A8479;">Ends at</span><strong id="end-display">10:00</strong>
         </div>
-        <div style="margin-bottom:12px;"><label class="lbl" for="fnt">Purpose (optional)</label><input class="inp" type="text" id="fnt" placeholder="e.g. Client call…"/></div>
+        <div style="margin-bottom:12px;"><label class="lbl" for="fnt">Client name</label><input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith"/></div>
+
+        <!-- Repeat booking -->
+        <div style="margin-bottom:12px;">
+          <label class="lbl">Repeat</label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
+            <button type="button" class="dur-btn on" id="rep-none"   onclick="setRep('none')">None</button>
+            <button type="button" class="dur-btn"    id="rep-weekly" onclick="setRep('weekly')">Weekly</button>
+            <button type="button" class="dur-btn"    id="rep-2week"  onclick="setRep('2week')">2-Weekly</button>
+            <button type="button" class="dur-btn"    id="rep-monthly" onclick="setRep('monthly')">Monthly</button>
+          </div>
+          <div id="rep-options" style="display:none;background:#F7F5F0;border-radius:10px;padding:12px;border:1px solid #E5E0D8;">
+            <label class="lbl" style="margin-bottom:8px;">End repeat</label>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <button type="button" class="dur-btn on" id="rep-end-date"  onclick="setRepEnd('date')"  style="flex:1;">On a date</button>
+              <button type="button" class="dur-btn"    id="rep-end-count" onclick="setRepEnd('count')" style="flex:1;">After N bookings</button>
+            </div>
+            <div id="rep-end-date-row" style="margin-bottom:0;">
+              <label class="lbl" for="rep-until">End date</label>
+              <input class="inp" type="date" id="rep-until"/>
+            </div>
+            <div id="rep-end-count-row" style="display:none;">
+              <label class="lbl" for="rep-count">Number of bookings</label>
+              <input class="inp" type="number" id="rep-count" min="2" max="52" value="4" style="width:100%;"/>
+            </div>
+            <div id="rep-preview" style="margin-top:10px;font-size:12px;color:#8A8479;line-height:1.8;"></div>
+          </div>
+        </div>
+
+        <!-- SMS note -->
+        <div style="margin-bottom:12px;padding:10px 12px;background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;font-size:12px;color:#6B4C00;line-height:1.5;">
+          📱 <strong>SMS reminder:</strong> An SMS will be sent to the client 2 days before this appointment via TextMagic. Enable this per-user in the People tab.
+        </div>
         <button class="btn-main" id="sbtn" onclick="doAdd()">Add booking</button>
       </div>
     </div>
 
     <!-- VIEW -->
     <div id="pane-view" style="display:none;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8A8479;margin-bottom:12px;">
-        <div class="sd" id="sd2"></div><span id="sl2">—</span>
-      </div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8A8479;margin-bottom:12px;"><div class="sd" id="sd2"></div><span id="sl2">—</span></div>
       <div class="nr">
         <button class="ar" onclick="shift(-1)" aria-label="Previous">&#8249;</button>
         <span class="plbl" id="plbl">Upcoming</span>
@@ -174,9 +310,7 @@ button{font-family:inherit;cursor:pointer;}
         </div>
       </div>
       <div id="vbody"></div>
-      <div style="text-align:center;margin-top:12px;">
-        <button onclick="load()" style="padding:7px 18px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
-      </div>
+      <div style="text-align:center;margin-top:12px;"><button onclick="load()" style="padding:7px 18px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button></div>
     </div>
 
     <!-- COSTS -->
@@ -189,25 +323,30 @@ button{font-family:inherit;cursor:pointer;}
           <button class="ar" onclick="shiftCost(1)" aria-label="Next month">&#8250;</button>
         </div>
       </div>
-
-      <!-- Hourly rate setting -->
       <div class="card" style="margin-bottom:16px;">
         <div style="font-size:14px;font-weight:500;margin-bottom:10px;">Room rate</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="position:relative;flex:1;">
             <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8A8479;font-size:14px;">£</span>
-            <input class="inp" type="number" id="rate-inp" min="0" step="0.50" placeholder="0.00"
-              style="padding-left:28px;"
-              onchange="saveRate()"
-              aria-label="Hourly rate in pounds"/>
+            <input class="inp" type="number" id="rate-inp" min="0" step="0.50" placeholder="0.00" style="padding-left:28px;" onchange="saveRate()" aria-label="Hourly rate in pounds"/>
           </div>
           <span style="font-size:13px;color:#8A8479;white-space:nowrap;">per hour</span>
         </div>
-        <p style="font-size:12px;color:#8A8479;margin-top:8px;">Set the hourly room rate. Costs are calculated automatically from booking durations.</p>
       </div>
-
-      <!-- Cost breakdown -->
       <div id="cost-body"></div>
+    </div>
+
+    <!-- SMS REMINDERS -->
+    <div id="pane-sms" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:17px;font-weight:500;">SMS Reminders</div>
+        <button onclick="load()" style="padding:6px 14px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
+      </div>
+      <!-- Pending reminders -->
+      <div id="sms-pending" style="margin-bottom:20px;"></div>
+      <!-- Sent log -->
+      <div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Sent reminders</div>
+      <div id="sms-log"></div>
     </div>
 
     <!-- PEOPLE -->
@@ -216,57 +355,23 @@ button{font-family:inherit;cursor:pointer;}
         <div style="font-size:17px;font-weight:500;margin-bottom:12px;">Manage people</div>
         <p style="font-size:13px;color:#8A8479;margin-bottom:14px;">Changes sync to everyone immediately.</p>
         <div id="plist" style="margin-bottom:12px;"></div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
           <input class="inp" type="text" id="pinp" placeholder="Add a name…" aria-label="Add a person" style="flex:1;" onkeydown="if(event.key==='Enter')addP()"/>
           <button onclick="addP()" style="padding:10px 16px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:14px;cursor:pointer;">Add</button>
+        </div>
+        <div style="padding-top:14px;border-top:1px solid #F0EDE8;">
+          <button id="sms-settings-btn" onclick="openTM()" style="width:100%;padding:10px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;color:#1A1814;cursor:pointer;font-weight:500;">⚙️ My SMS settings</button>
+          <span id="sms-status" style="display:block;text-align:center;font-size:11px;font-weight:500;margin-top:8px;padding:4px 0;border-radius:99px;"></span>
         </div>
       </div>
     </div>
 
   </div>
 </div>
-
-<!-- Edit booking modal -->
-<div class="modal-bg off" id="edit-modal">
-  <div class="modal">
-    <div style="font-size:17px;font-weight:500;margin-bottom:14px;">Edit booking</div>
-    <div class="fm e" id="eerr"></div>
-    <div style="margin-bottom:10px;"><label class="lbl" for="e-date">Date</label><input class="inp" type="date" id="e-date"/></div>
-    <div style="margin-bottom:10px;">
-      <label class="lbl" for="e-from">Start time</label>
-      <input class="inp" type="time" id="e-from" oninput="calcEditEnd()"/>
-    </div>
-    <div style="margin-bottom:10px;">
-      <label class="lbl">Duration</label>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="e-dur-grid">
-        <button type="button" class="dur-btn" data-mins="15"     onclick="selectEditDur(this)">15 min</button>
-        <button type="button" class="dur-btn" data-mins="30"     onclick="selectEditDur(this)">30 min</button>
-        <button type="button" class="dur-btn" data-mins="45"     onclick="selectEditDur(this)">45 min</button>
-        <button type="button" class="dur-btn" data-mins="60"     onclick="selectEditDur(this)">1 hr</button>
-        <button type="button" class="dur-btn" data-mins="90"     onclick="selectEditDur(this)">1.5 hr</button>
-        <button type="button" class="dur-btn" data-mins="120"    onclick="selectEditDur(this)">2 hr</button>
-        <button type="button" class="dur-btn" data-mins="180"    onclick="selectEditDur(this)">3 hr</button>
-        <button type="button" class="dur-btn" data-mins="custom" onclick="selectEditDur(this)">Custom</button>
-      </div>
-    </div>
-    <div style="margin-bottom:10px;display:none;" id="e-custom-row">
-      <label class="lbl" for="e-to">Custom end time</label>
-      <input class="inp" type="time" id="e-to" oninput="calcEditDurFromEnd()"/>
-    </div>
-    <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
-      <span style="color:#8A8479;">Ends at</span>
-      <strong id="e-end-display">—</strong>
-    </div>
-    <div style="margin-bottom:16px;"><label class="lbl" for="e-note">Purpose (optional)</label><input class="inp" type="text" id="e-note" placeholder="e.g. Client call…"/></div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="closeEdit()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #E5E0D8;background:#fff;font-size:14px;cursor:pointer;color:#8A8479;">Cancel</button>
-      <button onclick="saveEdit()" style="flex:2;padding:11px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:14px;font-weight:500;cursor:pointer;">Save changes</button>
-    </div>
-  </div>
 </div>
 
 <script>
-const GAS='https://script.google.com/macros/s/AKfycbxnNBBioZubr2MY_EfLnywb2sboOF9FX1PFPtagMNSliF-i4Y4QyojNwoOBM42SMDi1/exec';
+const GAS='https://script.google.com/macros/s/AKfycbx1Zud6K1OUEWPY0ZkRKTEPWKFumTMH2gLrDwXCagV3MhcQVHpYPK6YhcOanP2vcXCy/exec';
 const PAL=[
   {bg:'#D8F3DC',mid:'#52B788',fg:'#1B4332'},
   {bg:'#EDE7F6',mid:'#9C6BC4',fg:'#3D1C5A'},
@@ -277,92 +382,59 @@ const PAL=[
 ];
 const S={
   me:localStorage.getItem('rb_me')||'',
-  bookings:[],people:['Rosswell','Donna','Helen'],
-  rate: parseFloat(localStorage.getItem('rb_rate'))||0,
-  filt:'all',view:'list',cursor:new Date(),costCursor:new Date(),tab:'book'
+  bookings:[],
+  people:[
+    {name:'Rosswell',smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''},
+    {name:'Donna',   smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''},
+    {name:'Helen',   smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''},
+  ],
+  rate:parseFloat(localStorage.getItem('rb_rate'))||0,
+  filt:'all',view:'list',cursor:new Date(),costCursor:new Date(),tab:'book',smsLog:[]
 };
-function col(n){const i=S.people.indexOf(n);return PAL[(i<0?0:i)%PAL.length];}
+
+function col(n){
+  const nm=typeof n==='string'?n:n.name;
+  const i=S.people.findIndex(p=>(typeof p==='string'?p:p.name)===nm);
+  return PAL[(i<0?0:i)%PAL.length];
+}
+function pName(p){return typeof p==='string'?p:p.name;}
+function getPerson(name){
+  const p=S.people.find(p=>pName(p)===name);
+  return p&&typeof p==='object'?p:{name,smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''};
+}
+function setPerson(name,fields){
+  const i=S.people.findIndex(p=>pName(p)===name);
+  if(i<0) return;
+  if(typeof S.people[i]==='string') S.people[i]={name,smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''};
+  Object.assign(S.people[i],fields);
+}
 function ds(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
 function p2(n){return String(n).padStart(2,'0');}
 function addD(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
 function wkMon(d){const r=new Date(d);const w=r.getDay();r.setDate(r.getDate()-(w===0?6:w-1));r.setHours(0,0,0,0);return r;}
 function xe(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return'£'+n.toFixed(2);}
-function hrs(b){
-  const[sh,sm]=b.start.split(':').map(Number);
-  const[eh,em]=b.end.split(':').map(Number);
-  return((eh*60+em)-(sh*60+sm))/60;
+function hrs(b){const[sh,sm]=b.start.split(':').map(Number);const[eh,em]=b.end.split(':').map(Number);return((eh*60+em)-(sh*60+sm))/60;}
+function fmtStamp(iso){
+  if(!iso)return'';
+  const d=new Date(iso),now=new Date(),diff=Math.floor((now-d)/1000);
+  if(diff<60)return'Just now';
+  if(diff<3600)return Math.floor(diff/60)+'m ago';
+  if(diff<86400)return Math.floor(diff/3600)+'h ago';
+  if(diff<604800)return Math.floor(diff/86400)+'d ago';
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 }
 
+// Boot
 document.getElementById('fdt').value=ds(new Date());
-
-// ── Duration picker ───────────────────────────────────────────────────────
-let selectedMins=60; // default 1 hour
-
-function selectDur(btn){
-  document.querySelectorAll('.dur-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const val=btn.dataset.mins;
-  if(val==='custom'){
-    document.getElementById('custom-end-row').style.display='block';
-    selectedMins='custom';
-  } else {
-    document.getElementById('custom-end-row').style.display='none';
-    selectedMins=parseInt(val);
-    calcEnd();
-  }
-}
-
-function calcEnd(){
-  if(selectedMins==='custom') return;
-  const start=document.getElementById('ffr').value;
-  if(!start) return;
-  const[h,m]=start.split(':').map(Number);
-  const total=h*60+m+selectedMins;
-  const eh=Math.floor(total/60)%24;
-  const em=total%60;
-  const endStr=p2(eh)+':'+p2(em);
-  document.getElementById('end-display').textContent=endStr;
-  // Keep hidden fto in sync for submission
-  let fto=document.getElementById('fto');
-  if(fto) fto.value=endStr;
-}
-
-function calcDurFromEnd(){
-  const start=document.getElementById('ffr').value;
-  const end=document.getElementById('fto').value;
-  if(!start||!end) return;
-  const[sh,sm]=start.split(':').map(Number);
-  const[eh,em]=end.split(':').map(Number);
-  const diff=(eh*60+em)-(sh*60+sm);
-  document.getElementById('end-display').textContent=end;
-  selectedMins=diff>0?diff:'custom';
-}
-
-function getEndTime(){
-  if(selectedMins==='custom'){
-    return document.getElementById('fto')?document.getElementById('fto').value:'';
-  }
-  const start=document.getElementById('ffr').value;
-  if(!start) return '';
-  const[h,m]=start.split(':').map(Number);
-  const total=h*60+m+selectedMins;
-  return p2(Math.floor(total/60)%24)+':'+p2(total%60);
-}
-
-// Initialise end display on load
-setTimeout(()=>calcEnd(),100);
 document.getElementById('rate-inp').value=S.rate||'';
-
-// Boot — show app immediately, sync in background
-document.getElementById('loading-screen').style.display='none';
-document.getElementById('main-app').style.display='block';
+setTimeout(calcEnd,100);
 if(!S.me||!S.people.includes(S.me)) showWho();
 else applyMe();
 load(true);
 setInterval(()=>load(false),15000);
 
-// ── Sync ──────────────────────────────────────────────────────────────────
+// Sync
 async function load(spin=true){
   if(spin) syncUI(true,'Loading…');
   try{
@@ -372,24 +444,24 @@ async function load(spin=true){
     const rec=j.record||{};
     S.bookings=Array.isArray(rec.bookings)?[...rec.bookings]:[];
     if(Array.isArray(rec.people)&&rec.people.length) S.people=[...rec.people];
-    // Sync rate from server if set there
-    if(rec.rate!=null) { S.rate=rec.rate; document.getElementById('rate-inp').value=S.rate||''; }
+    S.smsLog=Array.isArray(rec.smsLog)?[...rec.smsLog]:[];
+    // Normalize people to objects
+    S.people=S.people.map(p=>typeof p==='string'?{name:p,smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''}:p);
+    if(rec.rate!=null){S.rate=rec.rate;document.getElementById('rate-inp').value=S.rate||'';}
     S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
     syncUI(false,'Synced · '+S.bookings.length+' booking'+(S.bookings.length===1?'':'s'));
-    draw(); renderPeople(); renderCosts();
-    if(document.getElementById('who-screen').style.display==='block') showWho();
-  }catch(e){ syncUI(false,'Sync error — '+e.message,true); }
+    draw(); renderPeople(); renderCosts(); renderSMSTab();
+  }catch(e){syncUI(false,'Sync error — '+e.message,true);}
 }
 
 async function save(){
   syncUI(true,'Saving…');
   try{
-    const payload={bookings:S.bookings,people:S.people,rate:S.rate};
-    const encoded=encodeURIComponent(JSON.stringify(payload));
+    const encoded=encodeURIComponent(JSON.stringify({bookings:S.bookings,people:S.people,rate:S.rate,smsLog:S.smsLog||[]}));
     const r=await fetch(GAS+'?action=save&data='+encoded,{redirect:'follow'});
     if(!r.ok) throw new Error('HTTP '+r.status);
     syncUI(false,'Saved · '+S.bookings.length+' booking'+(S.bookings.length===1?'':'s'));
-  }catch(e){ syncUI(false,'Save failed — '+e.message,true); }
+  }catch(e){syncUI(false,'Save failed — '+e.message,true);}
 }
 
 function syncUI(spin,txt,bad){
@@ -397,276 +469,417 @@ function syncUI(spin,txt,bad){
   ['sl','sl2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=txt;});
 }
 
-// ── Rate ──────────────────────────────────────────────────────────────────
-function saveRate(){
-  const v=parseFloat(document.getElementById('rate-inp').value)||0;
-  S.rate=v;
-  localStorage.setItem('rb_rate',v);
-  save();
-  renderCosts();
-}
-
-// ── Who ───────────────────────────────────────────────────────────────────
+// Who
 function showWho(){
-  document.getElementById('who-screen').style.display='block';
-  document.getElementById('main-app').style.display='none';
-  document.getElementById('who-grid').innerHTML=S.people.map((n,i)=>{
-    const c=PAL[i%PAL.length];
+  document.getElementById('who-screen').classList.remove('off');
+  document.getElementById('who-grid').innerHTML=S.people.map((p,i)=>{
+    const n=pName(p);const c=PAL[i%PAL.length];
     return`<button class="who-btn" onclick="pickMe('${xe(n)}')" style="border-color:${c.mid};">
       <div style="width:14px;height:14px;border-radius:50%;background:${c.mid};"></div>
       <span style="color:${c.fg};">${xe(n)}</span></button>`;
   }).join('');
 }
 function pickMe(n){
-  S.me=n; localStorage.setItem('rb_me',n);
-  document.getElementById('who-screen').style.display='none';
-  document.getElementById('main-app').style.display='block';
+  S.me=n;localStorage.setItem('rb_me',n);
+  document.getElementById('who-screen').classList.add('off');
   applyMe();
 }
 function applyMe(){
   const c=col(S.me);
   const p=document.getElementById('yp');
-  p.textContent=S.me; p.style.background=c.bg; p.style.color=c.fg; p.style.borderColor=c.mid;
+  p.textContent=S.me;p.style.background=c.bg;p.style.color=c.fg;p.style.borderColor=c.mid;
   document.getElementById('sbtn').style.background=c.fg;
+  updateSMSStatus();
   draw();
 }
+
+// Duration picker
+let selMins=60;
+function selDur(btn){
+  document.querySelectorAll('#pane-book .dur-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const v=btn.dataset.mins;
+  selMins=v==='custom'?'custom':parseInt(v);
+  document.getElementById('custom-end-row').style.display=v==='custom'?'block':'none';
+  if(v!=='custom') calcEnd();
+}
+function calcEnd(){
+  if(selMins==='custom')return;
+  const s=document.getElementById('ffr').value;if(!s)return;
+  const[h,m]=s.split(':').map(Number);
+  const t=h*60+m+selMins;
+  const es=p2(Math.floor(t/60)%24)+':'+p2(t%60);
+  document.getElementById('end-display').textContent=es;
+  document.getElementById('fto').value=es;
+}
+function durFromEnd(){
+  const s=document.getElementById('ffr').value,e=document.getElementById('fto').value;
+  if(!s||!e)return;
+  const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);
+  selMins=(eh*60+em)-(sh*60+sm);
+  document.getElementById('end-display').textContent=e;
+}
+function getEnd(){
+  if(selMins==='custom')return document.getElementById('fto').value||'';
+  const s=document.getElementById('ffr').value;if(!s)return'';
+  const[h,m]=s.split(':').map(Number),t=h*60+m+selMins;
+  return p2(Math.floor(t/60)%24)+':'+p2(t%60);
+}
+
+// ── UK Bank Holidays ─────────────────────────────────────────────────────
+let _bankHols=null; // cached list of holiday dates
+
+async function getBankHols(){
+  if(_bankHols) return _bankHols;
+  try{
+    const r=await fetch('https://www.gov.uk/bank-holidays.json');
+    const j=await r.json();
+    const hols=(j['england-and-wales']&&j['england-and-wales'].events)||[];
+    // Store as Map: date -> holiday name
+    _bankHols={
+      _map: new Map(hols.map(h=>[h.date,h.title])),
+      has:  function(d){ return this._map.has(d); },
+      name: function(d){ return this._map.get(d)||'Bank Holiday'; }
+    };
+    return _bankHols;
+  }catch(e){
+    console.warn('Could not fetch bank holidays:',e.message);
+    _bankHols={has:()=>false,name:()=>''};
+    return _bankHols;
+  }
+}
+
+function getBankHolName(date,hols){
+  // Returns holiday name if date is a bank holiday, else null
+  if(!hols||!hols.has) return null;
+  return hols.has(date)?true:null;
+}
+
+// ── Clash resolution ─────────────────────────────────────────────────────
+let _clashResolve=null;
+
+function closeClash(){document.getElementById('clash-modal').classList.add('off');}
+
+function clashSkip(){
+  closeClash();
+  if(_clashResolve) _clashResolve({action:'skip'});
+}
+function clashAbort(){
+  closeClash();
+  if(_clashResolve) _clashResolve({action:'abort'});
+}
+function clashPick(start,end){
+  closeClash();
+  if(_clashResolve) _clashResolve({action:'pick',start,end});
+}
+
+function getFreeSlots(date,durMins){
+  // Find free slots on this day between 07:00 and 21:00
+  const booked=S.bookings.filter(b=>b.date===date).map(b=>({
+    s:b.start.split(':').map(Number).reduce((h,m,i)=>i===0?h*60+m:h+m,0),
+    e:b.end.split(':').map(Number).reduce((h,m,i)=>i===0?h*60+m:h+m,0)
+  })).sort((a,b)=>a.s-b.s);
+
+  const slots=[];
+  const dayStart=7*60, dayEnd=21*60;
+  let cursor=dayStart;
+
+  booked.forEach(b=>{
+    if(b.s-cursor>=durMins){
+      // Free slot before this booking
+      let slotStart=cursor;
+      while(slotStart+durMins<=b.s){
+        const sh=Math.floor(slotStart/60),sm=slotStart%60;
+        const eh=Math.floor((slotStart+durMins)/60),em=(slotStart+durMins)%60;
+        slots.push({start:p2(sh)+':'+p2(sm),end:p2(eh)+':'+p2(em)});
+        slotStart+=15; // 15-min increments
+        if(slots.length>=20) break;
+      }
+    }
+    cursor=Math.max(cursor,b.e);
+  });
+  // After last booking
+  let slotStart=cursor;
+  while(slotStart+durMins<=dayEnd&&slots.length<20){
+    const sh=Math.floor(slotStart/60),sm=slotStart%60;
+    const eh=Math.floor((slotStart+durMins)/60),em=(slotStart+durMins)%60;
+    slots.push({start:p2(sh)+':'+p2(sm),end:p2(eh)+':'+p2(em)});
+    slotStart+=15;
+  }
+  return slots;
+}
+
+function showClashModal(date,clashWith,durMins){
+  return new Promise(resolve=>{
+    _clashResolve=resolve;
+    const d=new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+    const clashDesc=clashWith.map(b=>`${b.who} (${b.start}–${b.end})`).join(', ');
+    document.getElementById('clash-info').innerHTML=
+      `<strong>${d}</strong> is already booked by ${clashDesc}.<br>Choose an alternative time or skip this date.`;
+    const slots=getFreeSlots(date,durMins);
+    const el=document.getElementById('clash-slots');
+    if(!slots.length){
+      el.innerHTML='<p style="color:#8A8479;font-size:13px;text-align:center;padding:12px;">No free slots available on this day.</p>';
+    }else{
+      el.innerHTML=slots.map(s=>`
+        <div onclick="clashPick('${s.start}','${s.end}')"
+          style="padding:10px 14px;border:1px solid #E5E0D8;border-radius:8px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;"
+          onmouseover="this.style.background='#F7F5F0'" onmouseout="this.style.background=''">
+          <span style="font-weight:500;">${s.start} – ${s.end}</span>
+          <span style="color:#52B788;font-size:18px;">›</span>
+        </div>`).join('');
+    }
+    document.getElementById('clash-modal').classList.remove('off');
+  });
+}
+
+// Bank holiday modal handlers
+let _bhResolve=null;
+function closeBH(){document.getElementById('bh-modal').classList.add('off');}
+function bhBook() {closeBH();if(_bhResolve)_bhResolve({action:'book'});}
+function bhSkip() {closeBH();if(_bhResolve)_bhResolve({action:'skip'});}
+function bhAbort(){closeBH();if(_bhResolve)_bhResolve({action:'abort'});}
+
+function showBHModal(date,holName){
+  return new Promise(resolve=>{
+    _bhResolve=resolve;
+    const d=new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('bh-info').innerHTML=
+      `<strong>${d}</strong> is a UK bank holiday${holName&&holName!==true?' ('+holName+')':''}.<br><br>Would you like to book anyway, skip this date, or cancel the series?`;
+    document.getElementById('bh-modal').classList.remove('off');
+  });
+}
+
+async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl){
+  const now=new Date().toISOString();
+  let added=0;
+  let aborted=false;
+
+  // Fetch UK bank holidays once before processing
+  syncUI(true,'Checking bank holidays…');
+  const bankHols=await getBankHols();
+  syncUI(false,'');
+
+  for(let i=0;i<allDates.length;i++){
+    const d=allDates[i];
+    let useStart=from,useEnd=to;
+
+    // 1. Check bank holiday first
+    if(bankHols.has(d)){
+      if(allDates.length===1){
+        // Single booking on bank holiday - warn but allow
+        eEl.textContent='Note: '+new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' is a UK bank holiday ('+bankHols.name(d)+').';
+        eEl.style.display='block';eEl.style.color='#C9A84C';eEl.style.background='#FFF8E7';
+        // Still allow booking to proceed
+      } else {
+        const bhResult=await showBHModal(d,bankHols.name(d));
+        if(bhResult.action==='abort'){aborted=true;break;}
+        if(bhResult.action==='skip') continue;
+        // 'book' falls through
+      }
+    }
+
+    // 2. Check booking clash
+    const clashWith=S.bookings.filter(b=>b.date===d&&!(to<=b.start||from>=b.end));
+    if(clashWith.length){
+      if(allDates.length===1){
+        eEl.textContent='Clash with '+clashWith[0].who+' ('+clashWith[0].start+'–'+clashWith[0].end+').';
+        eEl.style.display='block';
+        draw();return;
+      }
+      const result=await showClashModal(d,clashWith,durMins);
+      if(result.action==='abort'){aborted=true;break;}
+      if(result.action==='skip') continue;
+      if(result.action==='pick'){useStart=result.start;useEnd=result.end;}
+    }
+
+    S.bookings.push({
+      id:Date.now()+i,who:S.me,date:d,
+      start:useStart,end:useEnd,note,updated:now,
+      ...(repId&&{repeatId:repId,repeatMode:repMode})
+    });
+    added++;
+  }
+
+  if(aborted){
+    if(added>0){
+      S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+      await save();draw();renderCosts();
+      eEl.textContent='Cancelled — but '+added+' booking'+(added===1?'':'s')+' already added were saved.';
+      eEl.style.display='block';
+    }else{
+      eEl.textContent='Cancelled — no bookings were added.';
+      eEl.style.display='block';
+    }
+    return;
+  }
+
+  S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+  await save();
+  document.getElementById('fnt').value='';
+  setRep('none');
+  const msg=added===1?'Booking added ✓':added+' bookings added ✓';
+  oEl.textContent=msg;
+  oEl.style.display='block';
+  setTimeout(()=>{oEl.style.display='none';oEl.textContent='Booking added ✓';},4000);
+  draw();renderCosts();
+}
+
+// ── Repeat booking ───────────────────────────────────────────────────────
+let repMode='none', repEndMode='date';
+
+function setRep(mode){
+  repMode=mode;
+  ['none','weekly','2week','monthly'].forEach(m=>{
+    const el=document.getElementById('rep-'+m);
+    if(el) el.classList.toggle('on',m===mode);
+  });
+  document.getElementById('rep-options').style.display=mode==='none'?'none':'block';
+  if(mode!=='none') updateRepPreview();
+}
+
+function setRepEnd(mode){
+  repEndMode=mode;
+  document.getElementById('rep-end-date').classList.toggle('on',mode==='date');
+  document.getElementById('rep-end-count').classList.toggle('on',mode==='count');
+  document.getElementById('rep-end-date-row').style.display=mode==='date'?'block':'none';
+  document.getElementById('rep-end-count-row').style.display=mode==='count'?'block':'none';
+  updateRepPreview();
+}
+
+function getRepDates(){
+  const startDate=document.getElementById('fdt').value;
+  if(!startDate||repMode==='none') return[];
+  const dates=[];
+  let cur=new Date(startDate+'T12:00:00');
+  const step=repMode==='weekly'?7:repMode==='2week'?14:0;
+  const isMonthly=repMode==='monthly';
+  let limit=repEndMode==='count'?parseInt(document.getElementById('rep-count').value||4):100;
+  const until=repEndMode==='date'?new Date(document.getElementById('rep-until').value+'T23:59:59'):null;
+  // Skip first date (already the main booking)
+  for(let i=0;i<52;i++){
+    if(isMonthly){
+      cur=new Date(cur);
+      cur.setMonth(cur.getMonth()+1);
+    } else {
+      cur=new Date(cur.getTime()+step*86400000);
+    }
+    if(repEndMode==='date'&&until&&cur>until) break;
+    if(repEndMode==='count'&&dates.length>=limit-1) break;
+    dates.push(cur.toISOString().slice(0,10));
+  }
+  return dates;
+}
+
+function updateRepPreview(){
+  const el=document.getElementById('rep-preview'); if(!el)return;
+  const dates=getRepDates();
+  if(!dates.length){el.textContent='';return;}
+  const fmt=d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  const shown=dates.slice(0,5).map(fmt);
+  const more=dates.length>5?` + ${dates.length-5} more`:'';
+  el.innerHTML='<strong>'+dates.length+' repeat booking'+(dates.length===1?'':'s')+':</strong><br>'+shown.join('<br>')+more;
+}
+
+// Add event listeners for preview updates
+document.getElementById('fdt').addEventListener('change',updateRepPreview);
+document.getElementById('rep-until').addEventListener('change',updateRepPreview);
+document.getElementById('rep-count').addEventListener('input',updateRepPreview);
 
 // ── Add booking ───────────────────────────────────────────────────────────
 async function doAdd(){
   if(!S.me){showWho();return;}
   const date=document.getElementById('fdt').value;
   const from=document.getElementById('ffr').value;
-  const to=getEndTime();
+  const to=getEnd();
   const note=document.getElementById('fnt').value.trim();
   const eEl=document.getElementById('ferr'),oEl=document.getElementById('fok');
-  eEl.style.display='none'; oEl.style.display='none';
+  eEl.style.display='none';oEl.style.display='none';
   if(!date||!from||!to){eEl.textContent='Please fill in date and times.';eEl.style.display='block';return;}
   if(from>=to){eEl.textContent='End time must be after start time.';eEl.style.display='block';return;}
-  // Block past bookings
-  const nowD=new Date();
-  const bookingEnd=new Date(date+'T'+to);
-  if(bookingEnd<nowD){eEl.textContent='This booking is in the past — please choose a future date and time.';eEl.style.display='block';return;}
   syncUI(true,'Checking…');
   try{
     const r=await fetch(GAS,{redirect:'follow'});
-    const j=await r.json(); const rec=j.record||{};
+    const j=await r.json();const rec=j.record||{};
     S.bookings=Array.isArray(rec.bookings)?[...rec.bookings]:[];
   }catch(e){eEl.textContent='Could not verify: '+e.message;eEl.style.display='block';return;}
+  // Check clash for main booking
   const clash=S.bookings.find(b=>b.date===date&&!(to<=b.start||from>=b.end));
   if(clash){eEl.textContent='Clash with '+clash.who+' ('+clash.start+'–'+clash.end+').';eEl.style.display='block';draw();return;}
-  S.bookings.push({id:Date.now(),who:S.me,date,start:from,end:to,note});
-  S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
-  await save();
-  document.getElementById('fnt').value='';
-  oEl.style.display='block'; setTimeout(()=>oEl.style.display='none',3000);
-  draw(); renderCosts();
+
+  // Build list of all dates (main + repeats)
+  const repDates=getRepDates();
+  const allDates=[date,...repDates];
+  const repId=repMode!=='none'?Date.now():null;
+  const dur=selMins==='custom'?
+    (()=>{const[sh,sm]=from.split(':').map(Number),[eh,em]=to.split(':').map(Number);return(eh*60+em)-(sh*60+sm);})()
+    :selMins;
+
+  // Process all dates - handle clashes interactively
+  await processRepeatBookings(allDates,from,to,dur,note,repId,eEl,oEl);
 }
 
 async function delB(id){
   if(!confirm('Delete this booking?'))return;
   S.bookings=S.bookings.filter(b=>b.id!==id);
-  await save(); draw(); renderCosts();
+  await save();draw();renderCosts();
 }
 
-// ── People ────────────────────────────────────────────────────────────────
-async function addP(){
-  const inp=document.getElementById('pinp'); const n=inp.value.trim();
-  if(!n||S.people.some(p=>p.toLowerCase()===n.toLowerCase())){inp.value='';return;}
-  S.people.push(n); inp.value=''; await save(); renderPeople(); renderCosts();
-}
-async function remP(n){
-  if(S.people.length<=1)return; if(!confirm('Remove '+n+'?'))return;
-  S.people=S.people.filter(p=>p!==n); await save(); renderPeople(); renderCosts();
-  if(S.me===n){S.me='';localStorage.removeItem('rb_me');showWho();}
-}
-function renderPeople(){
-  const el=document.getElementById('plist'); if(!el)return;
-  el.innerHTML=S.people.map((n,i)=>{const c=PAL[i%PAL.length];
-    return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F0EDE8;">
-      <div style="width:28px;height:28px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;">${xe(n[0])}</div>
-      <span style="flex:1;font-size:14px;">${xe(n)}</span>
-      <button onclick="remP('${xe(n)}')" style="color:#8A8479;font-size:20px;padding:2px 6px;border:none;background:none;cursor:pointer;">×</button>
-    </div>`;
-  }).join('');
-}
-
-// ── COSTS ─────────────────────────────────────────────────────────────────
-function shiftCost(d){
-  S.costCursor=new Date(S.costCursor.getFullYear(),S.costCursor.getMonth()+d,1);
-  renderCosts();
-}
-
-function renderCosts(){
-  const el=document.getElementById('cost-body'); if(!el)return;
-  const periodEl=document.getElementById('cost-period'); if(!periodEl)return;
-
-  const yr=S.costCursor.getFullYear();
-  const mo=S.costCursor.getMonth();
-  periodEl.textContent=S.costCursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-
-  const rate=S.rate||0;
-
-  // Filter bookings to this month
-  const monthBookings=S.bookings.filter(b=>{
-    const d=new Date(b.date+'T12:00:00');
-    return d.getFullYear()===yr && d.getMonth()===mo;
-  });
-
-  if(!monthBookings.length){
-    el.innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#8A8479;">
-      No bookings in ${S.costCursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</div>`;
-    return;
-  }
-
-  // Group by person
-  const byPerson={};
-  S.people.forEach(n=>byPerson[n]={bookings:[],hours:0,cost:0});
-  monthBookings.forEach(b=>{
-    if(!byPerson[b.who]) byPerson[b.who]={bookings:[],hours:0,cost:0};
-    const h=hrs(b);
-    byPerson[b.who].bookings.push(b);
-    byPerson[b.who].hours+=h;
-    byPerson[b.who].cost+=h*rate;
-  });
-
-  let totalHours=0, totalCost=0;
-  const rows=S.people.filter(n=>byPerson[n]&&byPerson[n].bookings.length>0).map(n=>{
-    const p=byPerson[n]; const c=col(n);
-    totalHours+=p.hours; totalCost+=p.cost;
-    const hDisp=p.hours%1===0?p.hours+'h':(p.hours).toFixed(1)+'h';
-    return`<div class="cost-row">
-      <div style="width:34px;height:34px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;">${xe(n[0])}</div>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:500;">${xe(n)}</div>
-        <div style="font-size:12px;color:#8A8479;margin-top:2px;">${p.bookings.length} booking${p.bookings.length===1?'':'s'} · ${hDisp}</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:16px;font-weight:500;">${fmt(p.cost)}</div>
-        ${rate>0?`<div style="font-size:11px;color:#8A8479;">${fmt(rate)}/hr</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-
-  // Breakdown list per person
-  const details=S.people.filter(n=>byPerson[n]&&byPerson[n].bookings.length>0).map(n=>{
-    const p=byPerson[n]; const c=col(n);
-    const bRows=p.bookings.map(b=>{
-      const h=hrs(b);
-      const hDisp=h%1===0?h+'h':h.toFixed(1)+'h';
-      const d=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-      return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px;border-top:1px solid #F7F5F0;font-size:13px;">
-        <div>
-          <span style="color:#1A1814;">${d}</span>
-          <span style="color:#8A8479;margin-left:8px;">${b.start}–${b.end}${b.note?' · '+xe(b.note):''}</span>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-shrink:0;">
-          <span style="color:#8A8479;font-size:12px;">${hDisp}</span>
-          <span style="font-weight:500;">${fmt(h*rate)}</span>
-        </div>
-      </div>`;
-    }).join('');
-    return`<div class="cost-card" style="margin-bottom:12px;">
-      <div class="cost-hdr">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:30px;height:30px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;">${xe(n[0])}</div>
-          <span style="font-weight:500;">${xe(n)}</span>
-        </div>
-        <span style="font-size:16px;font-weight:500;">${fmt(p.cost)}</span>
-      </div>
-      ${bRows}
-    </div>`;
-  }).join('');
-
-  const thDisp=totalHours%1===0?totalHours+'h':totalHours.toFixed(1)+'h';
-
-  el.innerHTML=`
-    <div class="cost-card" style="margin-bottom:16px;">
-      <div class="cost-hdr" style="font-weight:500;font-size:15px;">
-        <span>Summary</span>
-        <span style="color:#8A8479;font-size:13px;font-weight:400;">${thDisp} total</span>
-      </div>
-      ${rows}
-      <div class="cost-total">
-        <span>Total for ${S.costCursor.toLocaleDateString('en-GB',{month:'long'})}</span>
-        <span style="font-size:18px;">${fmt(totalCost)}</span>
-      </div>
-    </div>
-    <div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Booking breakdown</div>
-    ${details}`;
-}
-
-// ── Edit modal ────────────────────────────────────────────────────────────
-let editId=null;
-let editMins=60;
-
+// Edit booking
+let editId=null,editMins=60;
 function openEdit(id){
-  const b=S.bookings.find(x=>x.id===id); if(!b) return;
+  const b=S.bookings.find(x=>x.id===id);if(!b)return;
   editId=id;
   document.getElementById('e-date').value=b.date;
   document.getElementById('e-from').value=b.start;
   document.getElementById('e-note').value=b.note||'';
   document.getElementById('eerr').style.display='none';
-  // Work out duration from start/end
   const[sh,sm]=b.start.split(':').map(Number);
   const[eh,em]=b.end.split(':').map(Number);
   const diff=(eh*60+em)-(sh*60+sm);
   editMins=diff;
-  // Select matching preset or custom
   const presets=[15,30,45,60,90,120,180];
-  const match=presets.includes(diff);
-  document.querySelectorAll('#e-dur-grid .dur-btn').forEach(btn=>{
+  document.querySelectorAll('#edit-modal .dur-btn').forEach(btn=>{
     const v=btn.dataset.mins;
-    btn.classList.toggle('on', match ? parseInt(v)===diff : v==='custom');
+    btn.classList.toggle('on',v!=='custom'&&parseInt(v)===diff||(v==='custom'&&!presets.includes(diff)));
   });
-  document.getElementById('e-custom-row').style.display=match?'none':'block';
-  if(!match){ document.getElementById('e-to').value=b.end; editMins='custom'; }
+  document.getElementById('e-custom-row').style.display=presets.includes(diff)?'none':'block';
+  document.getElementById('e-to').value=b.end;
   document.getElementById('e-end-display').textContent=b.end;
+  const stampEl=document.getElementById('edit-stamp');
+  if(stampEl)stampEl.textContent=b.updated?'Last edited '+fmtStamp(b.updated):'';
   document.getElementById('edit-modal').classList.remove('off');
 }
-
-function closeEdit(){
-  document.getElementById('edit-modal').classList.add('off');
-  editId=null;
-}
-
-function selectEditDur(btn){
-  document.querySelectorAll('#e-dur-grid .dur-btn').forEach(b=>b.classList.remove('on'));
+function closeEdit(){document.getElementById('edit-modal').classList.add('off');editId=null;}
+function selEditDur(btn){
+  document.querySelectorAll('#edit-modal .dur-btn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  const val=btn.dataset.mins;
-  if(val==='custom'){
-    document.getElementById('e-custom-row').style.display='block';
-    editMins='custom';
-  } else {
-    document.getElementById('e-custom-row').style.display='none';
-    editMins=parseInt(val);
-    calcEditEnd();
-  }
+  const v=btn.dataset.mins;
+  editMins=v==='custom'?'custom':parseInt(v);
+  document.getElementById('e-custom-row').style.display=v==='custom'?'block':'none';
+  if(v!=='custom')calcEditEnd();
 }
-
 function calcEditEnd(){
-  if(editMins==='custom') return;
-  const start=document.getElementById('e-from').value; if(!start) return;
-  const[h,m]=start.split(':').map(Number);
-  const total=h*60+m+editMins;
-  const end=p2(Math.floor(total/60)%24)+':'+p2(total%60);
-  document.getElementById('e-end-display').textContent=end;
+  if(editMins==='custom')return;
+  const s=document.getElementById('e-from').value;if(!s)return;
+  const[h,m]=s.split(':').map(Number),t=h*60+m+editMins;
+  const es=p2(Math.floor(t/60)%24)+':'+p2(t%60);
+  document.getElementById('e-end-display').textContent=es;
+  document.getElementById('e-to').value=es;
 }
-
-function calcEditDurFromEnd(){
-  const start=document.getElementById('e-from').value;
-  const end=document.getElementById('e-to').value;
-  if(!start||!end) return;
-  document.getElementById('e-end-display').textContent=end;
+function editDurFromEnd(){
+  const s=document.getElementById('e-from').value,e=document.getElementById('e-to').value;
+  if(!s||!e)return;
+  const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);
+  editMins=(eh*60+em)-(sh*60+sm);
+  document.getElementById('e-end-display').textContent=e;
 }
-
 function getEditEnd(){
-  if(editMins==='custom') return document.getElementById('e-to').value;
-  const start=document.getElementById('e-from').value; if(!start) return '';
-  const[h,m]=start.split(':').map(Number);
-  const total=h*60+m+editMins;
-  return p2(Math.floor(total/60)%24)+':'+p2(total%60);
+  if(editMins==='custom')return document.getElementById('e-to').value||'';
+  const s=document.getElementById('e-from').value;if(!s)return'';
+  const[h,m]=s.split(':').map(Number),t=h*60+m+editMins;
+  return p2(Math.floor(t/60)%24)+':'+p2(t%60);
 }
-
 async function saveEdit(){
   const date=document.getElementById('e-date').value;
   const from=document.getElementById('e-from').value;
@@ -676,26 +889,82 @@ async function saveEdit(){
   errEl.style.display='none';
   if(!date||!from||!to){errEl.textContent='Please fill in date and times.';errEl.style.display='block';return;}
   if(from>=to){errEl.textContent='End time must be after start time.';errEl.style.display='block';return;}
-  // Check for clashes excluding this booking
   const clash=S.bookings.find(b=>b.id!==editId&&b.date===date&&!(to<=b.start||from>=b.end));
   if(clash){errEl.textContent='Clash with '+clash.who+' ('+clash.start+'–'+clash.end+').';errEl.style.display='block';return;}
-  // Update booking
   const idx=S.bookings.findIndex(b=>b.id===editId);
   if(idx>-1){
-    S.bookings[idx]={...S.bookings[idx],date,start:from,end:to,note};
+    S.bookings[idx]={...S.bookings[idx],date,start:from,end:to,note,updated:new Date().toISOString()};
     S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
   }
-  closeEdit();
-  await save();
-  draw(); renderCosts();
+  closeEdit();await save();draw();renderCosts();
 }
 
-// Close modal on background click
-document.getElementById('edit-modal').addEventListener('click',function(e){
-  if(e.target===this) closeEdit();
-});
+// People
+async function addP(){
+  const inp=document.getElementById('pinp');const n=inp.value.trim();
+  if(!n||S.people.some(p=>pName(p).toLowerCase()===n.toLowerCase())){inp.value='';return;}
+  S.people.push({name:n,smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''});inp.value='';await save();renderPeople();renderCosts();
+}
+async function remP(n){
+  if(S.people.length<=1)return;if(!confirm('Remove '+n+'?'))return;
+  S.people=S.people.filter(p=>pName(p)!==n);await save();renderPeople();renderCosts();
+  if(S.me===n){S.me='';localStorage.removeItem('rb_me');showWho();}
+}
+function renderPeople(){
+  const el=document.getElementById('plist');if(!el)return;
+  el.innerHTML=S.people.map((p,i)=>{
+    const n=pName(p);const c=PAL[i%PAL.length];
+    const tm=getPerson(n);
+    const smsTag=tm.smsEnabled
+      ?'<span style="font-size:10px;background:#D8F3DC;color:#1B4332;padding:2px 8px;border-radius:99px;font-weight:500;margin-left:6px;">SMS on</span>'
+      :'<span style="font-size:10px;background:#F0EDE8;color:#8A8479;padding:2px 8px;border-radius:99px;margin-left:6px;">SMS off</span>';
+    return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F0EDE8;">
+      <div style="width:28px;height:28px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;">${xe(n[0])}</div>
+      <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:2px;">
+        <span style="font-size:14px;">${xe(n)}</span>${smsTag}
+      </div>
+      <button onclick="remP('${xe(n)}')" style="color:#8A8479;font-size:20px;padding:2px 6px;border:none;background:none;cursor:pointer;">×</button>
+    </div>`;
+  }).join('');
+}
 
-// ── Filter ────────────────────────────────────────────────────────────────
+// Rate
+function saveRate(){
+  const v=parseFloat(document.getElementById('rate-inp').value)||0;
+  S.rate=v;localStorage.setItem('rb_rate',v);save();renderCosts();
+}
+
+// Costs
+function shiftCost(d){S.costCursor=new Date(S.costCursor.getFullYear(),S.costCursor.getMonth()+d,1);renderCosts();}
+function renderCosts(){
+  const el=document.getElementById('cost-body');const periodEl=document.getElementById('cost-period');
+  if(!el||!periodEl)return;
+  const yr=S.costCursor.getFullYear(),mo=S.costCursor.getMonth();
+  periodEl.textContent=S.costCursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const rate=S.rate||0;
+  const mb=S.bookings.filter(b=>{const d=new Date(b.date+'T12:00:00');return d.getFullYear()===yr&&d.getMonth()===mo;});
+  if(!mb.length){el.innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#8A8479;">No bookings in ${S.costCursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</div>`;return;}
+  const byP={};
+  S.people.forEach(p=>{const n=pName(p);byP[n]={bookings:[],hours:0,cost:0};});
+  mb.forEach(b=>{if(!byP[b.who])byP[b.who]={bookings:[],hours:0,cost:0};const h=hrs(b);byP[b.who].bookings.push(b);byP[b.who].hours+=h;byP[b.who].cost+=h*rate;});
+  let th=0,tc=0;
+  const rows=S.people.filter(p=>{const n=pName(p);return byP[n]&&byP[n].bookings.length>0;}).map(p=>{const n=pName(p);
+    const c=col(n);const pp=byP[n];th+=pp.hours;tc+=pp.cost;
+    const hd=pp.hours%1===0?pp.hours+'h':pp.hours.toFixed(1)+'h';
+    return`<div class="cost-row"><div style="width:34px;height:34px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;">${xe(n[0])}</div><div style="flex:1;"><div style="font-size:14px;font-weight:500;">${xe(n)}</div><div style="font-size:12px;color:#8A8479;">${pp.bookings.length} booking${pp.bookings.length===1?'':'s'} · ${hd}</div></div><div style="text-align:right;"><div style="font-size:16px;font-weight:500;">${fmt(pp.cost)}</div>${rate>0?`<div style="font-size:11px;color:#8A8479;">${fmt(rate)}/hr</div>`:''}</div></div>`;
+  }).join('');
+  const details=S.people.filter(p=>{const n=pName(p);return byP[n]&&byP[n].bookings.length>0;}).map(p=>{const n=pName(p);
+    const c=col(n);const pp=byP[n];
+    const brows=pp.bookings.map(b=>{const h=hrs(b);const hd=h%1===0?h+'h':h.toFixed(1)+'h';const dstr=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+      return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px;border-top:1px solid #F7F5F0;font-size:13px;"><div><span>${dstr}</span><span style="color:#8A8479;margin-left:8px;">${b.start}–${b.end}${b.note?' · '+xe(b.note):''}</span></div><div style="display:flex;gap:12px;align-items:center;flex-shrink:0;"><span style="color:#8A8479;font-size:12px;">${hd}</span><span style="font-weight:500;">${fmt(h*rate)}</span></div></div>`;
+    }).join('');
+    return`<div class="cost-card" style="margin-bottom:12px;"><div class="cost-hdr"><div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;">${xe(n[0])}</div><span style="font-weight:500;">${xe(n)}</span></div><span style="font-size:16px;font-weight:500;">${fmt(pp.cost)}</span></div>${brows}</div>`;
+  }).join('');
+  const thd=th%1===0?th+'h':th.toFixed(1)+'h';
+  el.innerHTML=`<div class="cost-card" style="margin-bottom:16px;"><div class="cost-hdr" style="font-weight:500;font-size:15px;"><span>Summary</span><span style="color:#8A8479;font-size:13px;font-weight:400;">${thd} total</span></div>${rows}<div class="cost-total"><span>Total for ${S.costCursor.toLocaleDateString('en-GB',{month:'long'})}</span><span style="font-size:18px;">${fmt(tc)}</span></div></div><div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Breakdown</div>${details}`;
+}
+
+// Filter
 function setF(f){
   S.filt=f;
   document.getElementById('ch-all').className='p'+(f==='all'?' on':'');
@@ -704,124 +973,99 @@ function setF(f){
 }
 function getFilt(){return S.filt==='mine'?S.bookings.filter(b=>b.who===S.me):[...S.bookings];}
 
-// ── View switching ────────────────────────────────────────────────────────
+// View
 function setV(v){
   S.view=v;
-  document.getElementById('vb-list').className='p'+(v==='list'?' on':'');
-  document.getElementById('vb-week').className='p'+(v==='week'?' on':'');
-  document.getElementById('vb-month').className='p'+(v==='month'?' on':'');
-  updateLbl(); draw();
+  ['list','week','month'].forEach(k=>document.getElementById('vb-'+k).className='p'+(k===v?' on':''));
+  updateLbl();draw();
 }
 function shift(d){
-  if(S.view==='list'||S.view==='week') S.cursor=addD(S.cursor,d*7);
+  if(S.view==='list'||S.view==='week')S.cursor=addD(S.cursor,d*7);
   else S.cursor=new Date(S.cursor.getFullYear(),S.cursor.getMonth()+d,1);
-  updateLbl(); draw();
+  updateLbl();draw();
 }
 function goToday(){S.cursor=new Date();updateLbl();draw();}
 function updateLbl(){
-  const el=document.getElementById('plbl'); if(!el)return;
+  const el=document.getElementById('plbl');if(!el)return;
   if(S.view==='list'){el.textContent='Upcoming';return;}
-  if(S.view==='week'){
-    const m=wkMon(S.cursor),s=addD(m,6);
-    el.textContent=m.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+s.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
-  }else{
-    el.textContent=S.cursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-  }
+  if(S.view==='week'){const m=wkMon(S.cursor),s=addD(m,6);el.textContent=m.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+s.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});}
+  else el.textContent=S.cursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
 }
-function draw(){
-  updateLbl();
-  if(S.view==='list') drawList();
-  else if(S.view==='week') drawWeek();
-  else drawMonth();
-}
+function draw(){updateLbl();if(S.view==='list')drawList();else if(S.view==='week')drawWeek();else drawMonth();}
 
-// ── List ──────────────────────────────────────────────────────────────────
+// List
 function drawList(){
-  const el=document.getElementById('vbody'); if(!el)return;
+  const el=document.getElementById('vbody');if(!el)return;
   const tod=ds(new Date());
-  const all=getFilt();
-  const upcoming=all.filter(b=>b.date>=tod);
-  const past=all.filter(b=>b.date<tod);
-  if(!all.length){el.innerHTML='<p style="color:#8A8479;padding:20px 0;text-align:center;">No bookings'+(S.filt==='mine'?' for you':'')+'</p>';return;}
-  // Show upcoming first, then past bookings collapsed
-  const fb=upcoming;
+  const fb=getFilt().filter(b=>b.date>=tod);
+  if(!fb.length){el.innerHTML='<p style="color:#8A8479;padding:20px 0;text-align:center;">No upcoming bookings'+(S.filt==='mine'?' for you':'')+'</p>';return;}
   const g={};fb.forEach(b=>{if(!g[b.date])g[b.date]=[];g[b.date].push(b);});
-  const gp={};past.forEach(b=>{if(!gp[b.date])gp[b.date]=[];gp[b.date].push(b);});
-  function renderBookingGroup(grp,isPast){
-    return Object.keys(grp).sort().map(date=>{
-      const lbl=date===tod?'Today':new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-      const rows=grp[date].map(b=>{
-        const c=col(b.who);
-        const h=hrs(b);
-        const cost=S.rate>0?` · ${fmt(h*S.rate)}`:'';
-        const opacity=isPast?'opacity:.55;':'';
-        return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid #F0EDE8;border-left:3px solid ${c.mid};${opacity}">
-          <div style="width:34px;height:34px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;">${xe(b.who[0].toUpperCase())}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:14px;font-weight:500;">${xe(b.who)}</div>
-            <div style="font-size:13px;color:#8A8479;">${xe(b.start)} – ${xe(b.end)}${b.note?' · '+xe(b.note):''}${cost}</div>
-          </div>
-          <div style="display:flex;gap:4px;flex-shrink:0;">
-            <button onclick="openEdit(${b.id})" style="font-size:12px;padding:4px 8px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#8A8479;cursor:pointer;" aria-label="Edit booking">Edit</button>
-            <button onclick="delB(${b.id})" style="color:#CCC;font-size:20px;padding:2px 8px;border:none;background:none;cursor:pointer;" aria-label="Delete booking">×</button>
-          </div>
-        </div>`;
-      }).join('');
-      return`<div style="margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">${lbl}</div>
-        <div style="border:1px solid #E5E0D8;border-radius:12px;overflow:hidden;">${rows}</div>
+  el.innerHTML=Object.keys(g).sort().map(date=>{
+    const isToday=date===tod;
+    const lbl=isToday?'<span style="background:#1A1814;color:#fff;padding:2px 10px;border-radius:99px;font-size:11px;">Today</span>':new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const rows=g[date].map(b=>{
+      const c=col(b.who);const h=hrs(b);
+      const minH=Math.max(60,Math.round(h*40+40));
+      const durLabel=h%1===0?h+'h':h.toFixed(1)+'h';
+      const cost=S.rate>0?fmt(h*S.rate):'';
+      const isOwner=b.who===S.me;
+      return`<div style="display:flex;align-items:stretch;border-top:1px solid #F0EDE8;border-left:4px solid ${c.mid};min-height:${minH}px;">
+        <div style="width:44px;flex-shrink:0;background:${c.bg};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 4px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:${c.mid}20;color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;">${xe(b.who[0].toUpperCase())}</div>
+          <div style="font-size:10px;font-weight:600;color:${c.fg};opacity:.8;">${durLabel}</div>
+        </div>
+        <div style="flex:1;min-width:0;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;">
+          <div style="font-size:14px;font-weight:500;">${xe(b.who)}</div>
+          <div style="font-size:13px;color:#8A8479;margin-top:2px;">${xe(b.start)} – ${xe(b.end)}${b.note?'<div style="font-size:12px;color:#8A8479;margin-top:2px;font-style:italic;">'+xe(b.note)+'</div>':''}</div>
+          ${cost?`<div style="font-size:12px;font-weight:500;margin-top:3px;">${cost}</div>`:''}
+          ${b.updated?`<div style="font-size:11px;color:#B0AAA0;margin-top:4px;">✏️ ${fmtStamp(b.updated)}</div>`:''}
+          ${b.smsSent?`<div style="font-size:11px;color:#52B788;margin-top:3px;">📱 SMS sent ${fmtStamp(b.smsSent)}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;padding:8px;flex-shrink:0;">
+          ${(()=>{
+            if(!isOwner) return '';
+            const tm=getTM();
+            if(!tm.enabled) return '<span style="font-size:10px;color:#C8C3BB;padding:2px 4px;" title="SMS off — enable in People tab">📵</span>';
+            return `<button onclick="openSMS(${b.id})" style="font-size:11px;padding:4px 8px;border:1px solid ${b.smsSent?'#95D5B2':'#C9A84C'};border-radius:6px;background:${b.smsSent?'#D8F3DC':'#FFF3CD'};color:${b.smsSent?'#1B4332':'#6B4C00'};cursor:pointer;" title="${b.smsSent?'SMS sent '+fmtStamp(b.smsSent)+' — tap to resend':'Send SMS reminder'}">📱${b.smsSent?' ✓':''}</button>`;
+          })()}
+          ${isOwner?`<button onclick="openEdit(${b.id})" style="font-size:11px;padding:4px 8px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#8A8479;cursor:pointer;">Edit</button>`:''}
+          ${isOwner?`<button onclick="delB(${b.id})" style="color:#CCC;font-size:18px;padding:2px 6px;border:none;background:none;cursor:pointer;" aria-label="Delete">×</button>`:''}
+        </div>
       </div>`;
     }).join('');
-  }
-
-  let html='';
-  if(upcoming.length){
-    html+=renderBookingGroup(g,false);
-  } else {
-    html+='<p style="color:#8A8479;padding:10px 0;text-align:center;font-size:13px;">No upcoming bookings'+(S.filt==='mine'?' for you':'')+'</p>';
-  }
-  if(past.length){
-    html+=`<details style="margin-top:8px;">
-      <summary style="font-size:12px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;padding:8px 0;list-style:none;display:flex;align-items:center;gap:6px;">
-        <span style="font-size:10px;">▶</span> Past bookings (${past.length})
-      </summary>
-      <div style="margin-top:8px;">${renderBookingGroup(gp,true)}</div>
-    </details>`;
-  }
-  el.innerHTML=html;
+    return`<div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">${lbl}</div>
+      <div style="border:${isToday?'2px solid #1A1814':'1px solid #E5E0D8'};border-radius:12px;overflow:hidden;${isToday?'box-shadow:0 2px 8px rgba(0,0,0,.08)':''}">${rows}</div>
+    </div>`;
+  }).join('');
 }
 
-// ── Week ──────────────────────────────────────────────────────────────────
+// Week
 function drawWeek(){
-  const el=document.getElementById('vbody'); if(!el)return;
+  const el=document.getElementById('vbody');if(!el)return;
   const mon=wkMon(S.cursor);
   const days=Array.from({length:7},(_,i)=>addD(mon,i));
   const tod=ds(new Date());
   const HOURS=Array.from({length:13},(_,i)=>i+7);
-  const H=48; const fb=getFilt();
+  const H=48;const fb=getFilt();
   let html='<div class="wk-w"><div class="wk-g">';
   html+='<div class="wk-ch"></div>';
   days.forEach(d=>{
     const isT=ds(d)===tod;
     const ns=isT?`background:#1A1814;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;margin:2px auto 0;`:`font-size:16px;color:#1A1814;margin-top:2px;`;
-    html+=`<div class="wk-ch"><div style="font-size:9px;font-weight:600;color:#8A8479;text-transform:uppercase;">${d.toLocaleDateString('en-GB',{weekday:'short'})}</div><div style="${ns}">${d.getDate()}</div></div>`;
+    html+=`<div class="wk-ch" style="${isT?'background:#F0EDE6;border-bottom:2px solid #1A1814;':''}"><div style="font-size:9px;font-weight:600;color:${isT?'#1A1814':'#8A8479'};text-transform:uppercase;">${d.toLocaleDateString('en-GB',{weekday:'short'})}</div><div style="${ns}">${d.getDate()}</div></div>`;
   });
   HOURS.forEach(h=>{
     html+=`<div class="wk-tc">${p2(h)}:00</div>`;
     days.forEach(d=>{
-      const dstr=ds(d);
+      const dstr=ds(d);const isTodayCol=dstr===tod;
       const evs=fb.filter(b=>b.date===dstr&&parseInt(b.start.split(':')[0])===h);
-      html+='<div class="wk-cell">';
+      html+=`<div class="wk-cell" style="${isTodayCol?'background:#FAFAF4;':''}">`;
       evs.forEach(b=>{
-        const[sh,sm]=b.start.split(':').map(Number);
-        const[eh,em]=b.end.split(':').map(Number);
-        const top=(sm/60)*H;
-        const ht=Math.max(((eh*60+em-sh*60-sm)/60)*H,16);
-        const c=col(b.who);
-        html+=`<div class="wk-ev" style="top:${top}px;height:${ht}px;background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};">
-          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${xe(b.who)}</div>
-          <div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>
-        </div>`;
+        const[sh,sm]=b.start.split(':').map(Number);const[eh,em]=b.end.split(':').map(Number);
+        const top=(sm/60)*H;const ht=Math.max(((eh*60+em-sh*60-sm)/60)*H,16);
+        const c=col(b.who);const canEdit=b.who===S.me;
+        html+=`<div class="wk-ev" style="top:${top}px;height:${ht}px;background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};cursor:${canEdit?'pointer':'default'};" ${canEdit?`onclick="openEdit(${b.id})" title="Edit"`:''}><div style="display:flex;justify-content:space-between;"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${xe(b.who)}</div>${canEdit&&ht>=24?'<div style="font-size:9px;opacity:.7;">✏️</div>':''}</div>${ht>=28?`<div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>`:''}</div>`;
       });
       html+='</div>';
     });
@@ -830,63 +1074,295 @@ function drawWeek(){
   el.innerHTML=html;
 }
 
-// ── Month ─────────────────────────────────────────────────────────────────
+// Month
 function drawMonth(){
-  const el=document.getElementById('vbody'); if(!el)return;
+  const el=document.getElementById('vbody');if(!el)return;
   const yr=S.cursor.getFullYear(),mo=S.cursor.getMonth();
   const tod=ds(new Date());
   const first=new Date(yr,mo,1),last=new Date(yr,mo+1,0);
-  let off=first.getDay()-1; if(off<0)off=6;
+  let off=first.getDay()-1;if(off<0)off=6;
   const cells=[];
-  for(let i=0;i<off;i++) cells.push({d:addD(first,-off+i),om:true});
-  for(let i=1;i<=last.getDate();i++) cells.push({d:new Date(yr,mo,i),om:false});
-  while(cells.length%7) cells.push({d:addD(last,cells.length-off-last.getDate()+1),om:true});
+  for(let i=0;i<off;i++)cells.push({d:addD(first,-off+i),om:true});
+  for(let i=1;i<=last.getDate();i++)cells.push({d:new Date(yr,mo,i),om:false});
+  while(cells.length%7)cells.push({d:addD(last,cells.length-off-last.getDate()+1),om:true});
   const fb=getFilt();
   const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   let html='<div class="mo-w"><div class="mo-h">';
   DAYS.forEach(d=>html+=`<div class="mo-hc">${d}</div>`);
   html+='</div><div class="mo-b">';
   cells.forEach(({d,om})=>{
-    const dstr=ds(d); const isT=dstr===tod;
-    const evs=fb.filter(b=>b.date===dstr);
-    const show=evs.slice(0,3); const more=evs.length-show.length;
-    const numEl=isT
-      ?`<div style="background:#1A1814;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;margin-bottom:3px;">${d.getDate()}</div>`
-      :`<div style="font-size:12px;margin-bottom:3px;color:${om?'#C8C3BB':'#1A1814'};">${d.getDate()}</div>`;
+    const dstr=ds(d);const isT=dstr===tod;
+    const evs=fb.filter(b=>b.date===dstr);const show=evs.slice(0,3);const more=evs.length-show.length;
+    const numEl=isT?`<div style="background:#1A1814;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;margin-bottom:3px;">${d.getDate()}</div>`:`<div style="font-size:12px;margin-bottom:3px;color:${om?'#C8C3BB':'#1A1814'};">${d.getDate()}</div>`;
     html+=`<div class="mo-c${isT?' tdc':''}">`;
     html+=numEl;
-    show.forEach(b=>{const c=col(b.who);html+=`<div class="mo-ev" style="background:${c.bg};color:${c.fg};">${xe(b.who)} ${xe(b.start)}</div>`;});
-    if(more>0) html+=`<div style="font-size:9px;color:#8A8479;">+${more} more</div>`;
+    show.forEach(b=>{
+      const c=col(b.who);const canEditMo=b.who===S.me;
+      html+=`<div class="mo-ev" style="background:${c.bg};color:${c.fg};cursor:${canEditMo?'pointer':'default'};" ${canEditMo?`onclick="openEdit(${b.id})" title="Edit"`:''}>${xe(b.who)} ${xe(b.start)}${canEditMo?' ✏️':''}</div>`;
+    });
+    if(more>0)html+=`<div style="font-size:9px;color:#8A8479;">+${more} more</div>`;
     html+='</div>';
   });
   html+='</div></div>';
   el.innerHTML=html;
 }
 
-// ── Tabs ──────────────────────────────────────────────────────────────────
+// Tabs
 function goTab(t){
   S.tab=t;
-  ['book','view','costs','people'].forEach(k=>{
+  ['book','view','costs','sms','people'].forEach(k=>{
     document.getElementById('tb-'+k).className='tb'+(k===t?' on':'');
     document.getElementById('pane-'+k).style.display=k===t?'block':'none';
   });
   if(window.innerWidth>=700){
     document.getElementById('pane-book').style.display='block';
-    document.getElementById('pane-view').style.display=(t==='people'||t==='costs')?'none':'block';
+    document.getElementById('pane-view').style.display=(t==='people'||t==='costs'||t==='sms')?'none':'block';
     document.getElementById('pane-costs').style.display=t==='costs'?'block':'none';
+    document.getElementById('pane-sms').style.display=t==='sms'?'block':'none';
     document.getElementById('pane-people').style.display=t==='people'?'block':'none';
   }
   if(t==='view'){load();draw();}
-  if(t==='costs') renderCosts();
+  if(t==='costs')renderCosts();
+  if(t==='sms'){load();renderSMSTab();}
 }
 window.addEventListener('resize',()=>{
-  if(window.innerWidth>=700&&S.tab!=='people'&&S.tab!=='costs'){
+  if(window.innerWidth>=700&&S.tab!=='people'&&S.tab!=='costs'&&S.tab!=='sms'){
     document.getElementById('pane-book').style.display='block';
     document.getElementById('pane-view').style.display='block';
   }
 });
-updateLbl();
-renderCosts();
+updateLbl();renderCosts();
+
+// ── TextMagic ─────────────────────────────────────────────────────────────
+function getTM(){
+  const p=getPerson(S.me);
+  return{
+    enabled:p.smsEnabled||false,
+    user:   p.tmUser  ||'',
+    key:    p.tmKey   ||'',
+    mobile: p.tmMobile||'07498218609'
+  };
+}
+
+function openTM(){
+  if(!S.me){showWho();return;}
+  const c=getTM();
+  document.getElementById('tm-who-lbl').textContent=S.me;
+  document.getElementById('tm-user').value=c.user;
+  document.getElementById('tm-key').value=c.key;
+  document.getElementById('tm-mobile').value=c.mobile||'';
+  document.getElementById('tm-enabled').checked=!!c.enabled;
+  document.getElementById('tm-test-res').style.display='none';
+  tmToggle();
+  document.getElementById('tm-modal').classList.remove('off');
+}
+function closeTM(){document.getElementById('tm-modal').classList.add('off');}
+function tmToggle(){
+  const on=document.getElementById('tm-enabled').checked;
+  document.getElementById('tm-track').style.background=on?'#1A1814':'#E5E0D8';
+  document.getElementById('tm-thumb').style.transform=on?'translateX(20px)':'translateX(0)';
+}
+async function saveTM(){
+  const on=document.getElementById('tm-enabled').checked;
+  setPerson(S.me,{
+    smsEnabled:on,
+    tmUser:  document.getElementById('tm-user').value.trim(),
+    tmKey:   document.getElementById('tm-key').value.trim(),
+    tmMobile:document.getElementById('tm-mobile').value.trim()
+  });
+  closeTM();
+  await save();
+  renderPeople();
+  updateSMSStatus();
+  alert('SMS settings saved for '+S.me+' and synced to all devices ✓');
+}
+
+async function testTM(){
+  const user=document.getElementById('tm-user').value.trim();
+  const key=document.getElementById('tm-key').value.trim();
+  const res=document.getElementById('tm-test-res');
+  const btn=document.getElementById('tm-test-btn');
+  if(!user||!key){res.style.background='#FDECEA';res.style.color='#C0392B';res.textContent='Please enter username and API key first.';res.style.display='block';return;}
+  btn.textContent='Testing…';btn.disabled=true;
+  try{
+    const r=await fetch(GAS+'?'+new URLSearchParams({action:'tmMe',tmUser:user,tmKey:key}),{redirect:'follow'});
+    const j=await r.json();
+    if(j.ok){res.style.background='#D8F3DC';res.style.color='#1B4332';res.textContent='Connected ✓ — '+j.firstName+' '+j.lastName+' ('+j.balance+' credits)';}
+    else{res.style.background='#FDECEA';res.style.color='#C0392B';res.textContent='Failed: '+(j.error||'check your credentials');}
+  }catch(e){res.style.background='#FDECEA';res.style.color='#C0392B';res.textContent='Error: '+e.message;}
+  res.style.display='block';
+  btn.textContent='🔍 Test connection';btn.disabled=false;
+}
+
+function renderSMSTab(){
+  renderPending();
+  renderSMSLog();
+}
+
+function renderPending(){
+  const el=document.getElementById('sms-pending'); if(!el)return;
+  const in2=new Date(); in2.setDate(in2.getDate()+2);
+  const target=ds(in2);
+  // Only show bookings where the owner has SMS enabled on this device
+  const pending=S.bookings.filter(b=>{
+    if(b.date!==target||b.smsSent||b.autoSent) return false;
+    // Check if this person has SMS enabled (only knowable for current user)
+    if(b.who===S.me){
+      const tm=getTM();
+      return tm.enabled&&tm.user&&tm.key;
+    }
+    return false; // can't send for other people
+  });
+  if(!pending.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:#8A8479;font-size:13px;">No pending reminders for '+new Date(target+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+'</div>';
+    return;
+  }
+  el.innerHTML='<div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Due in 2 days — '+new Date(target+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+'</div>'+
+  pending.map(b=>{
+    const c=col(b.who);const isOwner=b.who===S.me;
+    return`<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#FFF8E7;border:1px solid #F0D080;border-radius:10px;margin-bottom:8px;flex-wrap:wrap;">
+      <div style="width:32px;height:32px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;">${xe(b.who[0])}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:500;">${xe(b.who)} · ${xe(b.start)}–${xe(b.end)}</div>
+        ${b.note?`<div style="font-size:12px;color:#8A8479;margin-top:2px;">Client: ${xe(b.note)}</div>`:''}
+      </div>
+      ${isOwner?`<button onclick="openSMS(${b.id})" style="padding:7px 14px;font-size:12px;font-weight:500;border:1px solid #C9A84C;border-radius:6px;background:#FFF3CD;color:#6B4C00;cursor:pointer;white-space:nowrap;">📱 Send reminder</button>`:'<span style="font-size:12px;color:#8A8479;">Not your booking</span>'}
+    </div>`;
+  }).join('');
+}
+
+function renderSMSLog(){
+  const el=document.getElementById('sms-log'); if(!el)return;
+  // Combine manual smsSent from bookings + autoSent log
+  const manual=S.bookings.filter(b=>b.smsSent).map(b=>({
+    id:'m'+b.id, who:b.who, date:b.date, start:b.start,
+    clientName:b.note||'', sentAt:b.smsSent, auto:false
+  }));
+  const auto=S.smsLog||[];
+  const all=[...auto,...manual].sort((a,b)=>new Date(b.sentAt)-new Date(a.sentAt));
+  if(!all.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:#8A8479;font-size:13px;">No reminders sent yet</div>';
+    return;
+  }
+  el.innerHTML=all.map(entry=>{
+    const c=col(entry.who);
+    const d=new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+    return`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#fff;border:1px solid #E5E0D8;border-radius:10px;margin-bottom:7px;">
+      <div style="width:30px;height:30px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;">${xe(entry.who[0])}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:500;">${xe(entry.who)} · ${d} ${xe(entry.start)}</div>
+        <div style="font-size:12px;color:#8A8479;margin-top:1px;">
+          ${entry.clientName?'Client: '+xe(entry.clientName)+' · ':''}
+          ${entry.auto?'🤖 Auto-sent':'📱 Manual'} · ${fmtStamp(entry.sentAt)}
+        </div>
+      </div>
+      ${entry.auto?`<button onclick="clearLog(${entry.id})" style="font-size:18px;color:#CCC;border:none;background:none;cursor:pointer;padding:2px 6px;" title="Remove from log">×</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function clearLog(logId){
+  if(!confirm('Remove this entry from the log?'))return;
+  try{
+    const params=new URLSearchParams({action:'clearLog',logId:logId});
+    await fetch(GAS+'?'+params,{redirect:'follow'});
+    S.smsLog=S.smsLog.filter(l=>l.id!==logId);
+    renderSMSLog();
+  }catch(e){alert('Could not remove: '+e.message);}
+}
+
+function updateSMSStatus(){
+  const el=document.getElementById('sms-status');
+  const btn=document.getElementById('sms-settings-btn');
+  if(!el||!S.me) return;
+  const tm=getTM();
+  if(tm.enabled){
+    el.textContent='📱 SMS on for '+S.me;
+    el.style.background='#D8F3DC';el.style.color='#1B4332';
+    if(btn) btn.textContent='⚙️ My SMS settings ('+S.me+')';
+    const tl=document.getElementById('sms-tab-lbl');
+    if(tl) tl.textContent='📱 Reminders';
+  }else{
+    el.textContent='📵 SMS off for '+S.me;
+    el.style.background='#F0EDE8';el.style.color='#8A8479';
+    if(btn) btn.textContent='⚙️ My SMS settings ('+S.me+')';
+    const tl=document.getElementById('sms-tab-lbl');
+    if(tl) tl.textContent='📵 Reminders (off)';
+  }
+}
+
+// ── Contact picker ────────────────────────────────────────────────────────
+let _cpBid=null,_tmCache=null,_tmCacheKey='';
+
+function openSMS(id){
+  if(!S.me){showWho();return;}
+  const tm=getTM();
+  if(!tm.enabled){
+    if(confirm('SMS reminders are disabled for '+S.me+'. Open SMS settings now?')) openTM();
+    return;
+  }
+  if(!tm.user||!tm.key){alert('No TextMagic credentials set. Go to People tab > My SMS settings.');openTM();return;}
+  const b=S.bookings.find(x=>x.id===id);if(!b)return;
+  _cpBid=id;
+  document.getElementById('cp-search').value=b.note||'';
+  document.getElementById('cp-binfo').textContent=b.who+' · '+b.start+'–'+b.end+(b.note?' · '+b.note:'');
+  document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Type a name to search your TextMagic contacts</p>';
+  document.getElementById('cp-modal').classList.remove('off');
+  if(b.note) setTimeout(searchCP,100);
+}
+function closeCP(){document.getElementById('cp-modal').classList.add('off');_cpBid=null;}
+
+async function searchCP(){
+  const tm=getTM();
+  const q=document.getElementById('cp-search').value.trim();
+  const el=document.getElementById('cp-results');
+  if(!q){el.innerHTML='<p style="color:#8A8479;text-align:center;padding:12px;font-size:13px;">Type a name to search</p>';return;}
+  el.innerHTML='<p style="color:#8A8479;text-align:center;padding:12px;font-size:13px;">Searching…</p>';
+  try{
+    _tmCache=null;
+    const params=new URLSearchParams({action:'tmContacts',tmUser:tm.user,tmKey:tm.key,limit:50,search:q});
+    const r=await fetch(GAS+'?'+params,{redirect:'follow'});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'Failed');
+    const contacts=(j.resources||[]).map(c=>({name:((c.firstName||'')+' '+(c.lastName||'')).trim(),phone:c.phone||''})).filter(c=>c.phone);
+    if(!contacts.length){el.innerHTML='<p style="color:#8A8479;text-align:center;padding:12px;font-size:13px;">No contacts found for "'+xe(q)+'"</p>';return;}
+    el.innerHTML=contacts.slice(0,15).map(c=>`
+      <div onclick="selectContact('${encodeURIComponent(c.name)}','${encodeURIComponent(c.phone)}')"
+        style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #F0EDE8;cursor:pointer;"
+        onmouseover="this.style.background='#F7F5F0'" onmouseout="this.style.background=''">
+        <div><div style="font-size:14px;font-weight:500;">${xe(c.name||'(no name)')}</div><div style="font-size:12px;color:#8A8479;">${xe(c.phone)}</div></div>
+        <div style="font-size:18px;color:#C9A84C;">›</div>
+      </div>`).join('');
+  }catch(e){el.innerHTML='<p style="color:#C0392B;padding:12px;font-size:13px;">Error: '+e.message+'</p>';}
+}
+
+async function selectContact(encName,encPhone){
+  const name=decodeURIComponent(encName);
+  const phone=decodeURIComponent(encPhone);
+  const b=S.bookings.find(x=>x.id===_cpBid);if(!b)return;
+  const tm=getTM();
+  const d=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const first=name.split(' ')[0];
+  const mobile=tm.mobile||'07498218609';
+  const text="Note: Hi "+first+", you have an appt with "+b.who+" in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on "+d+" at "+b.start+". Call "+mobile+".";
+  closeCP();
+  if(!confirm('Send SMS to '+name+' ('+phone+')?\n\n"'+text+'"')) return;
+  try{
+    const params=new URLSearchParams({action:'tmSend',tmUser:tm.user,tmKey:tm.key,text,phones:phone});
+    const r=await fetch(GAS+'?'+params,{redirect:'follow'});
+    const j=await r.json();
+    if(j.ok){
+      const i=S.bookings.findIndex(x=>x.id===b.id);
+      if(i>-1) S.bookings[i].smsSent=new Date().toISOString();
+      await save();draw();
+      alert('✓ SMS sent to '+name);
+    }else{
+      alert('SMS failed: '+(j.error||'unknown error'));
+    }
+  }catch(e){alert('SMS error: '+e.message);}
+}
+
+updateSMSStatus();
 </script>
 </body>
 </html>
