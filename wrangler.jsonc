@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "room-booking",
+  "main": "_worker.js",
   "compatibility_date": "2026-06-09",
   "observability": {
     "enabled": true
