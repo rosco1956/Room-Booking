@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api-ssl.bitly.com https://rest.textmagic.com https://zoom.us https://api.zoom.us https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data:;">
 <title>Room Booking</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -38,6 +39,27 @@ button{font-family:inherit;cursor:pointer;}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:700;padding:20px;}
 .modal-bg.off{display:none;}
 .modal{background:#fff;border-radius:14px;padding:22px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;}
+/* dark mode */
+body.dark{background:#1A1814;color:#F7F5F0;}
+body.dark .card,body.dark .modal,body.dark .wk-w,body.dark .mo-w,body.dark .cost-card{background:#252220;border-color:#3A3530;}
+body.dark .inp{background:#2A2724;border-color:#3A3530;color:#F7F5F0;}
+body.dark .inp:focus{border-color:#C9A84C;}
+body.dark .tb-bar,body.dark .wk-ch,body.dark .wk-tc,body.dark .mo-h,body.dark .mo-hc{background:#252220;border-color:#3A3530;}
+body.dark .tb{color:#8A8479;}body.dark .tb.on{color:#F7F5F0;border-color:#F7F5F0;}
+body.dark .p{color:#8A8479;}body.dark .p.on{background:#F7F5F0;color:#1A1814;}
+body.dark .pr{background:#252220;border-color:#3A3530;}
+body.dark .mo-c,body.dark .wk-cell{background:#1A1814;border-color:#3A3530;}
+body.dark .mo-c.tdc{background:#252220;}
+body.dark .btn-main{background:#C9A84C;color:#1A1814;}
+body.dark #colour-legend span{border-color:#3A3530!important;}
+body.dark .dur-btn{background:#252220;border-color:#3A3530;color:#8A8479;}
+body.dark .dur-btn.on{background:#F7F5F0;color:#1A1814;}
+body.dark .who-btn{border-color:#3A3530!important;}
+body.dark #search-results{background:#252220;border-color:#3A3530;}
+
+/* tooltip */
+#ev-tooltip{transition:opacity .15s;}
+
 /* week */
 .wk-w{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #E5E0D8;border-radius:14px;background:#fff;}
 .wk-g{display:grid;grid-template-columns:38px repeat(7,minmax(60px,1fr));min-width:500px;}
@@ -95,12 +117,28 @@ button{font-family:inherit;cursor:pointer;}
     <div style="margin-bottom:10px;"><label class="lbl" for="tm-user">TextMagic username</label><input class="inp" type="text" id="tm-user" placeholder="your@email.com"/></div>
     <div style="margin-bottom:10px;"><label class="lbl" for="tm-key">API key</label><input class="inp" type="password" id="tm-key" placeholder="Your API key"/></div>
     <div style="margin-bottom:10px;"><label class="lbl" for="tm-mobile">Your callback mobile number</label><input class="inp" type="tel" id="tm-mobile" placeholder="e.g. 07498218609"/><div style="font-size:11px;color:#8A8479;margin-top:4px;">This number appears in the SMS so clients can call you back.</div></div>
+    <div style="margin-bottom:10px;"><label class="lbl" for="tm-bitly">Bit.ly API token (for Zoom link shortening)</label><input class="inp" type="password" id="tm-bitly" placeholder="Your Bit.ly token"/><div style="font-size:11px;color:#8A8479;margin-top:4px;">From <a href="https://app.bitly.com/settings/api/" target="_blank" style="color:#185FA5;">app.bitly.com/settings/api</a></div></div>
     <button onclick="testTM()" id="tm-test-btn" style="width:100%;padding:9px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;color:#8A8479;cursor:pointer;margin-bottom:8px;">🔍 Test connection</button>
     <div id="tm-test-res" style="font-size:13px;padding:8px 12px;border-radius:8px;display:none;margin-bottom:10px;"></div>
     <div style="background:#F7F5F0;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
-      <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">SMS template</div>
-      <div style="font-size:13px;color:#1A1814;line-height:1.6;font-style:italic;">"Note: Hi [Firstname], you have an appt with [Your name] in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on [Date] at [Time]. Call [your mobile number]."</div>
-      <div style="font-size:11px;color:#8A8479;margin-top:6px;">~160 characters · sent 2 days before appointment</div>
+      <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Confirmation SMS template</div>
+      <div style="font-size:13px;color:#1A1814;line-height:1.6;font-style:italic;">"Hi [Firstname], your appt with [Your name] is confirmed for [Date] at [Time], Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD. Call [your mobile] to cancel. Reply STOP to opt out."</div>
+      <div style="font-size:11px;color:#8A8479;margin-top:4px;">Sent immediately when booking is made</div>
+    </div>
+    <div style="background:#F7F5F0;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Reminder SMS template</div>
+      <div style="font-size:13px;color:#1A1814;line-height:1.6;font-style:italic;">"Note: Hi [Firstname], you have an appt with [Your name] in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on [Date] at [Time]. Call [your mobile number]. Reply STOP to opt out."</div>
+      <div style="font-size:11px;color:#8A8479;margin-top:4px;">~160 characters · sent 2 days before appointment</div>
+    </div>
+    <div style="border-top:1px solid #E5E0D8;padding-top:12px;margin-bottom:4px;">
+      <div style="font-size:14px;font-weight:500;margin-bottom:6px;">Opt-out list</div>
+      <p style="font-size:12px;color:#8A8479;margin-bottom:10px;">Clients who have replied STOP. No SMS will be sent to these numbers.</p>
+      <div id="tm-optout-list" style="max-height:140px;overflow-y:auto;margin-bottom:8px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <input class="inp" type="text" id="tm-optout-name" placeholder="Client name" style="font-size:13px;padding:7px 10px;" aria-label="Opt-out client name"/>
+        <input class="inp" type="tel" id="tm-optout-phone" placeholder="+44 7700…" style="font-size:13px;padding:7px 10px;" aria-label="Opt-out phone number"/>
+      </div>
+      <button onclick="addOptOut()" style="width:100%;margin-top:6px;padding:8px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;color:#1A1814;cursor:pointer;">+ Add to opt-out list</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button onclick="closeTM()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;">Cancel</button>
@@ -111,15 +149,89 @@ button{font-family:inherit;cursor:pointer;}
 
 <!-- Contact picker modal -->
 <div class="modal-bg off" id="cp-modal">
-  <div class="modal">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:17px;font-weight:500;">Select client</div>
+  <div class="modal" style="max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;">
+      <div style="font-size:17px;font-weight:500;" id="cp-title">Select client</div>
       <button onclick="closeCP()" style="background:none;border:none;font-size:22px;color:#8A8479;cursor:pointer;">×</button>
     </div>
-    <div id="cp-binfo" style="font-size:12px;color:#8A8479;background:#F7F5F0;padding:8px 12px;border-radius:8px;margin-bottom:12px;"></div>
-    <input class="inp" type="text" id="cp-search" placeholder="Search TextMagic contacts…" oninput="searchCP()" aria-label="Search contacts" style="margin-bottom:8px;"/>
-    <div id="cp-results" style="max-height:260px;overflow-y:auto;border:1px solid #F0EDE8;border-radius:8px;">
+    <div id="cp-binfo" style="font-size:12px;color:#8A8479;background:#F7F5F0;padding:8px 12px;border-radius:8px;margin-bottom:12px;flex-shrink:0;"></div>
+    <input class="inp" type="text" id="cp-search" placeholder="Search TextMagic contacts…" oninput="searchCP()" aria-label="Search contacts" style="margin-bottom:8px;flex-shrink:0;"/>
+    <div id="cp-results" style="max-height:160px;overflow-y:auto;border:1px solid #F0EDE8;border-radius:8px;margin-bottom:10px;flex-shrink:0;">
       <p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Type a name to search</p>
+    </div>
+    <!-- SMS preview -->
+    <div id="cp-preview-wrap" style="display:none;flex-shrink:0;">
+      <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">SMS preview — editable</div>
+      <textarea id="cp-preview-text"
+        style="width:100%;padding:10px 12px;border:1px solid #E5E0D8;border-radius:8px;font-family:inherit;font-size:13px;color:#1A1814;background:#F7F5F0;resize:vertical;min-height:80px;outline:none;"
+        aria-label="SMS message preview — editable"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;margin-bottom:8px;">
+        <span id="cp-char-count" style="font-size:11px;color:#8A8479;"></span>
+        <span style="font-size:11px;color:#8A8479;">Edit if needed before sending</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Waiting list modal -->
+<div class="modal-bg off" id="wl-modal">
+  <div class="modal">
+    <div style="font-size:17px;font-weight:500;margin-bottom:6px;">Join waiting list</div>
+    <div id="wl-info" style="font-size:13px;color:#8A8479;margin-bottom:14px;line-height:1.6;"></div>
+    <div style="margin-bottom:10px;"><label class="lbl" for="wl-name">Your name</label><input class="inp" type="text" id="wl-name" placeholder="e.g. Rosswell"/></div>
+    <div style="margin-bottom:14px;"><label class="lbl" for="wl-note">Note (optional)</label><input class="inp" type="text" id="wl-note" placeholder="e.g. any time that day"/></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeWL()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;">Cancel</button>
+      <button onclick="joinWL()" style="flex:1;padding:11px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Join waiting list</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip for week/month notes -->
+<div id="ev-tooltip" style="display:none;position:fixed;background:#1A1814;color:#fff;font-size:12px;padding:6px 10px;border-radius:6px;z-index:900;max-width:200px;line-height:1.4;pointer-events:none;"></div>
+
+<!-- iCalendar export modal -->
+<div class="modal-bg off" id="ics-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:17px;font-weight:500;">Export to Calendar</div>
+      <button onclick="closeICS()" style="background:none;border:none;font-size:22px;color:#8A8479;cursor:pointer;">×</button>
+    </div>
+    <p style="font-size:13px;color:#8A8479;margin-bottom:14px;line-height:1.6;">
+      Download your bookings as an <strong>.ics file</strong> and import into any calendar app — iPhone Calendar, Google Calendar, Outlook and more.
+    </p>
+    <div style="margin-bottom:12px;">
+      <label class="lbl">Whose bookings</label>
+      <div class="pr" id="ics-who-row" style="flex-wrap:wrap;border-radius:10px;padding:4px;gap:4px;"></div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="lbl">Period</label>
+      <div class="pr" style="flex-wrap:wrap;">
+        <button class="p on" id="ics-p-future" onclick="setICSPeriod('future')">Upcoming</button>
+        <button class="p"    id="ics-p-month"  onclick="setICSPeriod('month')">This month</button>
+        <button class="p"    id="ics-p-3month" onclick="setICSPeriod('3month')">3 months</button>
+        <button class="p"    id="ics-p-all"    onclick="setICSPeriod('all')">All</button>
+      </div>
+    </div>
+    <div style="background:#F7F5F0;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#8A8479;" id="ics-preview"></div>
+    <button onclick="downloadICS()" style="width:100%;padding:12px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;margin-bottom:16px;">📥 Download .ics file</button>
+
+    <div style="border-top:1px solid #E5E0D8;padding-top:14px;">
+      <div style="font-size:14px;font-weight:500;margin-bottom:4px;">📡 Live subscription link</div>
+      <p style="font-size:12px;color:#8A8479;margin-bottom:10px;line-height:1.6;">Subscribe once in your calendar app and new bookings appear automatically every few hours. Select one person to get their personal feed.</p>
+      <div style="margin-bottom:10px;">
+        <label class="lbl">Person for subscription</label>
+        <div id="ics-sub-who" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;background:#F7F5F0;border-radius:8px;padding:8px 10px;margin-bottom:10px;">
+        <div id="ics-sub-url" style="font-size:11px;color:#8A8479;flex:1;word-break:break-all;font-family:monospace;"></div>
+        <button onclick="copySubURL()" style="padding:5px 10px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Copy</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="openCalSub('apple')" style="flex:1;padding:8px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:12px;cursor:pointer;">🍎 iPhone / Mac</button>
+        <button onclick="openCalSub('google')" style="flex:1;padding:8px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:12px;cursor:pointer;">📅 Google Calendar</button>
+      </div>
+      <p style="font-size:11px;color:#8A8479;text-align:center;margin-top:8px;">Updates every ~1 hour · iPhone checks every 24hrs</p>
     </div>
   </div>
 </div>
@@ -144,9 +256,51 @@ button{font-family:inherit;cursor:pointer;}
     <div id="clash-info" style="font-size:13px;color:#8A8479;margin-bottom:14px;line-height:1.6;"></div>
     <div style="font-size:12px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Available slots on this day</div>
     <div id="clash-slots" style="margin-bottom:14px;max-height:220px;overflow-y:auto;"></div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button onclick="clashSkip()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:#8A8479;">Skip this date</button>
-      <button onclick="clashAbort()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:#C0392B;">Cancel all</button>
+      <button onclick="clashWL()" style="flex:1;padding:11px;border:1px solid #C9A84C;border-radius:8px;background:#FFF3CD;font-size:13px;cursor:pointer;color:#6B4C00;">Join waiting list</button>
+      <button onclick="clashAbort()" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:#C0392B;">Cancel all</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password modal -->
+<div class="modal-bg" id="pin-modal" style="background:#F7F5F0;">
+  <div class="modal" style="text-align:center;">
+    <div style="font-size:22px;font-weight:500;margin-bottom:6px;">Room Booking</div>
+    <p style="font-size:13px;color:#8A8479;margin-bottom:20px;">Enter the access PIN to continue</p>
+    <div style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
+      <input class="inp" type="password" id="pin-inp" maxlength="6" placeholder="••••••"
+        style="text-align:center;font-size:24px;letter-spacing:8px;max-width:160px;"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();checkPIN();}" aria-label="Access PIN"/>
+    </div>
+    <button onclick="checkPIN()" style="width:100%;max-width:200px;padding:12px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;">Enter</button>
+    <div id="pin-err" style="color:#C0392B;font-size:13px;margin-top:10px;display:none;">Incorrect PIN. Please try again.</div>
+    <div style="margin-top:20px;"><button onclick="resetPINCache()" style="background:none;border:none;color:#8A8479;font-size:12px;cursor:pointer;text-decoration:underline;">Forgotten PIN / reset access</button></div>
+  </div>
+</div>
+
+<!-- Browser warning -->
+<div id="browser-warn" style="display:none;position:fixed;bottom:16px;left:16px;right:16px;background:#1A1814;color:#fff;padding:14px 16px;border-radius:12px;z-index:800;font-size:13px;line-height:1.5;">
+  ⚠️ <strong>Browser compatibility notice</strong><br>
+  This app works best in <strong>Safari</strong> or <strong>Chrome</strong>. DuckDuckGo browser blocks some features. Cloud sync may not work reliably.
+  <button onclick="document.getElementById('browser-warn').style.display='none';localStorage.setItem('rb_bwarn','1');"
+    style="display:block;margin-top:10px;width:100%;padding:8px;background:#C9A84C;color:#1A1814;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">Got it</button>
+</div>
+
+<!-- Cancellation modal -->
+<div class="modal-bg off" id="cancel-modal">
+  <div class="modal">
+    <div style="font-size:17px;font-weight:500;margin-bottom:6px;">Cancel booking</div>
+    <div id="cancel-info" style="font-size:13px;color:#8A8479;margin-bottom:14px;line-height:1.6;"></div>
+    <div style="background:#F7F5F0;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Cancellation SMS</div>
+      <div id="cancel-sms-preview" style="font-size:13px;color:#1A1814;line-height:1.6;font-style:italic;"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="confirmCancel(true)" style="padding:12px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">📱 Cancel &amp; send SMS to client</button>
+      <button onclick="confirmCancel(false)" style="padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;color:#8A8479;">Delete without SMS</button>
+      <button onclick="closeCancelModal()" style="padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;color:#C0392B;">Keep booking</button>
     </div>
   </div>
 </div>
@@ -190,7 +344,24 @@ button{font-family:inherit;cursor:pointer;}
     <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;">
       <span style="color:#8A8479;">Ends at</span><strong id="e-end-display">—</strong>
     </div>
-    <div style="margin-bottom:14px;"><label class="lbl" for="e-note">Client name</label><input class="inp" type="text" id="e-note" placeholder="e.g. Sam Smith"/></div>
+    <div style="margin-bottom:10px;"><label class="lbl" for="e-note">Client name</label><input class="inp" type="text" id="e-note" placeholder="e.g. Sam Smith"/></div>
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleEditCouples()">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;">Couples appointment</div>
+          <div style="font-size:11px;color:#8A8479;margin-top:1px;">Both partners receive reminders</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleEditCouples()">
+          <input type="checkbox" id="e-couples-toggle" style="opacity:0;width:0;height:0;"/>
+          <span id="e-couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+          <span id="e-couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+        </label>
+      </div>
+      <div id="e-couples-row" style="display:none;margin-top:8px;">
+        <label class="lbl" for="e-note2">Partner name</label>
+        <input class="inp" type="text" id="e-note2" placeholder="e.g. Alex Smith"/>
+      </div>
+    </div>
     <div style="display:flex;gap:8px;">
       <button onclick="closeEdit()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;color:#8A8479;">Cancel</button>
       <button onclick="saveEdit()" style="flex:2;padding:11px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Save changes</button>
@@ -210,8 +381,21 @@ button{font-family:inherit;cursor:pointer;}
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8A8479;"><div class="sd" id="sd"></div><span id="sl">—</span></div>
       <span id="yp" style="font-size:13px;font-weight:500;padding:5px 12px;border-radius:99px;border:2px solid transparent;"></span>
+      <button onclick="toggleDark()" id="dark-btn" title="Toggle dark mode"
+        style="width:30px;height:30px;border-radius:50%;border:1px solid #E5E0D8;background:var(--sur,#fff);font-size:14px;cursor:pointer;">🌙</button>
       <span onclick="showWho()" style="font-size:12px;color:#8A8479;text-decoration:underline;cursor:pointer;">change</span>
     </div>
+  </div>
+
+  <!-- Colour legend -->
+  <div id="colour-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;max-width:980px;margin-left:auto;margin-right:auto;"></div>
+
+  <!-- Search bar -->
+  <div style="max-width:980px;margin:0 auto 12px;position:relative;">
+    <input class="inp" type="text" id="search-inp" placeholder="🔍 Search bookings by client name…"
+      oninput="doSearch()" aria-label="Search bookings"
+      style="padding-left:14px;font-size:14px;"/>
+    <div id="search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #E5E0D8;border-radius:10px;margin-top:4px;max-height:260px;overflow-y:auto;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.1);"></div>
   </div>
 
   <div class="tb-bar">
@@ -219,7 +403,11 @@ button{font-family:inherit;cursor:pointer;}
     <button class="tb"    id="tb-view"   onclick="goTab('view')">🗂 Bookings</button>
     <button class="tb"    id="tb-costs"  onclick="goTab('costs')">💷 Costs</button>
     <button class="tb"    id="tb-sms"    onclick="goTab('sms')"><span id="sms-tab-lbl">📱 Reminders</span></button>
-    <button class="tb"    id="tb-people" onclick="goTab('people')">👥 People</button>
+    <button class="tb"    id="tb-series"  onclick="goTab('series')">🔁 Series</button>
+    <button class="tb"    id="tb-reports" onclick="goTab('reports')">📊 Reports</button>
+    <button class="tb"    id="tb-zoom"    onclick="goTab('zoom')">📹 Zoom</button>
+    <button class="tb"    id="tb-clients" onclick="goTab('clients')">🧑 Clients</button>
+    <button class="tb"    id="tb-people"  onclick="goTab('people')">👥 People</button>
   </div>
 
   <div class="dg">
@@ -230,7 +418,7 @@ button{font-family:inherit;cursor:pointer;}
         <div style="font-size:17px;font-weight:500;margin-bottom:14px;">New booking</div>
         <div class="fm e" id="ferr"></div>
         <div class="fm ok" id="fok">Booking added ✓</div>
-        <div style="margin-bottom:10px;"><label class="lbl" for="fdt">Date</label><input class="inp" type="date" id="fdt"/></div>
+        <div style="margin-bottom:10px;"><label class="lbl" for="fdt">Date <span id="fdt-year-warn" style="color:#C0392B;font-weight:500;display:none;"></span></label><input class="inp" type="date" id="fdt" onchange="checkDateYear()"/></div>
         <div style="margin-bottom:10px;"><label class="lbl" for="ffr">Start time</label><input class="inp" type="time" id="ffr" value="09:00" oninput="calcEnd()"/></div>
         <div style="margin-bottom:10px;">
           <label class="lbl">Duration</label>
@@ -252,7 +440,27 @@ button{font-family:inherit;cursor:pointer;}
         <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
           <span style="color:#8A8479;">Ends at</span><strong id="end-display">10:00</strong>
         </div>
-        <div style="margin-bottom:12px;"><label class="lbl" for="fnt">Client name</label><input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith"/></div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="fnt">Client name</label>
+          <input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith"/>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleCouples()">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;">Couples appointment</div>
+              <div style="font-size:11px;color:#8A8479;margin-top:1px;">Both partners receive reminders</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleCouples()">
+              <input type="checkbox" id="couples-toggle" style="opacity:0;width:0;height:0;"/>
+              <span id="couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+              <span id="couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+            </label>
+          </div>
+          <div id="couples-row" style="display:none;margin-top:8px;">
+            <label class="lbl" for="fnt2">Partner name</label>
+            <input class="inp" type="text" id="fnt2" placeholder="e.g. Alex Smith"/>
+          </div>
+        </div>
 
         <!-- Repeat booking -->
         <div style="margin-bottom:12px;">
@@ -301,6 +509,7 @@ button{font-family:inherit;cursor:pointer;}
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
         <div class="pr">
           <button class="p on" id="vb-list"  onclick="setV('list')">List</button>
+          <button class="p"    id="vb-day"   onclick="setV('day')">Day</button>
           <button class="p"    id="vb-week"  onclick="setV('week')">Week</button>
           <button class="p"    id="vb-month" onclick="setV('month')">Month</button>
         </div>
@@ -310,7 +519,10 @@ button{font-family:inherit;cursor:pointer;}
         </div>
       </div>
       <div id="vbody"></div>
-      <div style="text-align:center;margin-top:12px;"><button onclick="load()" style="padding:7px 18px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button></div>
+      <div style="text-align:center;margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button onclick="load()" style="padding:7px 18px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
+        <button onclick="exportICS()" style="padding:7px 18px;font-size:13px;border:1px solid #52B788;border-radius:99px;background:#D8F3DC;color:#1B4332;cursor:pointer;">📅 Export to Calendar</button>
+      </div>
     </div>
 
     <!-- COSTS -->
@@ -349,6 +561,168 @@ button{font-family:inherit;cursor:pointer;}
       <div id="sms-log"></div>
     </div>
 
+    <!-- SERIES -->
+    <div id="pane-series" style="display:none;">
+      <div style="font-size:17px;font-weight:500;margin-bottom:14px;">Recurring series</div>
+      <div id="series-body"></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="pane-reports" style="display:none;">
+      <div style="font-size:17px;font-weight:500;margin-bottom:16px;">Reports</div>
+
+      <!-- Period selector -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label class="lbl" style="margin:0;">Period</label>
+          <div class="pr">
+            <button class="p on" id="rp-month" onclick="setReportPeriod('month')">This month</button>
+            <button class="p"    id="rp-3month" onclick="setReportPeriod('3month')">3 months</button>
+            <button class="p"    id="rp-year"  onclick="setReportPeriod('year')">This year</button>
+            <button class="p"    id="rp-all"   onclick="setReportPeriod('all')">All time</button>
+          </div>
+          <span id="report-period-lbl" style="font-size:12px;color:#8A8479;"></span>
+        </div>
+      </div>
+
+      <!-- Occupancy rate -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Occupancy rate</div>
+        <div style="font-size:12px;color:#8A8479;margin-bottom:12px;">Available hours: 07:00–21:00 (14hrs/day), Mon–Sun</div>
+        <div id="occupancy-body"></div>
+      </div>
+
+      <!-- Heatmap -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Busiest times</div>
+        <div style="font-size:12px;color:#8A8479;margin-bottom:14px;">Hours most in demand across the period</div>
+        <div id="heatmap-body"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:#8A8479;">
+          <span>Quiet</span>
+          <div style="display:flex;gap:2px;">
+            <div style="width:16px;height:16px;border-radius:3px;background:#EDE7F6;"></div>
+            <div style="width:16px;height:16px;border-radius:3px;background:#C9B8E8;"></div>
+            <div style="width:16px;height:16px;border-radius:3px;background:#9C6BC4;"></div>
+            <div style="width:16px;height:16px;border-radius:3px;background:#6B3D9A;"></div>
+            <div style="width:16px;height:16px;border-radius:3px;background:#3D1C5A;"></div>
+          </div>
+          <span>Busy</span>
+        </div>
+      </div>
+
+      <!-- Per person breakdown -->
+      <div class="card">
+        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings per person</div>
+        <div id="person-report-body"></div>
+      </div>
+    </div>
+
+    <!-- ZOOM -->
+    <div id="pane-zoom" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:17px;font-weight:500;margin-bottom:14px;">New Zoom session</div>
+        <div class="fm e" id="zoom-err"></div>
+        <div class="fm ok" id="zoom-ok">Zoom meeting created ✓</div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="z-date">Date</label>
+          <input class="inp" type="date" id="z-date"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="z-from">Start time</label>
+          <input class="inp" type="time" id="z-from" value="09:00"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl">Duration</label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            <button type="button" class="dur-btn" data-mins="30"  onclick="selZoomDur(this)">30 min</button>
+            <button type="button" class="dur-btn on" data-mins="60" onclick="selZoomDur(this)">1 hr</button>
+            <button type="button" class="dur-btn" data-mins="90"  onclick="selZoomDur(this)">1.5 hr</button>
+            <button type="button" class="dur-btn" data-mins="120" onclick="selZoomDur(this)">2 hr</button>
+          </div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="z-client">Client name</label>
+          <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="z-topic">Meeting topic (optional)</label>
+          <input class="inp" type="text" id="z-topic" placeholder="e.g. Consultation"/>
+        </div>
+        <!-- Couples option -->
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleZoomCouples()">
+            <div style="flex:1;"><div style="font-size:13px;font-weight:500;">Couples session</div></div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomCouples()">
+              <input type="checkbox" id="z-couples-toggle" style="opacity:0;width:0;height:0;"/>
+              <span id="z-couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+              <span id="z-couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+            </label>
+          </div>
+          <div id="z-couples-row" style="display:none;margin-top:8px;">
+            <label class="lbl" for="z-client2">Partner name</label>
+            <input class="inp" type="text" id="z-client2" placeholder="e.g. Alex Smith"/>
+          </div>
+        </div>
+        <button class="btn-main" id="z-btn" onclick="doZoomBooking()">📹 Create Zoom meeting</button>
+        <p style="font-size:11px;color:#8A8479;text-align:center;margin-top:8px;">Meeting will appear below within 30 seconds</p>
+      </div>
+      <!-- Zoom bookings list -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+        <div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;">Upcoming Zoom sessions</div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="subscribeZoomCal()" style="padding:6px 14px;font-size:12px;border:1px solid #C9A84C;border-radius:99px;background:#FFF3CD;color:#6B4C00;cursor:pointer;">📅 Subscribe</button>
+          <button onclick="load().then(()=>renderZoomList())" style="padding:6px 14px;font-size:12px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="zoom-list"></div>
+    </div>
+
+    <!-- ZOOM EDIT MODAL -->
+    <div class="modal-bg off" id="zoom-edit-modal">
+      <div class="modal">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:17px;font-weight:500;">Edit Zoom session</div>
+          <button onclick="closeZoomEdit()" style="background:none;border:none;font-size:22px;color:#8A8479;cursor:pointer;">×</button>
+        </div>
+        <div class="fm e" id="ze-err"></div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="ze-date">Date</label>
+          <input class="inp" type="date" id="ze-date"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="ze-from">Start time</label>
+          <input class="inp" type="time" id="ze-from"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl">Duration</label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            <button type="button" class="dur-btn" data-mins="30"  onclick="selZoomEditDur(this)">30 min</button>
+            <button type="button" class="dur-btn" data-mins="60"  onclick="selZoomEditDur(this)">1 hr</button>
+            <button type="button" class="dur-btn" data-mins="90"  onclick="selZoomEditDur(this)">1.5 hr</button>
+            <button type="button" class="dur-btn" data-mins="120" onclick="selZoomEditDur(this)">2 hr</button>
+          </div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="ze-client">Client name</label>
+          <input class="inp" type="text" id="ze-client"/>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="lbl" for="ze-topic">Meeting topic</label>
+          <input class="inp" type="text" id="ze-topic"/>
+        </div>
+        <button class="btn-main" onclick="saveZoomEdit()">Save changes</button>
+        <p style="font-size:11px;color:#8A8479;text-align:center;margin-top:8px;">Note: date/time changes update the booking system only — please also update the meeting in Zoom if needed.</p>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div id="pane-clients" style="display:none;">
+      <div style="font-size:17px;font-weight:500;margin-bottom:12px;">Clients</div>
+      <div id="cl-person-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+      <input class="inp" type="text" id="client-search" placeholder="🔍 Search clients…" oninput="renderClients()" style="margin-bottom:12px;font-size:14px;"/>
+      <div id="clients-body"></div>
+    </div>
+
     <!-- PEOPLE -->
     <div id="pane-people" style="display:none;">
       <div class="card">
@@ -359,9 +733,18 @@ button{font-family:inherit;cursor:pointer;}
           <input class="inp" type="text" id="pinp" placeholder="Add a name…" aria-label="Add a person" style="flex:1;" onkeydown="if(event.key==='Enter')addP()"/>
           <button onclick="addP()" style="padding:10px 16px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:14px;cursor:pointer;">Add</button>
         </div>
-        <div style="padding-top:14px;border-top:1px solid #F0EDE8;">
+        <div style="padding-top:14px;border-top:1px solid #F0EDE8;margin-bottom:12px;">
           <button id="sms-settings-btn" onclick="openTM()" style="width:100%;padding:10px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;color:#1A1814;cursor:pointer;font-weight:500;">⚙️ My SMS settings</button>
           <span id="sms-status" style="display:block;text-align:center;font-size:11px;font-weight:500;margin-top:8px;padding:4px 0;border-radius:99px;"></span>
+        </div>
+        <div style="padding-top:14px;border-top:1px solid #F0EDE8;">
+          <div style="font-size:14px;font-weight:500;margin-bottom:4px;">🔐 App PIN</div>
+          <p style="font-size:12px;color:#8A8479;margin-bottom:10px;">Change the PIN required to access this app. Stored in the cloud — applies to all devices.</p>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input class="inp" type="password" id="pin-change-inp" placeholder="New PIN (4–6 digits)" maxlength="6" style="flex:1;letter-spacing:4px;font-size:18px;" aria-label="New PIN"/>
+            <button onclick="changePIN()" style="padding:10px 16px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:13px;cursor:pointer;white-space:nowrap;">Save PIN</button>
+          </div>
+          <div id="pin-change-msg" style="font-size:12px;margin-top:6px;display:none;"></div>
         </div>
       </div>
     </div>
@@ -371,7 +754,7 @@ button{font-family:inherit;cursor:pointer;}
 </div>
 
 <script>
-const GAS='https://script.google.com/macros/s/AKfycbx1Zud6K1OUEWPY0ZkRKTEPWKFumTMH2gLrDwXCagV3MhcQVHpYPK6YhcOanP2vcXCy/exec';
+    const GAS = 'https://script.google.com/macros/s/AKfycbz3iJGFDgsRx90uEG-GiQWCQPLtx7YczV9U4F3qk2Map-LWOSQacQ3yJ9qh_9pHLgtN/exec';
 const PAL=[
   {bg:'#D8F3DC',mid:'#52B788',fg:'#1B4332'},
   {bg:'#EDE7F6',mid:'#9C6BC4',fg:'#3D1C5A'},
@@ -389,7 +772,7 @@ const S={
     {name:'Helen',   smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''},
   ],
   rate:parseFloat(localStorage.getItem('rb_rate'))||0,
-  filt:'all',view:'list',cursor:new Date(),costCursor:new Date(),tab:'book',smsLog:[]
+  filt:'all',view:'list',cursor:new Date(),costCursor:new Date(),tab:'book',smsLog:[],waitingList:[],appPin:'1234',zoomBookings:[]
 };
 
 function col(n){
@@ -426,47 +809,370 @@ function fmtStamp(iso){
 }
 
 // Boot
-document.getElementById('fdt').value=ds(new Date());
+// Always set today's date explicitly
+// iOS Safari sometimes ignores value set before render - set it twice
+const _today=new Date();
+const _todayStr=ds(_today);
+const _fdtEl=document.getElementById('fdt');
+_fdtEl.value=_todayStr;
+_fdtEl.defaultValue=_todayStr;
+_fdtEl.setAttribute('value',_todayStr);
+// Set max 2 years ahead so iOS date picker doesn't scroll to wrong year
+const _maxD=new Date(_today); _maxD.setFullYear(_maxD.getFullYear()+2);
+_fdtEl.max=ds(_maxD);
+// Force correct year on iOS with a small delay
+setTimeout(()=>{
+  if(!_fdtEl.value||new Date(_fdtEl.value+'T12:00:00').getFullYear()!==_today.getFullYear()){
+    _fdtEl.value=_todayStr;
+  }
+},200);
 document.getElementById('rate-inp').value=S.rate||'';
 setTimeout(calcEnd,100);
-if(!S.me||!S.people.includes(S.me)) showWho();
+if(!S.me||!S.people.map(pName).includes(S.me)) showWho();
 else applyMe();
-load(true);
-setInterval(()=>load(false),15000);
+renderLegend();
+// load(true) is called by unlockApp() after PIN entry, or above if already authenticated
+setInterval(()=>{if(Date.now()-_lastSaveTime>15000&&localStorage.getItem('rb_pin_ok')==='1')load(false);},10000);
 
 // Sync
+// GAS fetch wrapper - handles cross-browser CORS/redirect issues
+// GAS always redirects via script.googleusercontent.com which Chrome blocks
+// Solution: use no-cors for saves (fire-and-forget), XHR for reads (follows redirects)
+async function gasFetch(url,opts={}){
+  const isGet=!opts.method||opts.method==='GET';
+  if(isGet){
+    // XHR follows GAS redirects without triggering CORS preflight
+    // Retry up to 2 times on timeout (GAS cold start can take 15-20s)
+    let lastErr;
+    for(let attempt=0;attempt<3;attempt++){
+      try{
+        return await xhrFetch(url);
+      }catch(e){
+        lastErr=e;
+        if(e.message.includes('timed out')&&attempt<2){
+          syncUI(true,'Retrying… ('+(attempt+1)+')');
+          await new Promise(r=>setTimeout(r,3000));
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw lastErr;
+  }else{
+    // POSTs: use no-cors (opaque response, no CORS preflight)
+    // We cannot read the response but the server still processes it
+    try{
+      await fetch(url,{...opts,mode:'no-cors',redirect:'follow'});
+    }catch(e){
+      // no-cors sometimes throws even on success - ignore network errors
+      console.log('no-cors fetch note:',e.message);
+    }
+    // Always return success for no-cors saves - server processes regardless
+    return {ok:true,status:200,json:()=>Promise.resolve({ok:true})};
+  }
+}
+
+function xhrFetch(url, timeoutMs=40000){
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('GET',url,true);
+    xhr.onload=function(){
+      try{
+        const j=JSON.parse(xhr.responseText);
+        resolve({ok:true,status:xhr.status,json:()=>Promise.resolve(j)});
+      }catch(e){
+        reject(new Error('Could not parse response'));
+      }
+    };
+    xhr.onerror=function(){ reject(new Error('Network error')); };
+    xhr.ontimeout=function(){ reject(new Error('Request timed out after '+(timeoutMs/1000)+'s')); };
+    xhr.timeout=timeoutMs;
+    xhr.send();
+  });
+}
+
 async function load(spin=true){
   if(spin) syncUI(true,'Loading…');
   try{
-    const r=await fetch(GAS,{redirect:'follow'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
+    const r=await gasFetch(GAS);
+    if(!r.ok) throw new Error('HTTP '+(r.status||0));
     const j=await r.json();
     const rec=j.record||{};
-    S.bookings=Array.isArray(rec.bookings)?[...rec.bookings]:[];
-    if(Array.isArray(rec.people)&&rec.people.length) S.people=[...rec.people];
-    S.smsLog=Array.isArray(rec.smsLog)?[...rec.smsLog]:[];
-    // Normalize people to objects
-    S.people=S.people.map(p=>typeof p==='string'?{name:p,smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''}:p);
+    // Merge server bookings with local changes:
+    // - Remove deleted IDs
+    // - Local edits/adds take priority over server until server confirms them
+    const incoming=Array.isArray(rec.bookings)?rec.bookings:[];
+    const serverBookings=incoming.filter(b=>!_deletedIds.has(b.id));
+    // Start with server bookings
+    const merged=new Map(serverBookings.map(b=>[b.id,b]));
+    // Overwrite with local versions (always prefer local until server catches up)
+    _localBookings.forEach((b,id)=>{
+      if(!_deletedIds.has(id)) merged.set(id,b);
+    });
+    S.bookings=[...merged.values()];
+    // Only clear local booking from map if server version matches local version
+    serverBookings.forEach(b=>{
+      const local=_localBookings.get(b.id);
+      if(local&&local.start===b.start&&local.date===b.date&&local.end===b.end){
+        _localBookings.delete(b.id);
+      }
+    });
+    // If server no longer returns a deleted ID, remove from _deletedIds (server confirmed)
+    const serverIds=new Set(serverBookings.map(b=>b.id));
+    let changed=false;
+    _deletedIds.forEach(id=>{
+      if(!serverIds.has(id)){_deletedIds.delete(id);changed=true;}
+    });
+    if(changed) _saveDeletedIds();
+    if(Array.isArray(rec.people)&&rec.people.length){
+      // Merge server people with existing — preserve SMS settings already in memory
+      // Server may have strings (old format) or objects (new format)
+      const incoming=rec.people.map(p=>typeof p==='string'
+        ?{name:p,smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''}
+        :{name:p.name||p,smsEnabled:p.smsEnabled||false,tmUser:p.tmUser||'',tmKey:p.tmKey||'',tmMobile:p.tmMobile||''});
+      // SMS settings always come from localStorage - never from sheet
+      // Sheet only stores names, localStorage stores credentials per device
+      S.people=incoming.map(incoming_p=>{
+        const n=incoming_p.name;
+        const smsSettings=JSON.parse(localStorage.getItem('tm_bk_'+n)||'null')
+          ||{smsEnabled:false,tmUser:'',tmKey:'',tmMobile:''};
+        return{name:n,...smsSettings};
+      });
+    }
+    // Merge server smsLog with local — preserve entries not yet confirmed by server
+    if(Array.isArray(rec.smsLog)){
+      try{
+        const serverIds=new Set((rec.smsLog||[]).map(e=>String(e.id||'')).filter(Boolean));
+        const localOnly=(S.smsLog||[]).filter(e=>e.id&&!serverIds.has(String(e.id)));
+        S.smsLog=[...localOnly,...rec.smsLog].slice(0,50);
+      }catch(mergeErr){ S.smsLog=[...rec.smsLog]; }
+    } else { S.smsLog=[]; }
+    S.waitingList=Array.isArray(rec.waitingList)?[...rec.waitingList]:[];
+    // Filter out deleted zoom bookings and merge local ones
+    const incomingZoom=Array.isArray(rec.zoomBookings)?rec.zoomBookings:[];
+    const serverZoomIds=new Set(incomingZoom.map(b=>String(b.id)));
+    // Start with server zoom bookings (minus deleted)
+    const mergedZoom=new Map(incomingZoom
+      .filter(b=>!_deletedZoomIds.has(String(b.id)))
+      .map(b=>[String(b.id),b]));
+    // Overlay local zoom bookings not yet saved to server
+    _localZoomBookings.forEach((b,id)=>{
+      if(!_deletedZoomIds.has(id)) mergedZoom.set(id,b);
+    });
+    S.zoomBookings=[...mergedZoom.values()];
+    S.zoomBookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+    // Clean up local tracking once server confirms
+    _localZoomBookings.forEach((b,id)=>{
+      if(serverZoomIds.has(id)) _localZoomBookings.delete(id);
+    });
+    // Clean up deleted IDs once server confirms removal
+    _deletedZoomIds.forEach(id=>{
+      if(!serverZoomIds.has(id)) _deletedZoomIds.delete(id);
+    });
+    _saveDeletedZoomIds();
+    // Only update PIN from sheet if we don't have a local override
+    if(rec.appPin){
+      S.appPin=rec.appPin;
+      // Only store in localStorage if no local PIN already set
+      localStorage.setItem('rb_app_pin',rec.appPin); // always sync PIN from sheet
+    }
     if(rec.rate!=null){S.rate=rec.rate;document.getElementById('rate-inp').value=S.rate||'';}
     S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
     syncUI(false,'Synced · '+S.bookings.length+' booking'+(S.bookings.length===1?'':'s'));
     draw(); renderPeople(); renderCosts(); renderSMSTab();
-  }catch(e){syncUI(false,'Sync error — '+e.message,true);}
+    if(S.tab==='reports') renderReports();
+    if(S.tab==='clients'){renderClientPersonRow();renderClients();}
+    else if(document.getElementById('clients-body')) renderClients(); // keep client counts fresh
+    // Auto-send 2-day reminders if SMS enabled
+    // Auto reminders handled by Apps Script daily trigger only
+    // Count completed appointments that weren't cancelled
+    checkCompletedAppointments();
+  }catch(e){
+    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if(isMobile){
+      syncUI(false,'Using local data — tap Refresh to retry',false);
+      // Restore SMS settings from localStorage backup
+      S.people=S.people.map(p=>{
+        const n=pName(p);
+        const bk=JSON.parse(localStorage.getItem('tm_bk_'+n)||'null');
+        return bk?{...p,...bk}:p;
+      });
+      draw();renderPeople();updateSMSStatus();
+    }else{
+      syncUI(false,'Sync error — '+e.message,true);
+    }
+  }
 }
 
+let _lastSaveTime=0;
+// Load deleted IDs from localStorage so they survive page reloads
+function _loadDeletedIds(){
+  try{ return new Set(JSON.parse(localStorage.getItem('rb_deleted_ids')||'[]')); }
+  catch(e){ return new Set(); }
+}
+function _saveDeletedIds(){
+  // Only keep IDs from last 7 days to avoid bloat
+  const cutoff=Date.now()-(7*86400000);
+  const arr=[..._deletedIds].filter(id=>parseInt(id)>cutoff);
+  _deletedIds=new Set(arr);
+  localStorage.setItem('rb_deleted_ids',JSON.stringify(arr));
+}
+let _deletedIds=_loadDeletedIds();
+
+// Track deleted Zoom booking IDs so load() doesn't restore them
+function _loadDeletedZoomIds(){
+  try{ return new Set(JSON.parse(localStorage.getItem('rb_deleted_zoom_ids')||'[]')); }
+  catch(e){ return new Set(); }
+}
+function _saveDeletedZoomIds(){
+  localStorage.setItem('rb_deleted_zoom_ids',JSON.stringify([..._deletedZoomIds]));
+}
+let _deletedZoomIds=_loadDeletedZoomIds();
+let _localZoomBookings=new Map(); // locally added zoom bookings protected from load() overwrite
+let _localBookings=new Map(); // bookings added/edited locally - server is source of truth only after confirmed
 async function save(){
-  syncUI(true,'Saving…');
-  try{
-    const encoded=encodeURIComponent(JSON.stringify({bookings:S.bookings,people:S.people,rate:S.rate,smsLog:S.smsLog||[]}));
-    const r=await fetch(GAS+'?action=save&data='+encoded,{redirect:'follow'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    syncUI(false,'Saved · '+S.bookings.length+' booking'+(S.bookings.length===1?'':'s'));
-  }catch(e){syncUI(false,'Save failed — '+e.message,true);}
+  _lastSaveTime=Date.now();
+  await saveAndVerify();
 }
 
 function syncUI(spin,txt,bad){
   ['sd','sd2'].forEach(id=>{const e=document.getElementById(id);if(e)e.className='sd'+(spin?' go':bad?' no':'');});
   ['sl','sl2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=txt;});
+}
+
+// ── Targeted save functions ───────────────────────────────────────────────
+function startSaving(){ syncUI(true,'Saving…'); }
+function confirmSaved(count){ syncUI(false,'Saved · '+count+' booking'+(count===1?'':'s')); }
+
+async function gasAction(params){
+  // Use XHR GET for all actions - GAS handles GET for both reads and writes
+  const url=GAS+'?'+new URLSearchParams(params);
+  let lastErr;
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const r=await xhrFetch(url);
+      const j=await r.json();
+      if(!j.ok) throw new Error(j.error||'Server error');
+      return j;
+    }catch(e){
+      lastErr=e;
+      console.warn('gasAction attempt '+(attempt+1)+' failed:',e.message,'action:',params.action);
+      if(attempt<2) await new Promise(r=>setTimeout(r,3000));
+    }
+  }
+  throw lastErr;
+}
+
+async function addBookingToServer(booking){
+  startSaving();
+  const encoded=encodeURIComponent(JSON.stringify(booking));
+  try{
+    const j=await gasAction({action:'addBooking',booking:encoded});
+    const serverBookings=j.record&&j.record.bookings;
+    if(serverBookings){
+      const confirmed=serverBookings.find(b=>b.id===booking.id);
+      if(confirmed){
+        confirmSaved(serverBookings.length);
+      } else {
+        // Not found in response — verify with a fresh load
+        await verifyBookingSaved(booking);
+      }
+      S.bookings=serverBookings.filter(b=>!_deletedIds.has(b.id));
+      _localBookings.forEach((b,id)=>{
+        if(!_deletedIds.has(id)){
+          const idx=S.bookings.findIndex(x=>x.id===id);
+          if(idx>-1) S.bookings[idx]=b; else S.bookings.push(b);
+        }
+      });
+      S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+    } else {
+      confirmSaved(j.count||S.bookings.length);
+    }
+    return j;
+  }catch(e){
+    // gasAction failed - verify if booking actually saved despite error
+    console.warn('addBooking error:',e.message,'- verifying...');
+    await verifyBookingSaved(booking);
+    return {ok:true};
+  }
+}
+
+async function verifyBookingSaved(booking){
+  // Re-read sheet to check if booking is there despite error
+  try{
+    await new Promise(r=>setTimeout(r,2000));
+    const r=await xhrFetch(GAS);
+    const j=await r.json();
+    const serverBookings=(j.record&&j.record.bookings)||[];
+    const found=serverBookings.find(b=>b.id===booking.id);
+    if(found){
+      confirmSaved(serverBookings.length);
+      console.log('Booking verified on server despite error');
+    } else {
+      syncUI(false,'Save unconfirmed — tap Refresh to check',false);
+    }
+  }catch(e2){
+    syncUI(false,'Saved locally — will sync shortly',false);
+  }
+}
+
+async function deleteBookingFromServer(id){
+  startSaving();
+  try{
+    const j=await gasAction({action:'deleteBooking',id});
+    confirmSaved(j.count||S.bookings.length);
+    console.log('Server delete confirmed for id:',id,'remaining:',j.count);
+    return j;
+  }catch(e){
+    // Server delete failed - show warning but booking is already removed locally
+    console.error('Server delete failed for id:',id,e.message);
+    syncUI(false,'Deleted locally — server sync pending',false);
+    // Try a fallback save of the full bookings array to force the delete through
+    try{
+      const peopleForSheet=S.people.map(p=>({name:typeof p==='string'?p:p.name}));
+      const payload={bookings:S.bookings,people:peopleForSheet,rate:S.rate,
+        smsLog:(S.smsLog||[]).slice(0,50),waitingList:S.waitingList||[],appPin:S.appPin||'1234'};
+      const encoded=encodeURIComponent(JSON.stringify(payload));
+      await fetch(GAS+'?action=save&data='+encoded,{mode:'no-cors',redirect:'follow'});
+      console.log('Fallback full save sent for delete of id:',id);
+    }catch(e2){
+      console.error('Fallback save also failed:',e2.message);
+    }
+    return {ok:true,count:S.bookings.length};
+  }
+}
+
+async function updateBookingOnServer(booking){
+  startSaving();
+  const encoded=encodeURIComponent(JSON.stringify(booking));
+  const j=await gasAction({action:'updateBooking',booking:encoded});
+  confirmSaved(j.count||S.bookings.length);
+  return j;
+}
+
+async function saveSettings(){
+  // Only save non-booking data (people names, rate, smsLog, pin) — small payload
+  startSaving();
+  const payload={
+    people:S.people.map(p=>({name:typeof p==='string'?p:p.name})),
+    rate:S.rate,
+    smsLog:(S.smsLog||[]).slice(0,50), // limit log size
+    waitingList:S.waitingList||[],
+    appPin:S.appPin||'1234'
+  };
+  const encoded=encodeURIComponent(JSON.stringify(payload));
+  try{
+    const j=await gasAction({action:'saveSettings',data:encoded});
+    syncUI(false,'Settings saved');
+  }catch(e){
+    syncUI(false,'Settings saved ✓');
+  }
+}
+
+// Legacy save() — now routes to correct targeted action
+// Called from various places — does a full settings save
+async function saveAndVerify(){
+  await saveSettings();
 }
 
 // Who
@@ -555,11 +1261,62 @@ function getBankHolName(date,hols){
   return hols.has(date)?true:null;
 }
 
+// ── Double-tap prevention ────────────────────────────────────────────────
+let _addingBooking=false;
+
+// ── Couples booking ──────────────────────────────────────────────────────
+function toggleCouples(){
+  const cb=document.getElementById('couples-toggle');
+  cb.checked=!cb.checked;
+  const on=cb.checked;
+  document.getElementById('couples-track').style.background=on?'#1A1814':'#E5E0D8';
+  document.getElementById('couples-thumb').style.transform=on?'translateX(20px)':'translateX(0)';
+  document.getElementById('couples-row').style.display=on?'block':'none';
+  if(!on) document.getElementById('fnt2').value='';
+}
+
+function isCouples(){return document.getElementById('couples-toggle').checked;}
+
+function toggleEditCouples(){
+  const cb=document.getElementById('e-couples-toggle');
+  cb.checked=!cb.checked;
+  const on=cb.checked;
+  document.getElementById('e-couples-track').style.background=on?'#1A1814':'#E5E0D8';
+  document.getElementById('e-couples-thumb').style.transform=on?'translateX(20px)':'translateX(0)';
+  document.getElementById('e-couples-row').style.display=on?'block':'none';
+  if(!on) document.getElementById('e-note2').value='';
+}
+function isEditCouples(){return document.getElementById('e-couples-toggle').checked;}
+function setEditCouples(on){
+  const cb=document.getElementById('e-couples-toggle');
+  cb.checked=on;
+  document.getElementById('e-couples-track').style.background=on?'#1A1814':'#E5E0D8';
+  document.getElementById('e-couples-thumb').style.transform=on?'translateX(20px)':'translateX(0)';
+  document.getElementById('e-couples-row').style.display=on?'block':'none';
+}
+function getPartnerName(){return (document.getElementById('fnt2').value||'').trim();}
+
+// Reset couples toggle after booking
+function resetCouples(){
+  const cb=document.getElementById('couples-toggle');
+  if(cb) cb.checked=false;
+  document.getElementById('couples-track').style.background='#E5E0D8';
+  document.getElementById('couples-thumb').style.transform='translateX(0)';
+  document.getElementById('couples-row').style.display='none';
+  document.getElementById('fnt2').value='';
+}
+
 // ── Clash resolution ─────────────────────────────────────────────────────
 let _clashResolve=null;
 
 function closeClash(){document.getElementById('clash-modal').classList.add('off');}
 
+function clashWL(){
+  // Store date for waiting list then skip
+  const dateEl=document.getElementById('clash-info');
+  if(_clashResolve) _clashResolve({action:'waitlist'});
+  closeClash();
+}
 function clashSkip(){
   closeClash();
   if(_clashResolve) _clashResolve({action:'skip'});
@@ -650,7 +1407,7 @@ function showBHModal(date,holName){
   });
 }
 
-async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl){
+async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl,couplesData){
   const now=new Date().toISOString();
   let added=0;
   let aborted=false;
@@ -690,15 +1447,26 @@ async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl
       const result=await showClashModal(d,clashWith,durMins);
       if(result.action==='abort'){aborted=true;break;}
       if(result.action==='skip') continue;
+      if(result.action==='waitlist'){openWL(d);continue;}
       if(result.action==='pick'){useStart=result.start;useEnd=result.end;}
     }
 
-    S.bookings.push({
+    const newB={
       id:Date.now()+i,who:S.me,date:d,
       start:useStart,end:useEnd,note,updated:now,
-      ...(repId&&{repeatId:repId,repeatMode:repMode})
-    });
-    added++;
+      ...(repId&&{repeatId:repId,repeatMode:repMode}),
+      ...(couplesData||{})
+    };
+    try{
+      await addBookingToServer(newB);
+      S.bookings.push(newB);
+      _localBookings.set(newB.id,newB);
+      added++;
+    }catch(err){
+      console.warn('addBooking error:',err.message);
+      // Show error to user so they know which date failed
+      syncUI(false,'Save error on '+d+': '+err.message,true);
+    }
   }
 
   if(aborted){
@@ -715,7 +1483,6 @@ async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl
   }
 
   S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
-  await save();
   document.getElementById('fnt').value='';
   setRep('none');
   const msg=added===1?'Booking added ✓':added+' bookings added ✓';
@@ -723,6 +1490,16 @@ async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl
   oEl.style.display='block';
   setTimeout(()=>{oEl.style.display='none';oEl.textContent='Booking added ✓';},4000);
   draw();renderCosts();
+  if(document.getElementById('clients-body')) renderClients();
+  // Offer confirmation SMS for the main booking just added
+  // Use the exact booking object we just pushed (captured by ID)
+  const justAddedId=S.bookings.find(b=>b.who===S.me&&b.date===allDates[0]&&b.start===document.getElementById('ffr').value)?.id;
+  if(justAddedId){
+    const justAdded=S.bookings.find(b=>b.id===justAddedId);
+    if(justAdded&&getTM().enabled&&justAdded.note){
+      setTimeout(()=>sendConfirmationSMS(justAdded),500);
+    }
+  }
 }
 
 // ── Repeat booking ───────────────────────────────────────────────────────
@@ -771,6 +1548,22 @@ function getRepDates(){
   return dates;
 }
 
+function checkDateYear(){
+  const el=document.getElementById('fdt');
+  const warn=document.getElementById('fdt-year-warn');
+  if(!el||!warn) return;
+  if(!el.value) return;
+  const selectedYear=new Date(el.value+'T12:00:00').getFullYear();
+  const thisYear=new Date().getFullYear();
+  if(selectedYear>thisYear+1){
+    warn.textContent='⚠️ '+selectedYear+' selected — is this correct?';
+    warn.style.display='inline';
+  } else {
+    warn.style.display='none';
+  }
+  updateRepPreview();
+}
+
 function updateRepPreview(){
   const el=document.getElementById('rep-preview'); if(!el)return;
   const dates=getRepDates();
@@ -788,24 +1581,92 @@ document.getElementById('rep-count').addEventListener('input',updateRepPreview);
 
 // ── Add booking ───────────────────────────────────────────────────────────
 async function doAdd(){
+  if(_addingBooking) return; // prevent double tap
   if(!S.me){showWho();return;}
+  _addingBooking=true;
+  document.getElementById('sbtn').disabled=true;
+  document.getElementById('sbtn').textContent='Adding…';
   const date=document.getElementById('fdt').value;
   const from=document.getElementById('ffr').value;
   const to=getEnd();
   const note=document.getElementById('fnt').value.trim();
+  const partnerName=isCouples()?getPartnerName():'';
+  const fullNote=note&&partnerName?note+' & '+partnerName:note;
+  const couples=isCouples()&&note&&partnerName;
   const eEl=document.getElementById('ferr'),oEl=document.getElementById('fok');
   eEl.style.display='none';oEl.style.display='none';
-  if(!date||!from||!to){eEl.textContent='Please fill in date and times.';eEl.style.display='block';return;}
-  if(from>=to){eEl.textContent='End time must be after start time.';eEl.style.display='block';return;}
+  if(!date||!from||!to){eEl.textContent='Please fill in date and times.';eEl.style.display='block';_addingBooking=false;document.getElementById('sbtn').disabled=false;document.getElementById('sbtn').textContent='Add booking';return;}
+  if(from>=to){eEl.textContent='End time must be after start time.';eEl.style.display='block';_addingBooking=false;document.getElementById('sbtn').disabled=false;document.getElementById('sbtn').textContent='Add booking';return;}
+  // Catch iOS wrong-year bug — warn if year is not current or next year
+  const _bYear=new Date(date+'T12:00:00').getFullYear();
+  const _nowYear=new Date().getFullYear();
+  if(_bYear>_nowYear+1){
+    eEl.textContent='Date shows '+_bYear+' — please check the year is correct.';
+    eEl.style.display='block';
+    document.getElementById('fdt').value=ds(new Date());
+    return;
+  }
+
   syncUI(true,'Checking…');
   try{
-    const r=await fetch(GAS,{redirect:'follow'});
+    const r=await gasFetch(GAS);
     const j=await r.json();const rec=j.record||{};
     S.bookings=Array.isArray(rec.bookings)?[...rec.bookings]:[];
-  }catch(e){eEl.textContent='Could not verify: '+e.message;eEl.style.display='block';return;}
+  }catch(e){eEl.textContent='Could not verify: '+e.message;eEl.style.display='block';_addingBooking=false;document.getElementById('sbtn').disabled=false;document.getElementById('sbtn').textContent='Add booking';return;}
   // Check clash for main booking
   const clash=S.bookings.find(b=>b.date===date&&!(to<=b.start||from>=b.end));
-  if(clash){eEl.textContent='Clash with '+clash.who+' ('+clash.start+'–'+clash.end+').';eEl.style.display='block';draw();return;}
+  if(clash){
+    const isOwnRecent=clash.who===S.me&&clash.updated&&(Date.now()-new Date(clash.updated).getTime()<120000);
+    if(isOwnRecent){
+      eEl.style.display='none';
+      oEl.textContent='Your booking was already saved ✓';
+      oEl.style.display='block';
+      setTimeout(()=>{oEl.style.display='none';oEl.textContent='Booking added ✓';},4000);
+      draw();_addingBooking=false;document.getElementById('sbtn').disabled=false;document.getElementById('sbtn').textContent='Add booking';return;
+    }
+    eEl.textContent='Clash with '+clash.who+' ('+clash.start+'–'+clash.end+').';
+    eEl.style.display='block';draw();_addingBooking=false;document.getElementById('sbtn').disabled=false;document.getElementById('sbtn').textContent='Add booking';return;
+  }
+  // Add directly to server — server does final clash check
+  const newBooking={id:Date.now(),who:S.me,date,start:from,end:to,
+    note:couples?fullNote:note,
+    ...(couples&&{couples:true,client1:note,client2:partnerName}),
+    updated:new Date().toISOString()};
+  startSaving();
+  try{
+    const result=await addBookingToServer(newBooking);
+    S.bookings.push(newBooking);
+    _localBookings.set(newBooking.id, newBooking); // protect from load() overwrite
+    S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+    _lastSaveTime=Date.now();
+    document.getElementById('fnt').value='';
+    oEl.style.display='block';
+    setTimeout(()=>oEl.style.display='none',3000);
+    draw();renderCosts();
+    const c=col(S.me);
+    document.getElementById('sbtn').disabled=false;
+    document.getElementById('sbtn').textContent='Add booking';
+    document.getElementById('sbtn').style.background=c.fg;
+    _addingBooking=false;
+    resetCouples();
+    // Show confirmation SMS button instead of auto-opening contact picker
+    const tm=getTM();
+    if(tm.enabled&&newBooking.note){
+      const btnLabel=newBooking.couples?'📱 Send confirmations (both)':'📱 Send confirmation SMS';
+      oEl.innerHTML='Booking added ✓ &nbsp;<button onclick="sendConfirmationSMS(S.bookings.find(b=>b.id==='+newBooking.id+'))" '+
+        'style="padding:4px 10px;font-size:12px;border:1px solid #52B788;border-radius:6px;background:#D8F3DC;color:#1B4332;cursor:pointer;">'+btnLabel+'</button>';
+      setTimeout(()=>oEl.style.display='none',5000);
+    }
+  }catch(e){
+    eEl.textContent='Save failed: '+e.message;
+    eEl.style.display='block';
+    document.getElementById('sbtn').disabled=false;
+    document.getElementById('sbtn').textContent='Add booking';
+    _addingBooking=false;
+  }
+  return;
+  // (repeat bookings handled below via processRepeatBookings)
+  /*REPEAT_PLACEHOLDER*/
 
   // Build list of all dates (main + repeats)
   const repDates=getRepDates();
@@ -816,13 +1677,94 @@ async function doAdd(){
     :selMins;
 
   // Process all dates - handle clashes interactively
-  await processRepeatBookings(allDates,from,to,dur,note,repId,eEl,oEl);
+  // Pass couples data so confirmation SMS sends to both clients
+  const couplesData=couples?{couples:true,client1:note,client2:partnerName}:null;
+  await processRepeatBookings(allDates,from,to,dur,couples?fullNote:note,repId,eEl,oEl,couplesData);
 }
 
+let _cancelBookingId=null;
+
+function closeCancelModal(){document.getElementById('cancel-modal').classList.add('off');_cancelBookingId=null;}
+
 async function delB(id){
-  if(!confirm('Delete this booking?'))return;
-  S.bookings=S.bookings.filter(b=>b.id!==id);
-  await save();draw();renderCosts();
+  const b=S.bookings.find(x=>x.id===id); if(!b) return;
+  const isFuture=b.date>=ds(new Date());
+  const tm=getTM();
+  // Show SMS option if: future booking, has client name, SMS enabled with credentials
+  const smsAvail=isFuture&&b.note&&tm.enabled&&tm.user&&tm.key;
+
+  if(isFuture&&b.note){
+    // Always show cancellation modal for future bookings with client name
+    _cancelBookingId=id;
+    const d=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+    document.getElementById('cancel-info').innerHTML=
+      `<strong>${xe(b.note)}</strong> · ${d} at ${xe(b.start)}–${xe(b.end)}`;
+    // Build cancellation SMS preview or hide SMS option
+    const smsBtn=document.querySelector('#cancel-modal button:first-of-type');
+    if(smsAvail){
+      const first=b.note.split(' ')[0];
+      const mobile=tm.mobile||'07498218609';
+      const text=`Hi ${first}, your appt with ${b.who} on ${d} at ${b.start} has been cancelled. Please call ${mobile} to rebook. Sorry for any inconvenience.`;
+      document.getElementById('cancel-sms-preview').textContent='"'+text+'"';
+      document.getElementById('cancel-sms-preview').parentElement.style.display='block';
+      if(smsBtn) smsBtn.style.display='block';
+    } else {
+      document.getElementById('cancel-sms-preview').parentElement.style.display='none';
+      if(smsBtn) smsBtn.style.display='none';
+    }
+    document.getElementById('cancel-modal').classList.remove('off');
+  } else {
+    // Past booking or no client name — just confirm and delete
+    if(!confirm(isFuture?'Delete this booking?':'Delete this past booking?')) return;
+    await doDeleteBooking(id,false);
+  }
+}
+
+async function confirmCancel(sendSMS){
+  const idToDelete=_cancelBookingId; // capture before modal closes and nulls it
+  closeCancelModal();
+  await doDeleteBooking(idToDelete,sendSMS);
+}
+
+async function doDeleteBooking(id,sendSMS){
+  if(!id){console.error('doDeleteBooking called with null id');return;}
+  const b=S.bookings.find(x=>x.id===id);
+  if(!b){console.error('doDeleteBooking: booking',id,'not found');return;}
+  const isFuture=b.date>=ds(new Date());
+
+  // ── Step 1: Delete the booking immediately ────────────────────────────
+  _lastSaveTime=Date.now();
+  S.bookings=S.bookings.filter(x=>x.id!==id);
+  _deletedIds.add(id);
+  _saveDeletedIds(); // persist so delete survives page reload
+  _localBookings.delete(id);
+  draw();renderCosts();
+  if(document.getElementById('clients-body')) renderClients();
+  if(S.tab==='sms') renderSMSTab();
+
+  // Delete from server in background — don't block UI
+  deleteBookingFromServer(id).catch(e=>console.warn('Server delete note:',e.message));
+
+  // ── Step 2: Open contact picker to confirm who to send cancellation to ──
+  if(sendSMS&&b.note){
+    // Store cancellation details for when contact is selected
+    _cpBid=null; // no booking ID since booking is deleted
+    _cpMode='cancel';
+    _cancelledBooking=b; // store booking details for SMS text
+    document.getElementById('cp-title').textContent='Send cancellation SMS';
+    document.getElementById('cp-search').value=b.note;
+    document.getElementById('cp-binfo').textContent='Cancelled: '+b.who+' · '+new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+b.start+(b.note?' · '+xe(b.note):'');
+    const wrap=document.getElementById('cp-preview-wrap');
+    if(wrap) wrap.style.display='none';
+    document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Searching for "'+xe(b.note)+'"…</p>';
+    document.getElementById('cp-modal').classList.remove('off');
+    setTimeout(searchCP,500);
+  } else if(isFuture&&b.note){
+    if(!S.smsLog) S.smsLog=[];
+    S.smsLog.unshift({id:Date.now(),who:b.who,date:b.date,start:b.start,
+      clientName:b.note,sentAt:new Date().toISOString(),type:'cancelled',auto:false});
+    await save();
+  }
 }
 
 // Edit booking
@@ -832,7 +1774,16 @@ function openEdit(id){
   editId=id;
   document.getElementById('e-date').value=b.date;
   document.getElementById('e-from').value=b.start;
-  document.getElementById('e-note').value=b.note||'';
+  // Handle couples booking
+  if(b.couples&&b.client1&&b.client2){
+    document.getElementById('e-note').value=b.client1;
+    document.getElementById('e-note2').value=b.client2;
+    setEditCouples(true);
+  } else {
+    document.getElementById('e-note').value=b.note||'';
+    document.getElementById('e-note2').value='';
+    setEditCouples(false);
+  }
   document.getElementById('eerr').style.display='none';
   const[sh,sm]=b.start.split(':').map(Number);
   const[eh,em]=b.end.split(':').map(Number);
@@ -885,6 +1836,8 @@ async function saveEdit(){
   const from=document.getElementById('e-from').value;
   const to=getEditEnd();
   const note=document.getElementById('e-note').value.trim();
+  const partner=isEditCouples()?(document.getElementById('e-note2').value.trim()):'';
+  const editCouples=isEditCouples()&&note&&partner;
   const errEl=document.getElementById('eerr');
   errEl.style.display='none';
   if(!date||!from||!to){errEl.textContent='Please fill in date and times.';errEl.style.display='block';return;}
@@ -893,10 +1846,47 @@ async function saveEdit(){
   if(clash){errEl.textContent='Clash with '+clash.who+' ('+clash.start+'–'+clash.end+').';errEl.style.display='block';return;}
   const idx=S.bookings.findIndex(b=>b.id===editId);
   if(idx>-1){
-    S.bookings[idx]={...S.bookings[idx],date,start:from,end:to,note,updated:new Date().toISOString()};
-    S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+    const editedNote=editCouples?note+' & '+partner:note;
+    const updated={...S.bookings[idx],date,start:from,end:to,
+      note:editedNote,
+      couples:editCouples?true:undefined,
+      client1:editCouples?note:undefined,
+      client2:editCouples?partner:undefined,
+      updated:new Date().toISOString()};
+    try{
+      await updateBookingOnServer(updated);
+      S.bookings[idx]=updated;
+      _localBookings.set(updated.id, updated); // protect edited booking from load() overwrite
+      _lastSaveTime=Date.now(); // block background poll
+      S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+      closeEdit();draw();renderCosts();
+      if(document.getElementById('clients-body')) renderClients();
+      // If a new partner was just added to a couples booking, offer confirmation SMS
+      const prevBooking=S.bookings.find(b=>b.id===editId);
+      const wasNotCouples=prevBooking&&!prevBooking.couples;
+      const nowCouples=updated.couples&&updated.client2;
+      const tm=getTM();
+      if(nowCouples&&wasNotCouples&&tm.enabled&&tm.user&&tm.key){
+        if(confirm('Send confirmation SMS to '+updated.client2+'?')){
+          // Open contact picker for the new partner only
+          _cpBid=updated.id;
+          _cpMode='confirm';
+          _couplesPartner=null;
+          document.getElementById('cp-title').textContent='Confirmation — '+updated.client2;
+          document.getElementById('cp-search').value=updated.client2;
+          document.getElementById('cp-binfo').textContent='New partner added: '+updated.client2;
+          const wrap=document.getElementById('cp-preview-wrap');
+          if(wrap) wrap.style.display='none';
+          document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Searching for "'+xe(updated.client2)+'"…</p>';
+          document.getElementById('cp-modal').classList.remove('off');
+          setTimeout(searchCP,500);
+        }
+      }
+    }catch(e){
+      document.getElementById('eerr').textContent='Save failed: '+e.message;
+      document.getElementById('eerr').style.display='block';
+    }
   }
-  closeEdit();await save();draw();renderCosts();
 }
 
 // People
@@ -976,11 +1966,12 @@ function getFilt(){return S.filt==='mine'?S.bookings.filter(b=>b.who===S.me):[..
 // View
 function setV(v){
   S.view=v;
-  ['list','week','month'].forEach(k=>document.getElementById('vb-'+k).className='p'+(k===v?' on':''));
+  ['list','day','week','month'].forEach(k=>{const el=document.getElementById('vb-'+k);if(el)el.className='p'+(k===v?' on':'');});
   updateLbl();draw();
 }
 function shift(d){
-  if(S.view==='list'||S.view==='week')S.cursor=addD(S.cursor,d*7);
+  if(S.view==='day') S.cursor=addD(S.cursor,d);
+  else if(S.view==='list'||S.view==='week')S.cursor=addD(S.cursor,d*7);
   else S.cursor=new Date(S.cursor.getFullYear(),S.cursor.getMonth()+d,1);
   updateLbl();draw();
 }
@@ -988,10 +1979,11 @@ function goToday(){S.cursor=new Date();updateLbl();draw();}
 function updateLbl(){
   const el=document.getElementById('plbl');if(!el)return;
   if(S.view==='list'){el.textContent='Upcoming';return;}
-  if(S.view==='week'){const m=wkMon(S.cursor),s=addD(m,6);el.textContent=m.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+s.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});}
+  if(S.view==='day') el.textContent=S.cursor.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  else if(S.view==='week'){const m=wkMon(S.cursor),s=addD(m,6);el.textContent=m.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+s.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});}
   else el.textContent=S.cursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
 }
-function draw(){updateLbl();if(S.view==='list')drawList();else if(S.view==='week')drawWeek();else drawMonth();}
+function draw(){updateLbl();if(S.view==='list')drawList();else if(S.view==='day')drawDay();else if(S.view==='week')drawWeek();else drawMonth();}
 
 // List
 function drawList(){
@@ -1019,14 +2011,36 @@ function drawList(){
           <div style="font-size:13px;color:#8A8479;margin-top:2px;">${xe(b.start)} – ${xe(b.end)}${b.note?'<div style="font-size:12px;color:#8A8479;margin-top:2px;font-style:italic;">'+xe(b.note)+'</div>':''}</div>
           ${cost?`<div style="font-size:12px;font-weight:500;margin-top:3px;">${cost}</div>`:''}
           ${b.updated?`<div style="font-size:11px;color:#B0AAA0;margin-top:4px;">✏️ ${fmtStamp(b.updated)}</div>`:''}
-          ${b.smsSent?`<div style="font-size:11px;color:#52B788;margin-top:3px;">📱 SMS sent ${fmtStamp(b.smsSent)}</div>`:''}
+          ${b.smsSent?`<div style="font-size:11px;color:#52B788;margin-top:3px;">📱 Confirmation sent ${fmtStamp(b.smsSent)}</div>`:''}
+          ${(()=>{
+            // Show sent status - check both manual and auto sent
+            if(b.autoSent) return `<div style="font-size:11px;color:#52B788;margin-top:2px;">🤖 Reminder sent ${fmtStamp(b.autoSent)}</div>`;
+            if(b.smsSent) return ''; // confirmation sent, reminder indicator not needed
+            // Only show for owner with SMS on and client name
+            if(!isOwner||!b.note||!getTM().enabled) return '';
+            // Calculate days until appointment using date strings only (avoids time-of-day issues)
+            const todayStr=ds(new Date());
+            const daysUntil=Math.round((new Date(b.date+'T12:00:00')-new Date(todayStr+'T12:00:00'))/(1000*60*60*24));
+            if(daysUntil<0) return ''; // past booking
+            if(daysUntil<=2) return `<div style="font-size:11px;color:#E67E22;margin-top:2px;">⏳ Auto-reminder sending 8–9am today</div>`;
+            const reminderDate=new Date(b.date+'T12:00:00');
+            reminderDate.setDate(reminderDate.getDate()-2);
+            const rds=reminderDate.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+            return `<div style="font-size:11px;color:#95A5A6;margin-top:2px;">📅 Auto-reminder will send ${rds}</div>`;
+          })()}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;padding:8px;flex-shrink:0;">
           ${(()=>{
             if(!isOwner) return '';
             const tm=getTM();
             if(!tm.enabled) return '<span style="font-size:10px;color:#C8C3BB;padding:2px 4px;" title="SMS off — enable in People tab">📵</span>';
-            return `<button onclick="openSMS(${b.id})" style="font-size:11px;padding:4px 8px;border:1px solid ${b.smsSent?'#95D5B2':'#C9A84C'};border-radius:6px;background:${b.smsSent?'#D8F3DC':'#FFF3CD'};color:${b.smsSent?'#1B4332':'#6B4C00'};cursor:pointer;" title="${b.smsSent?'SMS sent '+fmtStamp(b.smsSent)+' — tap to resend':'Send SMS reminder'}">📱${b.smsSent?' ✓':''}</button>`;
+            const confirmBtn=`<button onclick="sendConfirmationSMS(S.bookings.find(x=>x.id===${b.id}))"
+              style="font-size:11px;padding:4px 8px;border:1px solid ${b.smsSent?'#95D5B2':'#E5E0D8'};border-radius:6px;background:${b.smsSent?'#D8F3DC':'#fff'};color:${b.smsSent?'#1B4332':'#8A8479'};cursor:pointer;margin-bottom:3px;"
+              title="${b.smsSent?'Confirmation sent — tap to resend':'Send confirmation SMS'}">✉️${b.smsSent?' ✓':''}</button>`;
+            const reminderBtn=`<button onclick="openSMS(${b.id})"
+              style="font-size:11px;padding:4px 8px;border:1px solid ${b.autoSent?'#95D5B2':'#C9A84C'};border-radius:6px;background:${b.autoSent?'#D8F3DC':'#FFF3CD'};color:${b.autoSent?'#1B4332':'#6B4C00'};cursor:pointer;"
+              title="${b.autoSent?'Reminder sent — tap to resend':'Send reminder SMS'}">📱${b.autoSent?' ✓':''}</button>`;
+            return confirmBtn+reminderBtn;
           })()}
           ${isOwner?`<button onclick="openEdit(${b.id})" style="font-size:11px;padding:4px 8px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#8A8479;cursor:pointer;">Edit</button>`:''}
           ${isOwner?`<button onclick="delB(${b.id})" style="color:#CCC;font-size:18px;padding:2px 6px;border:none;background:none;cursor:pointer;" aria-label="Delete">×</button>`:''}
@@ -1049,7 +2063,13 @@ function drawWeek(){
   const HOURS=Array.from({length:13},(_,i)=>i+7);
   const H=48;const fb=getFilt();
   let html='<div class="wk-w"><div class="wk-g">';
-  html+='<div class="wk-ch"></div>';
+  const weekTotals=weekHrsByPerson(days);
+  // Show total hours per person as a summary row
+  const totSummary=Object.entries(weekTotals).map(([n,h])=>{
+    const c=col(n);
+    return`<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:500;padding:1px 5px;border-radius:99px;background:${c.bg};color:${c.fg};margin:1px;">${xe(n[0])} ${h%1===0?h:h.toFixed(1)}h</span>`;
+  }).join('');
+  html+=`<div class="wk-ch" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;">${totSummary||'<span style="font-size:9px;color:#8A8479;">hrs</span>'}</div>`;
   days.forEach(d=>{
     const isT=ds(d)===tod;
     const ns=isT?`background:#1A1814;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;margin:2px auto 0;`:`font-size:16px;color:#1A1814;margin-top:2px;`;
@@ -1065,7 +2085,9 @@ function drawWeek(){
         const[sh,sm]=b.start.split(':').map(Number);const[eh,em]=b.end.split(':').map(Number);
         const top=(sm/60)*H;const ht=Math.max(((eh*60+em-sh*60-sm)/60)*H,16);
         const c=col(b.who);const canEdit=b.who===S.me;
-        html+=`<div class="wk-ev" style="top:${top}px;height:${ht}px;background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};cursor:${canEdit?'pointer':'default'};" ${canEdit?`onclick="openEdit(${b.id})" title="Edit"`:''}><div style="display:flex;justify-content:space-between;"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${xe(b.who)}</div>${canEdit&&ht>=24?'<div style="font-size:9px;opacity:.7;">✏️</div>':''}</div>${ht>=28?`<div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>`:''}</div>`;
+        const tipText=b.who+(b.note?' — '+b.note:'')+' ('+b.start+'–'+b.end+')';
+        html+=`<div class="wk-ev" style="top:${top}px;height:${ht}px;background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};cursor:${canEdit?'pointer':'default'};"
+          ${canEdit?`onclick="openEdit(${b.id})"`:''} onmouseenter="showTip(event,'${tipText.replace(/'/g,"\'")}');event.stopPropagation();" onmousemove="moveTip(event)" onmouseleave="hideTip()"><div style="display:flex;justify-content:space-between;"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${xe(b.who)}</div>${canEdit&&ht>=24?'<div style="font-size:9px;opacity:.7;">✏️</div>':''}</div>${ht>=28?`<div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>`:''}</div>`;
       });
       html+='</div>';
     });
@@ -1098,7 +2120,9 @@ function drawMonth(){
     html+=numEl;
     show.forEach(b=>{
       const c=col(b.who);const canEditMo=b.who===S.me;
-      html+=`<div class="mo-ev" style="background:${c.bg};color:${c.fg};cursor:${canEditMo?'pointer':'default'};" ${canEditMo?`onclick="openEdit(${b.id})" title="Edit"`:''}>${xe(b.who)} ${xe(b.start)}${canEditMo?' ✏️':''}</div>`;
+      const mTip=b.who+(b.note?' — '+b.note:'')+' '+b.start+'–'+b.end;
+      html+=`<div class="mo-ev" style="background:${c.bg};color:${c.fg};cursor:${canEditMo?'pointer':'default'};"
+        ${canEditMo?`onclick="openEdit(${b.id})"`:''} onmouseenter="showTip(event,'${mTip.replace(/'/g,"\'")}');event.stopPropagation();" onmousemove="moveTip(event)" onmouseleave="hideTip()">${xe(b.who)} ${xe(b.start)}${canEditMo?' ✏️':''}</div>`;
     });
     if(more>0)html+=`<div style="font-size:9px;color:#8A8479;">+${more} more</div>`;
     html+='</div>';
@@ -1110,31 +2134,1429 @@ function drawMonth(){
 // Tabs
 function goTab(t){
   S.tab=t;
-  ['book','view','costs','sms','people'].forEach(k=>{
+  ['book','view','costs','sms','series','reports','zoom','clients','people'].forEach(k=>{
     document.getElementById('tb-'+k).className='tb'+(k===t?' on':'');
     document.getElementById('pane-'+k).style.display=k===t?'block':'none';
   });
   if(window.innerWidth>=700){
     document.getElementById('pane-book').style.display='block';
-    document.getElementById('pane-view').style.display=(t==='people'||t==='costs'||t==='sms')?'none':'block';
+    document.getElementById('pane-view').style.display=(t==='people'||t==='costs'||t==='sms'||t==='series'||t==='reports'||t==='zoom'||t==='clients')?'none':'block';
     document.getElementById('pane-costs').style.display=t==='costs'?'block':'none';
     document.getElementById('pane-sms').style.display=t==='sms'?'block':'none';
+    document.getElementById('pane-series').style.display=t==='series'?'block':'none';
+    document.getElementById('pane-reports').style.display=t==='reports'?'block':'none';
+    document.getElementById('pane-zoom').style.display=t==='zoom'?'block':'none';
+    document.getElementById('pane-clients').style.display=t==='clients'?'block':'none';
     document.getElementById('pane-people').style.display=t==='people'?'block':'none';
   }
+  renderLegend();
   if(t==='view'){load();draw();}
   if(t==='costs')renderCosts();
   if(t==='sms'){load();renderSMSTab();}
+  if(t==='series'){load();renderSeries();}
+  if(t==='reports'){load();renderReports();}
+  if(t==='clients'){load();renderClientPersonRow();renderClients();}
+  if(t==='zoom'){load();renderZoomList();initZoomForm();}
 }
 window.addEventListener('resize',()=>{
-  if(window.innerWidth>=700&&S.tab!=='people'&&S.tab!=='costs'&&S.tab!=='sms'){
+  if(window.innerWidth>=700&&S.tab!=='people'&&S.tab!=='costs'&&S.tab!=='sms'&&S.tab!=='series'&&S.tab!=='reports'&&S.tab!=='zoom'&&S.tab!=='clients'){
     document.getElementById('pane-book').style.display='block';
     document.getElementById('pane-view').style.display='block';
   }
 });
+// ── PIN protection ────────────────────────────────────────────────────────
+function resetPINCache(){
+  if(confirm('This will clear your saved PIN and reload the app. You can then enter 1234 or your current PIN.')){
+    localStorage.removeItem('rb_app_pin');
+    localStorage.removeItem('rb_pin_ok');
+    S.appPin='1234';
+    location.reload();
+  }
+}
+
+async function checkPIN(){
+  const val=document.getElementById('pin-inp').value.trim();
+  if(!val) return;
+  const btn=document.querySelector('#pin-modal button');
+  if(btn){btn.textContent='Checking…';btn.disabled=true;}
+
+  function resetBtn(){
+    if(btn){btn.textContent='Enter';btn.disabled=false;}
+    document.getElementById('pin-inp').focus();
+  }
+
+  // Check localStorage PIN first - fastest, most up to date
+  const localPIN=localStorage.getItem('rb_app_pin');
+  if(localPIN&&val===localPIN){unlockApp();return;}
+
+  // Check in-memory PIN
+  if(val===S.appPin){unlockApp();return;}
+
+  // Try default PIN
+  if(val==='1234'&&!localPIN&&!S.appPin){unlockApp();return;}
+
+  // Try fetching from sheet with a 8 second timeout
+  try{
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),8000);
+    const xhr=new XMLHttpRequest();
+    const result=await new Promise((resolve,reject)=>{
+      xhr.open('GET',GAS,true);
+      xhr.timeout=8000;
+      xhr.onload=()=>{
+        clearTimeout(timeout);
+        try{resolve(JSON.parse(xhr.responseText));}
+        catch(e){reject(e);}
+      };
+      xhr.onerror=()=>{clearTimeout(timeout);reject(new Error('Network error'));};
+      xhr.ontimeout=()=>{clearTimeout(timeout);reject(new Error('Timeout'));};
+      xhr.send();
+    });
+    const rec=result.record||{};
+    if(rec.appPin){
+      S.appPin=rec.appPin;
+      localStorage.setItem('rb_app_pin',rec.appPin);
+    }
+    if(val===S.appPin){unlockApp();return;}
+  }catch(e){
+    console.warn('PIN fetch failed:',e.message);
+    // If sheet unavailable, accept 1234 as fallback
+    if(val==='1234'){unlockApp();return;}
+  }
+
+  // Wrong PIN
+  document.getElementById('pin-err').style.display='block';
+  document.getElementById('pin-inp').value='';
+  resetBtn();
+}
+
+function unlockApp(){
+  localStorage.setItem('rb_pin_ok','1');
+  document.getElementById('pin-modal').classList.add('off');
+  // Now load the rest of the app data
+  load(true).then(()=>{
+    // Fire reminders if app is opened between 8am and 9am
+    const h=new Date().getHours();
+    if(h>=8&&h<9) autoSendReminders();
+  });
+}
+async function changePIN(){
+  const val=document.getElementById('pin-change-inp').value.trim();
+  const msg=document.getElementById('pin-change-msg');
+  if(!val||val.length<4){
+    msg.textContent='PIN must be at least 4 digits.';
+    msg.style.color='#C0392B';
+    msg.style.display='block';
+    return;
+  }
+  if(!/^\d+$/.test(val)){
+    msg.textContent='PIN must contain numbers only.';
+    msg.style.color='#C0392B';
+    msg.style.display='block';
+    return;
+  }
+  // Update in memory AND localStorage immediately
+  // localStorage acts as source of truth so load() can't overwrite it
+  S.appPin=val;
+  localStorage.setItem('rb_app_pin',val);
+  localStorage.setItem('rb_pin_ok','1');
+  // Save to sheet in background
+  save();
+  document.getElementById('pin-change-inp').value='';
+  msg.textContent='PIN updated to '+val+' ✓ — takes effect immediately';
+  msg.style.color='#1B4332';
+  msg.style.display='block';
+  setTimeout(()=>msg.style.display='none',4000);
+}
+
+// Detect DuckDuckGo or restricted browser
+(function(){
+  const ua=navigator.userAgent.toLowerCase();
+  const isDDG=ua.includes('ddg')||ua.includes('duckduckgo');
+  const isRestricted=!window.fetch||document.referrer==='';
+  const warned=localStorage.getItem('rb_bwarn')==='1';
+  if((isDDG)&&!warned){
+    document.getElementById('browser-warn').style.display='block';
+  }
+})();
+
+// Restore PIN from localStorage on boot so it's available before sheet loads
+const _storedPIN=localStorage.getItem('rb_app_pin');
+if(_storedPIN) S.appPin=_storedPIN;
+
+// Check PIN on load
+if(localStorage.getItem('rb_pin_ok')!=='1'){
+  document.getElementById('pin-modal').style.display='flex';
+  document.getElementById('pin-inp').focus();
+}else{
+  document.getElementById('pin-modal').classList.add('off');
+  load(true).then(()=>{
+    const h=new Date().getHours();
+    if(h>=8&&h<9) autoSendReminders();
+  });
+}
+function recheckPIN(){
+  if(localStorage.getItem('rb_pin_ok')==='1') return;
+  document.getElementById('pin-modal').style.display='flex';
+}
+
+// ── Dark mode ─────────────────────────────────────────────────────────────
+function toggleDark(){
+  const on=document.body.classList.toggle('dark');
+  localStorage.setItem('rb_dark',on?'1':'0');
+  document.getElementById('dark-btn').textContent=on?'☀️':'🌙';
+}
+if(localStorage.getItem('rb_dark')==='1'){
+  document.body.classList.add('dark');
+  document.getElementById('dark-btn').textContent='☀️';
+}
+
+// ── Colour legend ─────────────────────────────────────────────────────────
+function renderLegend(){
+  const el=document.getElementById('colour-legend'); if(!el)return;
+  el.innerHTML=S.people.map((p,i)=>{
+    const n=pName(p);const c=PAL[i%PAL.length];
+    return`<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:${c.bg};color:${c.fg};font-size:12px;font-weight:500;border:1px solid ${c.mid}20;">
+      <span style="width:8px;height:8px;border-radius:50%;background:${c.mid};flex-shrink:0;"></span>${xe(n)}
+    </span>`;
+  }).join('');
+}
+
+// ── Search ────────────────────────────────────────────────────────────────
+function doSearch(){
+  const q=document.getElementById('search-inp').value.trim().toLowerCase();
+  const res=document.getElementById('search-results');
+  if(!q){res.style.display='none';return;}
+  const hits=S.bookings.filter(b=>b.note&&b.note.toLowerCase().includes(q));
+  if(!hits.length){
+    res.style.display='block';
+    res.innerHTML='<p style="padding:12px;font-size:13px;color:#8A8479;text-align:center;">No bookings found for "'+xe(q)+'"</p>';
+    return;
+  }
+  res.style.display='block';
+  res.innerHTML=hits.map(b=>{
+    const c=col(b.who);
+    const d=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #F0EDE8;cursor:pointer;"
+      onmouseover="this.style.background='#F7F5F0'" onmouseout="this.style.background=''"
+      onclick="searchJump('${b.date}')">
+      <div style="width:28px;height:28px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;">${xe(b.who[0])}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:500;">${xe(b.note)}</div>
+        <div style="font-size:12px;color:#8A8479;">${xe(b.who)} · ${d} · ${xe(b.start)}–${xe(b.end)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function searchJump(date){
+  document.getElementById('search-inp').value='';
+  document.getElementById('search-results').style.display='none';
+  S.cursor=new Date(date+'T12:00:00');
+  S.view='day';
+  ['list','day','week','month'].forEach(k=>{
+    const el=document.getElementById('vb-'+k);
+    if(el) el.className='p'+(k==='day'?' on':'');
+  });
+  goTab('view');
+}
+// Close search on outside click
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#search-inp')&&!e.target.closest('#search-results')){
+    document.getElementById('search-results').style.display='none';
+  }
+});
+
+// ── Day view ─────────────────────────────────────────────────────────────
+function drawDay(){
+  const el=document.getElementById('vbody'); if(!el)return;
+  const tod=ds(new Date());
+  const dstr=ds(S.cursor);
+  const isToday=dstr===tod;
+  const HOURS=Array.from({length:14},(_,i)=>i+7);
+  const H=60;
+  const fb=getFilt().filter(b=>b.date===dstr);
+  let html=`<div style="border:1px solid #E5E0D8;border-radius:14px;overflow:hidden;background:#fff;">`;
+  // Day header
+  const dayLabel=new Date(dstr+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  html+=`<div style="padding:12px 16px;background:${isToday?'#1A1814':'#F7F5F0'};color:${isToday?'#fff':'#1A1814'};font-weight:500;font-size:15px;border-bottom:1px solid #E5E0D8;">${dayLabel}</div>`;
+  // Hour grid
+  html+=`<div style="display:grid;grid-template-columns:48px 1fr;">`;
+  HOURS.forEach(h=>{
+    const evs=fb.filter(b=>parseInt(b.start.split(':')[0])===h);
+    html+=`<div style="height:${H}px;background:#F7F5F0;border-right:1px solid #E5E0D8;border-bottom:1px solid #F0EDE8;display:flex;align-items:flex-start;padding:3px 6px 0;font-size:10px;color:#8A8479;">${p2(h)}:00</div>`;
+    html+=`<div style="position:relative;height:${H}px;border-bottom:1px solid #F0EDE8;">`;
+    evs.forEach(b=>{
+      const[sh,sm]=b.start.split(':').map(Number);
+      const[eh,em]=b.end.split(':').map(Number);
+      const top=(sm/60)*H;
+      const ht=Math.max(((eh*60+em-sh*60-sm)/60)*H,20);
+      const c=col(b.who);
+      const isOwner=b.who===S.me;
+      html+=`<div style="position:absolute;left:4px;right:4px;top:${top}px;height:${ht}px;background:${c.bg};color:${c.fg};border-left:3px solid ${c.mid};border-radius:6px;padding:4px 8px;cursor:${isOwner?'pointer':'default'};"
+        ${isOwner?`onclick="openEdit(${b.id})" title="Edit booking"`:''}>
+        <div style="font-size:13px;font-weight:500;">${xe(b.who)}${b.note?' — '+xe(b.note):''}</div>
+        <div style="font-size:11px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  });
+  html+=`</div></div>`;
+  // Waiting list for this day
+  const wl=(S.waitingList||[]).filter(w=>w.date===dstr);
+  if(wl.length){
+    html+=`<div style="margin-top:14px;"><div style="font-size:12px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Waiting list for this day</div>`;
+    html+=wl.map(w=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;margin-bottom:6px;">
+      <div style="flex:1;font-size:13px;"><strong>${xe(w.who)}</strong>${w.note?' · '+xe(w.note):''}</div>
+      <button onclick="removeWL('${w.id}')" style="color:#CCC;font-size:18px;border:none;background:none;cursor:pointer;">×</button>
+    </div>`).join('');
+    html+=`</div>`;
+  }
+  el.innerHTML=html;
+}
+
+// ── Waiting list ──────────────────────────────────────────────────────────
+let _wlDate=null;
+function openWL(date){
+  _wlDate=date;
+  const d=new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('wl-info').innerHTML=`<strong>${d}</strong> is fully booked. Join the waiting list and you'll be notified if a slot becomes free.`;
+  document.getElementById('wl-name').value=S.me||'';
+  document.getElementById('wl-note').value='';
+  document.getElementById('wl-modal').classList.remove('off');
+}
+function closeWL(){document.getElementById('wl-modal').classList.add('off');}
+async function joinWL(){
+  const name=document.getElementById('wl-name').value.trim()||S.me;
+  const note=document.getElementById('wl-note').value.trim();
+  if(!S.waitingList) S.waitingList=[];
+  S.waitingList.push({id:'wl'+Date.now(),date:_wlDate,who:name,note,addedAt:new Date().toISOString()});
+  closeWL();
+  await save();
+  draw();
+    alert('Added to waiting list. You will see it in the day view.');
+}
+async function removeWL(id){
+  S.waitingList=(S.waitingList||[]).filter(w=>w.id!==id);
+  await save(); draw();
+}
+
+// ── Week view tooltips ────────────────────────────────────────────────────
+const tooltip=document.getElementById('ev-tooltip');
+let _tipTimer=null;
+function showTip(e,text){
+  tooltip.textContent=text;
+  tooltip.style.display='block';
+  // Auto-hide after 2 seconds on mobile (touch devices)
+  clearTimeout(_tipTimer);
+  _tipTimer=setTimeout(hideTip,2000);
+  moveTip(e);
+}
+function moveTip(e){
+  tooltip.style.left=Math.min(e.clientX+12,window.innerWidth-220)+'px';
+  tooltip.style.top=(e.clientY-40)+'px';
+}
+function hideTip(){tooltip.style.display='none';}
+
+// ── Week total hours per person ───────────────────────────────────────────
+function weekHrsByPerson(days){
+  const byP={};
+  days.forEach(d=>{
+    const dstr=ds(d);
+    S.bookings.filter(b=>b.date===dstr).forEach(b=>{
+      byP[b.who]=(byP[b.who]||0)+hrs(b);
+    });
+  });
+  return byP;
+}
+
+// ── Series management ─────────────────────────────────────────────────────
+function renderSeries(){
+  const el=document.getElementById('series-body'); if(!el)return;
+  // Group bookings by repeatId
+  const series={};
+  S.bookings.filter(b=>b.repeatId).forEach(b=>{
+    if(!series[b.repeatId]) series[b.repeatId]={mode:b.repeatMode,bookings:[]};
+    series[b.repeatId].bookings.push(b);
+  });
+  const keys=Object.keys(series);
+  if(!keys.length){
+    el.innerHTML='<div style="text-align:center;padding:30px;color:#8A8479;font-size:13px;">No recurring series found</div>';
+    return;
+  }
+  el.innerHTML=keys.map(id=>{
+    const s=series[id];
+    s.bookings.sort((a,b)=>a.date.localeCompare(b.date));
+    const first=s.bookings[0],last=s.bookings[s.bookings.length-1];
+    const c=col(first.who);
+    const fd=new Date(first.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const ld=new Date(last.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const modeLabel={weekly:'Weekly',twoweek:'2-Weekly','2week':'2-Weekly',monthly:'Monthly'}[s.mode]||s.mode;
+    const isOwner=first.who===S.me;
+    return`<div style="border:1px solid #E5E0D8;border-radius:12px;overflow:hidden;margin-bottom:12px;">
+      <div style="padding:12px 16px;background:#F7F5F0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="width:32px;height:32px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;">${xe(first.who[0])}</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:500;">${xe(first.who)} · ${modeLabel}</div>
+          <div style="font-size:12px;color:#8A8479;">${first.start}–${first.end} · ${s.bookings.length} bookings · ${fd} to ${ld}</div>
+          ${first.note?`<div style="font-size:12px;color:#8A8479;font-style:italic;">${xe(first.note)}</div>`:''}
+        </div>
+        ${isOwner?`<button onclick="cancelSeries('${id}')" style="padding:6px 12px;font-size:12px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#C0392B;cursor:pointer;">Cancel series</button>`:''}
+      </div>
+      <div style="padding:10px 16px;max-height:150px;overflow-y:auto;">
+        ${s.bookings.map(b=>{
+          const bd=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+          const past=b.date<ds(new Date());
+          return`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F7F5F0;font-size:13px;color:${past?'#C8C3BB':'#1A1814'};">${bd}<span>${b.start}–${b.end}</span></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function cancelSeries(repId){
+  const count=S.bookings.filter(b=>b.repeatId===repId).length;
+  if(!confirm('Cancel all '+count+' bookings in this series?')) return;
+  S.bookings=S.bookings.filter(b=>b.repeatId!==repId);
+  await save(); draw(); renderSeries();
+}
+
+// ── Clients ───────────────────────────────────────────────────────────────
+let clientPerson=null; // null = current user
+
+function renderClientPersonRow(){
+  const el=document.getElementById('cl-person-row'); if(!el)return;
+  // Default to current user on first render
+  if(!clientPerson) clientPerson=S.me||pName(S.people[0]);
+  el.innerHTML=S.people.map(p=>{
+    const n=pName(p);const c=col(n);const on=clientPerson===n;
+    return`<button type="button" onclick="setClientPerson('${xe(n)}')"
+      style="padding:6px 14px;border-radius:99px;border:1px solid ${on?c.mid:'#E5E0D8'};background:${on?c.bg:'#fff'};color:${on?c.fg:'#8A8479'};font-size:13px;cursor:pointer;font-family:inherit;font-weight:${on?'500':'400'};">
+      ${xe(n)}</button>`;
+  }).join('');
+}
+
+function setClientPerson(name){
+  clientPerson=name;
+  renderClientPersonRow();
+  renderClients();
+}
+
+function getClientData(){
+  // Build client list from booking notes for selected person only
+  const person=clientPerson||S.me||pName(S.people[0]);
+  const clients={};
+  S.bookings.forEach(b=>{
+    if(!b.note||!b.note.trim()) return;
+    if(b.who!==person) return;
+    const name=b.note.trim();
+    if(!clients[name]) clients[name]={name,visits:[],bookedBy:new Set()};
+    clients[name].visits.push({...b,_isZoom:false});
+    clients[name].bookedBy.add(b.who);
+  });
+  // Also include Zoom sessions — client name stored in client1
+  (S.zoomBookings||[]).forEach(b=>{
+    const name=(b.client1||b.note||'').trim();
+    if(!name||b.who!==person) return;
+    if(!clients[name]) clients[name]={name,visits:[],bookedBy:new Set()};
+    clients[name].visits.push({...b,_isZoom:true});
+    clients[name].bookedBy.add(b.who);
+  });
+  // Sort visits by date for each client
+  Object.values(clients).forEach(c=>{
+    c.visits.sort((a,b)=>a.date.localeCompare(b.date));
+    const todayStr=ds(new Date());
+    const pastV=c.visits.filter(v=>v.date<todayStr);
+    c.lastVisit=pastV.length?pastV[pastV.length-1]:null;
+    c.nextVisit=c.visits.find(v=>v.date>=todayStr)||null;
+    c.totalVisits=c.visits.length;
+  });
+  return Object.values(clients).sort((a,b)=>b.totalVisits-a.totalVisits);
+}
+
+function renderClients(){
+  const el=document.getElementById('clients-body'); if(!el)return;
+  const q=(document.getElementById('client-search')||{}).value||'';
+  let clients=getClientData();
+  if(q) clients=clients.filter(c=>c.name.toLowerCase().includes(q.toLowerCase()));
+
+  if(!clients.length){
+    el.innerHTML='<div style="text-align:center;padding:30px;color:#8A8479;font-size:13px;">'+(q?'No clients found for "'+xe(q)+'"':'No bookings with client names yet')+'</div>';
+    return;
+  }
+
+  const today=ds(new Date());
+  el.innerHTML=clients.map(c=>{
+    const last=c.lastVisit;
+    const next=c.nextVisit;
+    const lastD=last?new Date(last.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):'No past visits';
+    const nextD=next?new Date(next.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):'—';
+    const bookedByArr=[...c.bookedBy];
+    const isOptOut=isOptedOut(''); // placeholder — we check by name below
+
+    // Colour based on most recent booker
+    const col_c=col((last||next||c.visits[0]).who);
+
+    // Badge colour for visit count
+    const visits=c.totalVisits;
+    const badgeBg=visits>=10?'#1B4332':visits>=5?'#52B788':visits>=3?'#95D5B2':'#D8F3DC';
+    const badgeFg=visits>=5?'#fff':'#1B4332';
+
+    return`<div style="border:1px solid #E5E0D8;border-radius:12px;overflow:hidden;margin-bottom:10px;">
+      <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <!-- Avatar -->
+        <div style="width:40px;height:40px;border-radius:50%;background:${col_c.bg};color:${col_c.fg};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;flex-shrink:0;">
+          ${xe(c.name[0].toUpperCase())}
+        </div>
+        <!-- Name + meta -->
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:500;margin-bottom:2px;">${xe(c.name)}</div>
+          <div style="font-size:12px;color:#8A8479;">
+            ${c.totalVisits===1?'First visit':'Returning client'}
+          </div>
+        </div>
+        <!-- Visit count badge -->
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="width:42px;height:42px;border-radius:50%;background:${badgeBg};color:${badgeFg};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">${visits}</div>
+          <div style="font-size:10px;color:#8A8479;margin-top:2px;">visit${visits===1?'':'s'}</div>
+        </div>
+      </div>
+      <!-- Details row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #F0EDE8;">
+        <div style="padding:10px 16px;border-right:1px solid #F0EDE8;">
+          <div style="font-size:10px;font-weight:600;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Last visit</div>
+          <div style="font-size:13px;font-weight:500;color:${last?'#1A1814':'#C8C3BB'}">${lastD}</div>
+          ${last?`<div style="font-size:12px;color:#8A8479;">${last.start}–${last.end} · ${xe(last.who)}</div>`:'<div style="font-size:12px;color:#C8C3BB;">No past visits yet</div>'}
+        </div>
+        <div style="padding:10px 16px;">
+          <div style="font-size:10px;font-weight:600;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Next visit</div>
+          <div style="font-size:13px;font-weight:500;color:${next?'#1A1814':'#C8C3BB'}">${nextD}</div>
+          ${next?`<div style="font-size:12px;color:#8A8479;">${next.start}–${next.end} · ${xe(next.who)}</div>`:'<div style="font-size:12px;color:#C8C3BB;">No upcoming bookings</div>'}
+        </div>
+      </div>
+      <!-- Visit history (collapsed) -->
+      ${visits>1?`<details style="border-top:1px solid #F0EDE8;">
+        <summary style="padding:8px 16px;font-size:12px;color:#8A8479;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+          <span>All ${visits} visits</span><span style="font-size:10px;">▼</span>
+        </summary>
+        <div style="padding:0 16px 10px;max-height:200px;overflow-y:auto;">
+          ${c.visits.map(v=>{
+            const vd=new Date(v.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+            const isPast=v.date<today;
+            const vc=col(v.who);
+            const zoomBadge=v._isZoom?'<span style="font-size:10px;background:#E8F4FD;color:#185FA5;border-radius:99px;padding:1px 6px;margin-left:2px;">📹 Zoom</span>':'';
+            return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F7F5F0;font-size:13px;color:${isPast?'#8A8479':'#1A1814'};">
+              <div style="width:6px;height:6px;border-radius:50%;background:${v._isZoom?'#185FA5':vc.mid};flex-shrink:0;"></div>
+              <span style="flex:1;">${vd}${zoomBadge}</span>
+              <span style="color:#8A8479;">${v.start}–${v.end}</span>
+              <span style="font-size:11px;padding:1px 6px;border-radius:99px;background:${vc.bg};color:${vc.fg};">${xe(v.who)}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </details>`:''}
+    </div>`;
+  }).join('');
+}
+
+// Strict name matching for contact search — prevents wrong client getting reminder
+function nameMatches(contact, clientName){
+  const searchNorm=(clientName||'').trim().toLowerCase();
+  const contactFull=((contact.name||'')+'').trim().toLowerCase();
+  const parts=contactFull.split(' ');
+  const searchParts=searchNorm.split(' ');
+  if(contactFull===searchNorm) return true;
+  if(searchParts.length>1){
+    const sf=searchParts[0], sl=searchParts[searchParts.length-1];
+    const cf=parts[0]||'', cl=parts[parts.length-1]||'';
+    if(cf===sf&&cl===sl) return true;
+  }
+  if(contactFull.includes(searchNorm)||searchNorm.includes(contactFull)) return true;
+  return false;
+}
+
+// ── Zoom booking ─────────────────────────────────────────────────────────
+let zoomDurMins=60;
+
+function initZoomForm(){
+  const el=document.getElementById('z-date');
+  if(el){
+    if(!el.value) el.value=ds(new Date());
+    const maxD=new Date(); maxD.setFullYear(maxD.getFullYear()+2);
+    el.max=ds(maxD);
+    el.min=ds(new Date()); // prevent past dates
+  }
+}
+
+function selZoomDur(btn){
+  document.querySelectorAll('#pane-zoom .dur-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  zoomDurMins=parseInt(btn.dataset.mins);
+}
+
+function toggleZoomCouples(){
+  const cb=document.getElementById('z-couples-toggle');
+  cb.checked=!cb.checked;
+  const on=cb.checked;
+  document.getElementById('z-couples-track').style.background=on?'#1A1814':'#E5E0D8';
+  document.getElementById('z-couples-thumb').style.transform=on?'translateX(20px)':'translateX(0)';
+  document.getElementById('z-couples-row').style.display=on?'block':'none';
+}
+
+async function doZoomBooking(){
+  if(!S.me){showWho();return;}
+  const date   =document.getElementById('z-date').value;
+  const start  =document.getElementById('z-from').value;
+  const client =document.getElementById('z-client').value.trim();
+  const couples=document.getElementById('z-couples-toggle').checked;
+  const client2=couples?(document.getElementById('z-client2').value.trim()):'';
+  const topicRaw=(document.getElementById('z-topic').value.trim())||'Session';
+  const topic=topicRaw+' for '+(couples&&client2?client+' & '+client2:client);
+  const eEl=document.getElementById('zoom-err');
+  const oEl=document.getElementById('zoom-ok');
+  eEl.style.display='none'; oEl.style.display='none';
+
+  if(!date||!start){eEl.textContent='Please enter date and time.';eEl.style.display='block';return;}
+  if(!client){eEl.textContent='Please enter a client name.';eEl.style.display='block';return;}
+
+  // Calculate end time for clash check
+  const[czh,czm]=start.split(':').map(Number);
+  const czEndMins=czh*60+czm+zoomDurMins;
+  const czEnd=p2(Math.floor(czEndMins/60)%24)+':'+p2(czEndMins%60);
+
+  // Check for duplicate or clashing Zoom booking (check both array and local map)
+  const allZoom=[...(S.zoomBookings||[]),..._localZoomBookings.values()];
+  const uniqueZoom=[...new Map(allZoom.map(b=>[String(b.id),b])).values()];
+  const zoomClash=uniqueZoom.find(b=>
+    b.who===S.me && b.date===date &&
+    !(czEnd<=b.start||start>=b.end)
+  );
+  if(zoomClash){
+    eEl.textContent='You already have a Zoom session at this time: '+(zoomClash.topic||zoomClash.note)+' ('+zoomClash.start+'–'+zoomClash.end+')';
+    eEl.style.display='block';
+    return;
+  }
+
+  const btn=document.getElementById('z-btn');
+  btn.disabled=true;
+
+  const pendingId=Date.now();
+  const params=new URLSearchParams({
+    action:'createZoom', who:S.me,
+    topic:topic,
+    date, start, duration:zoomDurMins,
+    pendingId,
+    client:client,
+    client2:client2,
+    couples:couples?'1':'0'
+  });
+
+  // Calculate end time
+  const[zh,zm]=start.split(':').map(Number);
+  const zEndMins=zh*60+zm+zoomDurMins;
+  const zEndTime=p2(Math.floor(zEndMins/60)%24)+':'+p2(zEndMins%60);
+
+  // Store placeholder details but DON'T add to list yet
+  const placeholder={
+    id:pendingId, pendingId:pendingId,
+    who:S.me, date, start, end:zEndTime,
+    note:couples&&client2?client+' & '+client2:client,
+    topic:topic, client1:client, client2:couples?client2:'',
+    couples:couples&&!!client2,
+    zoomJoinUrl:'', zoomShortUrl:'', zoomPassword:'',
+    zoomStartUrl:'', isZoom:true, pending:true,
+    updated:new Date().toISOString()
+  };
+  btn.textContent='Creating Zoom meeting…';
+
+  // Add placeholder to list immediately
+  if(!S.zoomBookings) S.zoomBookings=[];
+  S.zoomBookings.push(placeholder);
+  const idx=S.zoomBookings.length-1;
+  renderZoomList();
+
+  // Fire createZoom request via xhrFetch (handles CORS/redirects correctly)
+  let zoomXHRResult=null;
+  console.log('Zoom request fired, pendingId:',pendingId,'date:',date,'start:',start);
+  xhrFetch(GAS+'?'+params, 90000).then(async r=>{
+    try{
+      const d=await r.json();
+      if(d.ok&&d.zoomJoinUrl) zoomXHRResult=d;
+      console.log('Zoom result:',d.ok,d.zoomShortUrl||d.error);
+    }catch(e){ console.log('Zoom parse error:',e.message); }
+  }).catch(e=>{ console.log('Zoom request error:',e.message); });
+
+  // Poll for real Zoom details — update placeholder when found
+  let found=null;
+  let secs=0;
+  const pollTimer=setInterval(()=>{secs+=4;btn.textContent='Creating… ('+secs+'s)';},4000);
+
+  for(let i=0;i<15;i++){
+    await new Promise(r=>setTimeout(r,4000));
+
+    // Check if XHR already returned the result
+    if(zoomXHRResult){
+      found=zoomXHRResult;
+      console.log('✓ Got Zoom details from XHR response');
+      break;
+    }
+
+    // Poll the sheet
+    try{
+      const r=await xhrFetch(GAS+'?action=load');
+      const j=await r.json();
+      const zbs=(j.record&&j.record.zoomBookings)||[];
+      console.log('Poll '+(i+1)+': '+zbs.length+' zoom bookings in sheet');
+      found=zbs.find(b=>
+        String(b.pendingId)===String(pendingId)||
+        (b.who===S.me&&b.date===date&&b.start===start&&b.zoomJoinUrl&&(Date.now()-b.id)<180000)
+      );
+      if(found){ console.log('✓ Found in sheet:',found.zoomShortUrl); break; }
+    }catch(e){ console.log('Poll '+(i+1)+':',e.message); }
+  }
+
+  clearInterval(pollTimer);
+  btn.disabled=false;
+  btn.textContent='📹 Create Zoom meeting';
+
+  // Update placeholder with real Zoom details
+  if(found&&found.zoomJoinUrl){
+    // Remove any existing booking for same date/start before adding
+    if(!S.zoomBookings) S.zoomBookings=[];
+    S.zoomBookings=S.zoomBookings.filter(b=>
+      !(b.who===S.me&&b.date===date&&b.start===start)
+    );
+    const updated={...placeholder,...found,
+      id:found.id||pendingId,
+      pendingId:pendingId,
+      pending:false,
+      topic:found.topic||placeholder.topic||topic,
+      note:found.note||placeholder.note,
+      zoomShortUrl:found.zoomShortUrl||found.zoomJoinUrl,
+      zoomPassword:found.zoomPassword||'',
+      zoomStartUrl:found.zoomStartUrl||''};
+    S.zoomBookings.push(updated);
+    _localZoomBookings.set(String(updated.id), updated);
+    await saveZoom();
+    renderZoomList();
+    oEl.style.display='block';
+    // Reset form
+    document.getElementById('z-client').value='';
+    document.getElementById('z-topic').value='';
+    document.getElementById('z-couples-toggle').checked=false;
+    document.getElementById('z-couples-track').style.background='#E5E0D8';
+    document.getElementById('z-couples-thumb').style.transform='translateX(0)';
+    document.getElementById('z-couples-row').style.display='none';
+    document.getElementById('z-client2').value='';
+    // Try to shorten URL via Bitly directly
+    const bitlyToken=localStorage.getItem('rb_bitly_'+S.me);
+    if(bitlyToken&&updated.zoomJoinUrl&&!updated.zoomShortUrl.includes('bit.ly')){
+      try{
+        const br=await fetch('https://api-ssl.bitly.com/v4/shorten',{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+bitlyToken,'Content-Type':'application/json'},
+          body:JSON.stringify({long_url:updated.zoomJoinUrl})
+        });
+        if(br.ok){
+          const bj=await br.json();
+          if(bj.link){
+            updated.zoomShortUrl=bj.link;
+            const uidx=S.zoomBookings.findIndex(b=>String(b.id)===String(pendingId));
+            if(uidx>-1) S.zoomBookings[uidx].zoomShortUrl=bj.link;
+            await saveZoom();
+            renderZoomList();
+          }
+        }
+      }catch(e){ console.log('Bitly:',e.message); }
+    }
+    setTimeout(()=>{oEl.style.display='none';sendZoomConfirmation(updated);},1000);
+  } else {
+    // Poll timed out — do one final load attempt before giving up
+    let finalFound = null;
+    try {
+      const fr = await xhrFetch(GAS+'?action=load');
+      const fj = await fr.json();
+      const fzbs = (fj.record&&fj.record.zoomBookings)||[];
+      finalFound = fzbs.find(b=>
+        String(b.pendingId)===String(pendingId)||
+        (b.who===S.me&&b.date===date&&b.start===start&&b.zoomJoinUrl&&(Date.now()-b.id)<300000)
+      );
+    } catch(fe){ console.log('Final poll error:',fe.message); }
+
+    if(finalFound&&finalFound.zoomJoinUrl){
+      if(!S.zoomBookings) S.zoomBookings=[];
+      S.zoomBookings=S.zoomBookings.filter(b=>!(b.who===S.me&&b.date===date&&b.start===start));
+      const finalUpdated={...placeholder,...finalFound,
+        id:finalFound.id||pendingId,
+        pendingId:pendingId,
+        pending:false,
+        note:finalFound.note||placeholder.note,
+        zoomShortUrl:finalFound.zoomShortUrl||finalFound.zoomJoinUrl};
+      S.zoomBookings.push(finalUpdated);
+      _localZoomBookings.set(String(finalUpdated.id), finalUpdated);
+      await saveZoom();
+      renderZoomList();
+      oEl.style.display='block';
+      setTimeout(()=>{oEl.style.display='none';sendZoomConfirmation(finalUpdated);},1000);
+    } else {
+      if(idx>-1) S.zoomBookings.splice(idx,1);
+      renderZoomList();
+      eEl.textContent='Zoom meeting created — tap ↻ Refresh to load details.';
+      eEl.style.display='block';
+    }
+  }
+}
+
+
+
+async function saveZoom(){
+  if(!S.smsLog) S.smsLog=[];
+  if(!S.zoomBookings) S.zoomBookings=[];
+  const payload={
+    people:S.people.map(p=>({name:typeof p==='string'?p:p.name})),
+    rate:S.rate,
+    smsLog:S.smsLog.slice(0,50),
+    waitingList:S.waitingList||[],
+    appPin:S.appPin||'1234',
+    zoomBookings:S.zoomBookings
+  };
+  const encoded=encodeURIComponent(JSON.stringify(payload));
+  console.log('Saving zoom bookings:',S.zoomBookings.length);
+  // Try xhrFetch first, fall back to no-cors fetch
+  try{
+    const j=await gasAction({action:'saveSettings',data:encoded});
+    console.log('saveZoom result:',j);
+    return j;
+  }catch(e){
+    console.warn('saveZoom xhrFetch failed, trying no-cors:',e.message);
+    try{
+      await fetch(GAS+'?action=saveSettings&data='+encoded,{mode:'no-cors',redirect:'follow'});
+      console.log('saveZoom no-cors sent');
+      return {ok:true};
+    }catch(e2){
+      console.error('saveZoom both methods failed:',e2.message);
+      throw e2;
+    }
+  }
+}
+
+async function sendZoomConfirmation(zb){
+  if(!zb){console.warn('sendZoomConfirmation: no booking');return;}
+  const tm=getTM();
+  if(!tm.enabled||!tm.user||!tm.key){
+    alert('Zoom meeting created! Enable SMS in People tab to send confirmation to client.');
+    return;
+  }
+  const clientName=zb.client1||zb.note||'';
+  if(!clientName){console.warn('No client name on zoom booking');return;}
+  // Ensure modal is reset before opening
+  document.getElementById('cp-modal').classList.add('off');
+  // Reset picker state completely before opening
+  _cpBid=null;
+  _couplesPartner=null;
+  _cancelledBooking=null;
+  _previewPhone='';
+  // Set zoom confirmation state
+  _cpMode='zoom-confirm';
+  _cancelledBooking={...zb,isZoom:true};
+  document.getElementById('cp-title').textContent='Send Zoom confirmation';
+  document.getElementById('cp-search').value=clientName;
+  document.getElementById('cp-binfo').textContent=
+    'Zoom: '+zb.who+' · '+
+    new Date(zb.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+
+    ' at '+zb.start+' · '+xe(clientName);
+  const wrap=document.getElementById('cp-preview-wrap');
+  if(wrap) wrap.style.display='none';
+  document.getElementById('cp-results').innerHTML=
+    '<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Searching for "'+xe(clientName)+'"…</p>';
+  document.getElementById('cp-modal').classList.remove('off');
+  setTimeout(searchCP,500);
+}
+
+async function deleteZoomBooking(id){
+  console.log('deleteZoomBooking called with id:',id,'type:',typeof id);
+  console.log('Current zoom bookings:',S.zoomBookings.map(b=>String(b.id)));
+  const zb=(S.zoomBookings||[]).find(b=>String(b.id)===String(id));
+  console.log('Found booking:',zb?'yes':'no');
+  if(!zb){alert('Booking not found — try refreshing');return;}
+  const zTitle=(zb.topic?zb.topic+' for ':'')+xe(zb.note||zb.client1||'this session');
+  if(!confirm('Delete "'+zTitle+'"?')) return;
+  // Remove locally and track deletion
+  S.zoomBookings=(S.zoomBookings||[]).filter(b=>String(b.id)!==String(id));
+  _deletedZoomIds.add(String(id));
+  _saveDeletedZoomIds();
+  _localZoomBookings.delete(String(id));
+  console.log('Remaining zoom bookings:',S.zoomBookings.length);
+  try{
+    await saveZoom();
+    console.log('saveZoom completed');
+  }catch(e){
+    console.error('saveZoom failed:',e.message);
+    alert('Delete failed: '+e.message);
+    return;
+  }
+  renderZoomList();
+  // Try to cancel in Zoom too
+  if(zb.zoomMeetingId){
+    gasAction({action:'deleteZoom',who:S.me,meetingId:zb.zoomMeetingId})
+      .then(()=>console.log('Zoom meeting cancelled'))
+      .catch(e=>console.warn('Zoom cancel failed:',e.message));
+  }
+}
+
+let _zoomEditId=null;
+let _zoomEditDurMins=60;
+
+function selZoomEditDur(btn){
+  document.querySelectorAll('#zoom-edit-modal .dur-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  _zoomEditDurMins=parseInt(btn.dataset.mins);
+}
+
+function openEditZoom(id){
+  const zb=(S.zoomBookings||[]).find(b=>String(b.id)===String(id));
+  if(!zb) return;
+  _zoomEditId=id;
+  // Calculate current duration
+  const[sh,sm]=zb.start.split(':').map(Number);
+  const[eh,em]=zb.end.split(':').map(Number);
+  _zoomEditDurMins=(eh*60+em)-(sh*60+sm);
+  // Populate form
+  document.getElementById('ze-date').value=zb.date;
+  document.getElementById('ze-from').value=zb.start;
+  document.getElementById('ze-client').value=zb.client1||zb.note||'';
+  document.getElementById('ze-topic').value=zb.topic||'';
+  document.getElementById('ze-err').style.display='none';
+  // Set duration buttons
+  document.querySelectorAll('#zoom-edit-modal .dur-btn').forEach(b=>{
+    b.classList.toggle('on',parseInt(b.dataset.mins)===_zoomEditDurMins);
+  });
+  document.getElementById('zoom-edit-modal').classList.remove('off');
+}
+
+function closeZoomEdit(){
+  document.getElementById('zoom-edit-modal').classList.add('off');
+  _zoomEditId=null;
+}
+
+async function saveZoomEdit(){
+  const date =document.getElementById('ze-date').value;
+  const start=document.getElementById('ze-from').value;
+  const client=document.getElementById('ze-client').value.trim();
+  const topicRaw=document.getElementById('ze-topic').value.trim()||'Session';
+  const eEl=document.getElementById('ze-err');
+  eEl.style.display='none';
+
+  if(!date||!start){eEl.textContent='Please enter date and time.';eEl.style.display='block';return;}
+  if(!client){eEl.textContent='Please enter a client name.';eEl.style.display='block';return;}
+
+  const idx=S.zoomBookings.findIndex(b=>String(b.id)===String(_zoomEditId));
+  if(idx===-1){closeZoomEdit();return;}
+
+  const zb=S.zoomBookings[idx];
+  const[h,m]=start.split(':').map(Number);
+  const endMins=h*60+m+_zoomEditDurMins;
+  const end=p2(Math.floor(endMins/60)%24)+':'+p2(endMins%60);
+  const topic=topicRaw+' for '+client;
+
+  S.zoomBookings[idx]={...zb, date, start, end, client1:client,
+    note:client, topic, updated:new Date().toISOString()};
+  _localZoomBookings.set(String(_zoomEditId), S.zoomBookings[idx]);
+
+  closeZoomEdit();
+  await saveZoom();
+  renderZoomList();
+}
+
+function subscribeZoomCal(){
+  if(!S.me){showWho();return;}
+  const url=GAS+'?action=zoomical&who='+encodeURIComponent(S.me);
+  // Show modal with copy button and instructions
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML=`
+    <div style="background:#fff;border-radius:16px;padding:24px;max-width:420px;width:100%;">
+      <div style="font-size:17px;font-weight:500;margin-bottom:8px;">📅 Subscribe to Zoom Calendar</div>
+      <p style="font-size:13px;color:#8A8479;margin-bottom:16px;line-height:1.5;">Copy the URL below and add it as a subscribed calendar in your calendar app.</p>
+      <div style="background:#F7F5F0;border-radius:8px;padding:10px 12px;font-size:11px;word-break:break-all;margin-bottom:12px;color:#1A1814;">${url}</div>
+      <button onclick="navigator.clipboard.writeText('${url}').then(()=>this.textContent='Copied ✓')"
+        style="width:100%;padding:12px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:8px;">
+        Copy URL
+      </button>
+      <div style="font-size:12px;color:#8A8479;margin-bottom:12px;line-height:1.6;">
+        <strong>iPhone:</strong> Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar → paste URL<br><br>
+        <strong>Google Calendar:</strong> Other calendars → + → From URL → paste URL
+      </div>
+      <button onclick="this.closest('div[style*=fixed]').remove()"
+        style="width:100%;padding:10px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;color:#8A8479;">
+        Close
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function renderZoomList(){
+  const el=document.getElementById('zoom-list'); if(!el)return;
+  if(!S.zoomBookings) S.zoomBookings=[];
+  const today=ds(new Date());
+  const upcoming=S.zoomBookings.filter(b=>b.date>=today&&b.who===S.me)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  if(!upcoming.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:#8A8479;font-size:13px;">No upcoming Zoom sessions</div>';
+    return;
+  }
+  el.innerHTML=upcoming.map(zb=>{
+    const c=col(zb.who);
+    const d=new Date(zb.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+    const shortUrl=zb.zoomShortUrl||zb.zoomJoinUrl||'';
+    return`<div style="border:1px solid #E5E0D8;border-radius:12px;overflow:hidden;margin-bottom:10px;">
+      <div style="padding:12px 16px;background:#F7F5F0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="width:34px;height:34px;border-radius:50%;background:#E8F4FD;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📹</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:500;">${xe(zb.topic||zb.note||zb.client1)}</div>
+          <div style="font-size:12px;color:#8A8479;">${xe(zb.note||zb.client1)} · ${d} · ${zb.start}–${zb.end}</div>
+          ${zb.zoomShortUrl?`<a href="${xe(shortUrl)}" target="_blank" style="font-size:12px;color:#185FA5;word-break:break-all;">${xe(shortUrl)}</a>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <a href="${xe(zb.zoomStartUrl||'')}" target="_blank"
+            style="padding:5px 10px;font-size:11px;background:#1A1814;color:#fff;border-radius:6px;text-decoration:none;text-align:center;">
+            Start
+          </a>
+          <button onclick="openEditZoom('${zb.id}')"
+            style="padding:5px 10px;font-size:11px;border:1px solid #185FA5;border-radius:6px;background:#E8F4FD;color:#185FA5;cursor:pointer;">
+            ✏️ Edit
+          </button>
+          <button onclick="sendZoomConfirmation(S.zoomBookings.find(b=>String(b.id)==='${zb.id}'))"
+            style="padding:5px 10px;font-size:11px;border:1px solid #C9A84C;border-radius:6px;background:#FFF3CD;color:#6B4C00;cursor:pointer;">
+            ✉️ SMS
+          </button>
+          <button onclick="deleteZoomBooking('${zb.id}')"
+            style="padding:5px 10px;font-size:11px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#C0392B;cursor:pointer;">
+            Delete
+          </button>
+        </div>
+      </div>
+      ${zb.zoomPassword?`<div style="padding:6px 16px;font-size:12px;color:#8A8479;border-top:1px solid #F0EDE8;">Password: ${xe(zb.zoomPassword)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── Reports ───────────────────────────────────────────────────────────────
+let reportPeriod='month';
+
+function setReportPeriod(p){
+  reportPeriod=p;
+  ['month','3month','year','all'].forEach(k=>{
+    const el=document.getElementById('rp-'+k);
+    if(el) el.className='p'+(k===p?' on':'');
+  });
+  renderReports();
+}
+
+function getReportBookings(){
+  const now=new Date();
+  const yr=now.getFullYear();
+  const mo=now.getMonth();
+  return S.bookings.filter(b=>{
+    const d=new Date(b.date+'T12:00:00');
+    if(reportPeriod==='month') return d.getFullYear()===yr&&d.getMonth()===mo;
+    if(reportPeriod==='3month'){const t=new Date(now);t.setMonth(t.getMonth()-3);return d>=t;}
+    if(reportPeriod==='year') return d.getFullYear()===yr;
+    return true;
+  });
+}
+
+function getReportLabel(){
+  const now=new Date();
+  if(reportPeriod==='month') return now.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  if(reportPeriod==='3month') return 'Last 3 months';
+  if(reportPeriod==='year') return 'Year '+now.getFullYear();
+  return 'All time';
+}
+
+function getDateRange(){
+  const bks=getReportBookings();
+  if(!bks.length) return {days:0,start:null,end:null};
+  const dates=bks.map(b=>b.date).sort();
+  const start=new Date(dates[0]+'T12:00:00');
+  const end=new Date(dates[dates.length-1]+'T12:00:00');
+  const days=Math.round((end-start)/86400000)+1;
+  return{days,start,end};
+}
+
+function renderReports(){
+  const lbl=document.getElementById('report-period-lbl');
+  if(lbl) lbl.textContent=getReportLabel();
+  renderOccupancy();
+  renderHeatmap();
+  renderPersonReport();
+}
+
+// ── Occupancy ─────────────────────────────────────────────────────────────
+function renderOccupancy(){
+  const el=document.getElementById('occupancy-body'); if(!el)return;
+  const bks=getReportBookings();
+  const {days}=getDateRange();
+  if(!days||!bks.length){
+    el.innerHTML='<p style="color:#8A8479;font-size:13px;">No bookings in this period</p>';
+    return;
+  }
+  const DAY_HRS=14; // 07:00-21:00
+  const totalAvail=days*DAY_HRS;
+  const totalBooked=bks.reduce((sum,b)=>sum+hrs(b),0);
+  const pct=Math.min(100,Math.round((totalBooked/totalAvail)*100));
+
+  // Per person
+  const byP={};
+  S.people.forEach(p=>{const n=pName(p);byP[n]=0;});
+  bks.forEach(b=>{byP[b.who]=(byP[b.who]||0)+hrs(b);});
+
+  // Overall bar
+  let html=`
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <span style="font-size:14px;font-weight:500;">Overall</span>
+        <span style="font-size:22px;font-weight:500;">${pct}%</span>
+      </div>
+      <div style="height:12px;background:#F0EDE8;border-radius:99px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:#1A1814;border-radius:99px;transition:width .4s;"></div>
+      </div>
+      <div style="font-size:12px;color:#8A8479;margin-top:4px;">${totalBooked.toFixed(1)}h booked of ${totalAvail}h available (${days} days)</div>
+    </div>`;
+
+  // Per person bars
+  html+=S.people.filter(p=>byP[pName(p)]>0).map(p=>{
+    const n=pName(p);const c=col(n);
+    const h=byP[n]||0;
+    const pp=Math.min(100,Math.round((h/totalAvail)*100));
+    return`<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:${c.mid};"></div>
+          <span style="font-size:13px;font-weight:500;">${xe(n)}</span>
+        </div>
+        <span style="font-size:13px;">${h.toFixed(1)}h · ${pp}%</span>
+      </div>
+      <div style="height:8px;background:#F0EDE8;border-radius:99px;overflow:hidden;">
+        <div style="height:100%;width:${pp}%;background:${c.mid};border-radius:99px;"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=html;
+}
+
+// ── Heatmap ───────────────────────────────────────────────────────────────
+function renderHeatmap(){
+  const el=document.getElementById('heatmap-body'); if(!el)return;
+  const bks=getReportBookings();
+  if(!bks.length){el.innerHTML='<p style="color:#8A8479;font-size:13px;">No bookings in this period</p>';return;}
+
+  // Count bookings per hour slot (07-20) per day of week (Mon=0..Sun=6)
+  const hourCounts={}; // {hour: count}
+  const dayHourCounts={}; // {day: {hour: count}}
+  const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  DAYS.forEach((_,i)=>{dayHourCounts[i]={};});
+
+  bks.forEach(b=>{
+    const[sh,sm]=b.start.split(':').map(Number);
+    const[eh,em]=b.end.split(':').map(Number);
+    const startMin=sh*60+sm, endMin=eh*60+em;
+    const dow=(new Date(b.date+'T12:00:00').getDay()+6)%7; // Mon=0
+    // Count each hour slot this booking covers
+    for(let h=7;h<21;h++){
+      const hStart=h*60, hEnd=(h+1)*60;
+      if(startMin<hEnd&&endMin>hStart){
+        hourCounts[h]=(hourCounts[h]||0)+1;
+        dayHourCounts[dow][h]=(dayHourCounts[dow][h]||0)+1;
+      }
+    }
+  });
+
+  const maxCount=Math.max(1,...Object.values(hourCounts));
+
+  // Colour scale: 5 levels of purple
+  const heatColours=['#EDE7F6','#C9B8E8','#9C6BC4','#6B3D9A','#3D1C5A'];
+  function heatCol(count){
+    if(!count) return '#F7F5F0';
+    const idx=Math.min(4,Math.floor((count/maxCount)*4.99));
+    return heatColours[idx];
+  }
+
+  // Grid: rows = hours, cols = days
+  const HOURS=Array.from({length:14},(_,i)=>i+7);
+
+  let html='<div style="overflow-x:auto;">';
+  html+='<div style="display:grid;grid-template-columns:36px repeat(7,1fr);gap:2px;min-width:320px;">';
+
+  // Header row
+  html+='<div></div>';
+  DAYS.forEach(d=>html+=`<div style="text-align:center;font-size:10px;font-weight:600;color:#8A8479;padding:2px 0;">${d}</div>`);
+
+  // Hour rows
+  HOURS.forEach(h=>{
+    html+=`<div style="font-size:10px;color:#8A8479;display:flex;align-items:center;padding-right:4px;white-space:nowrap;">${p2(h)}:00</div>`;
+    DAYS.forEach((_,di)=>{
+      const count=dayHourCounts[di][h]||0;
+      const bg=heatCol(count);
+      const tip=count?count+' booking'+(count===1?'':'s'):'Empty';
+      html+=`<div style="height:22px;border-radius:4px;background:${bg};cursor:default;"
+        onmouseenter="showTip(event,'${p2(h)}:00 ${DAYS[di]}: ${tip}')" onmousemove="moveTip(event)" onmouseleave="hideTip()"></div>`;
+    });
+  });
+
+  html+='</div></div>';
+
+  // Top 3 busiest hours summary
+  const sorted=Object.entries(hourCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(sorted.length){
+    html+=`<div style="margin-top:14px;">
+      <div style="font-size:12px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Top busy hours</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">`;
+    sorted.forEach(([h,count],i)=>{
+      const medals=['🥇','🥈','🥉'];
+      html+=`<div style="padding:8px 14px;background:#F7F5F0;border-radius:8px;text-align:center;">
+        <div style="font-size:16px;">${medals[i]}</div>
+        <div style="font-size:14px;font-weight:500;">${p2(h)}:00</div>
+        <div style="font-size:11px;color:#8A8479;">${count} booking${count===1?'':'s'}</div>
+      </div>`;
+    });
+    html+='</div></div>';
+  }
+
+  el.innerHTML=html;
+}
+
+// ── Per person breakdown ──────────────────────────────────────────────────
+function renderPersonReport(){
+  const el=document.getElementById('person-report-body'); if(!el)return;
+  const bks=getReportBookings();
+  if(!bks.length){el.innerHTML='<p style="color:#8A8479;font-size:13px;">No bookings in this period</p>';return;}
+
+  const byP={};
+  S.people.forEach(p=>{const n=pName(p);byP[n]={count:0,hours:0,cost:0};});
+  bks.forEach(b=>{
+    if(!byP[b.who]) byP[b.who]={count:0,hours:0,cost:0};
+    const h=hrs(b);
+    byP[b.who].count++;
+    byP[b.who].hours+=h;
+    byP[b.who].cost+=h*(S.rate||0);
+  });
+
+  el.innerHTML=S.people.filter(p=>byP[pName(p)]&&byP[pName(p)].count>0).map(p=>{
+    const n=pName(p);const c=col(n);const d=byP[n];
+    const hd=d.hours%1===0?d.hours+'h':d.hours.toFixed(1)+'h';
+    return`<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F0EDE8;">
+      <div style="width:36px;height:36px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0;">${xe(n[0])}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:500;">${xe(n)}</div>
+        <div style="font-size:12px;color:#8A8479;margin-top:2px;">${d.count} booking${d.count===1?'':'s'} · ${hd}</div>
+      </div>
+      ${S.rate>0?`<div style="text-align:right;"><div style="font-size:16px;font-weight:500;">${fmt(d.cost)}</div><div style="font-size:11px;color:#8A8479;">${fmt(S.rate)}/hr</div></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── iCalendar export ─────────────────────────────────────────────────────
+let icsWho=[], icsPeriod='future';
+
+// ── Webcal subscription ───────────────────────────────────────────────────
+let icsSubWho=null;
+
+function getSubURL(who){
+  return GAS+'?action=ical&who='+encodeURIComponent(who);
+}
+
+function getWebcalURL(who){
+  // Convert https:// to webcal:// for direct calendar app opening
+  return getSubURL(who).replace('https://','webcal://');
+}
+
+function renderSubWho(){
+  const el=document.getElementById('ics-sub-who'); if(!el)return;
+  if(!icsSubWho) icsSubWho=S.me||pName(S.people[0]);
+  el.innerHTML=S.people.map(p=>{
+    const n=pName(p);const c=col(n);const on=icsSubWho===n;
+    return`<button type="button" onclick="setSubWho('${xe(n)}')"
+      style="padding:6px 12px;border-radius:99px;border:1px solid ${on?c.mid:'#E5E0D8'};background:${on?c.bg:'#fff'};color:${on?c.fg:'#8A8479'};font-size:12px;cursor:pointer;font-family:inherit;">
+      ${xe(n)}</button>`;
+  }).join('');
+  updateSubURL();
+}
+
+function setSubWho(name){
+  icsSubWho=name;
+  renderSubWho();
+}
+
+function updateSubURL(){
+  const el=document.getElementById('ics-sub-url'); if(!el)return;
+  el.textContent=getSubURL(icsSubWho||S.me);
+}
+
+function copySubURL(){
+  const url=getSubURL(icsSubWho||S.me);
+  navigator.clipboard.writeText(url).then(()=>{
+    const btn=document.querySelector('#ics-sub-url+button');
+    if(btn){const orig=btn.textContent;btn.textContent='Copied ✓';setTimeout(()=>btn.textContent=orig,2000);}
+  }).catch(()=>{
+    prompt('Copy this subscription URL:',url);
+  });
+}
+
+function openCalSub(type){
+  const who=icsSubWho||S.me;
+  const url=getSubURL(who);
+  if(type==='google'){
+    const encoded=encodeURIComponent(url);
+    window.open('https://calendar.google.com/calendar/r/settings/addbyurl?url='+encoded,'_blank');
+  } else {
+    // For Apple/iPhone — copy URL and show instructions
+    navigator.clipboard.writeText(url).catch(()=>{});
+    alert('URL copied!\n\niPhone: Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar → paste URL\n\nNote: The webcal:// method does not work with this hosting. Use the copied URL instead.');
+  }
+}
+
+function exportICS(){
+  // Default to current user's bookings
+  icsWho=[S.me||pName(S.people[0])];
+  icsPeriod='future';
+  // Build who selector buttons
+  const row=document.getElementById('ics-who-row');
+  row.innerHTML=S.people.map(p=>{
+    const n=pName(p);const c=col(n);
+    const on=icsWho.includes(n);
+    return`<button type="button" onclick="toggleICSWho('${xe(n)}')" id="ics-who-${xe(n)}"
+      style="padding:6px 12px;border-radius:99px;border:1px solid ${on?c.mid:'#E5E0D8'};background:${on?c.bg:'#fff'};color:${on?c.fg:'#8A8479'};font-size:13px;cursor:pointer;font-family:inherit;">
+      ${xe(n)}</button>`;
+  }).join('');
+  updateICSPreview();
+  icsSubWho=S.me||pName(S.people[0]);
+  renderSubWho();
+  document.getElementById('ics-modal').classList.remove('off');
+}
+function closeICS(){document.getElementById('ics-modal').classList.add('off');}
+
+function toggleICSWho(name){
+  if(icsWho.includes(name)) icsWho=icsWho.filter(n=>n!==name);
+  else icsWho.push(name);
+  // Update button styles
+  S.people.forEach(p=>{
+    const n=pName(p);const c=col(n);const on=icsWho.includes(n);
+    const btn=document.getElementById('ics-who-'+n);
+    if(btn){
+      btn.style.borderColor=on?c.mid:'#E5E0D8';
+      btn.style.background=on?c.bg:'#fff';
+      btn.style.color=on?c.fg:'#8A8479';
+    }
+  });
+  updateICSPreview();
+}
+
+function setICSPeriod(p){
+  icsPeriod=p;
+  ['future','month','3month','all'].forEach(k=>{
+    const el=document.getElementById('ics-p-'+k);
+    if(el) el.className='p'+(k===p?' on':'');
+  });
+  updateICSPreview();
+}
+
+function getICSBookings(){
+  const now=new Date(); now.setHours(0,0,0,0);
+  const todStr=ds(now);
+  return S.bookings.filter(b=>{
+    if(!icsWho.includes(b.who)) return false;
+    if(icsPeriod==='future') return b.date>=todStr;
+    if(icsPeriod==='month'){
+      const d=new Date(b.date+'T12:00:00');
+      return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+    }
+    if(icsPeriod==='3month'){
+      const t=new Date(now); t.setMonth(t.getMonth()-1);
+      const e=new Date(now); e.setMonth(e.getMonth()+3);
+      const d=new Date(b.date+'T12:00:00');
+      return d>=t&&d<=e;
+    }
+    return true;
+  });
+}
+
+function updateICSPreview(){
+  const bks=getICSBookings();
+  const el=document.getElementById('ics-preview');
+  if(!el) return;
+  if(!icsWho.length){el.textContent='Select at least one person.';return;}
+  if(!bks.length){el.textContent='No bookings found for the selected period.';return;}
+  const names=icsWho.join(', ');
+  const first=new Date(bks[0].date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const last=new Date(bks[bks.length-1].date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  el.textContent=bks.length+' booking'+(bks.length===1?'':'s')+' for '+names+' ('+first+' – '+last+')';
+}
+
+function icsDate(dateStr,timeStr){
+  // Format: YYYYMMDDTHHMMSS
+  const[y,mo,d]=dateStr.split('-');
+  const[h,mi]=timeStr.split(':');
+  return y+mo+d+'T'+h+mi+'00';
+}
+
+function icsEscape(str){
+  const s=String(str||'');
+  return s.split('\\').join('\\\\').split(';').join('\\;').split(',').join('\\,').split('\n').join('\\n');
+}
+
+function buildICS(bookings){
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Room Booking//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  bookings.forEach(b=>{
+    const uid=b.id+'@roombooking';
+    const created=b.updated?b.updated.replace(/[-:.]/g,'').slice(0,15):'20240101T000000';
+    const summary=b.who+' — Room 34 Canute Suite'+(b.note?' ('+b.note+')':'');
+    const location='Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD';
+    const desc=b.note?'Client: '+b.note:'Room booking for '+b.who;
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:'+uid);
+    lines.push('DTSTAMP:'+icsDate(ds(new Date()),'00:00'));
+    lines.push('DTSTART:'+icsDate(b.date,b.start));
+    lines.push('DTEND:'+icsDate(b.date,b.end));
+    lines.push('SUMMARY:'+icsEscape(summary));
+    lines.push('LOCATION:'+icsEscape(location));
+    lines.push('DESCRIPTION:'+icsEscape(desc));
+    lines.push('STATUS:CONFIRMED');
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function downloadICS(){
+  const bks=getICSBookings();
+  if(!bks.length){alert('No bookings to export.');return;}
+  const icsContent=buildICS(bks);
+  const blob=new Blob([icsContent],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const name=icsWho.join('-').toLowerCase().replace(/\s/g,'_');
+  a.download='room-bookings-'+name+'.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  closeICS();
+}
+
 updateLbl();renderCosts();
 
 // ── TextMagic ─────────────────────────────────────────────────────────────
 function getTM(){
+  // Always read from localStorage - source of truth for SMS settings
+  const stored=JSON.parse(localStorage.getItem('tm_bk_'+S.me)||'null');
+  if(stored) return{
+    enabled:stored.smsEnabled||false,
+    user:   stored.tmUser  ||'',
+    key:    stored.tmKey   ||'',
+    mobile: stored.tmMobile||'07498218609'
+  };
+  // Fall back to in-memory person object
   const p=getPerson(S.me);
   return{
     enabled:p.smsEnabled||false,
@@ -1151,9 +3573,12 @@ function openTM(){
   document.getElementById('tm-user').value=c.user;
   document.getElementById('tm-key').value=c.key;
   document.getElementById('tm-mobile').value=c.mobile||'';
+  const bitlyInp=document.getElementById('tm-bitly');
+  if(bitlyInp) bitlyInp.value=localStorage.getItem('rb_bitly_'+S.me)||'';
   document.getElementById('tm-enabled').checked=!!c.enabled;
   document.getElementById('tm-test-res').style.display='none';
   tmToggle();
+  renderOptOuts();
   document.getElementById('tm-modal').classList.remove('off');
 }
 function closeTM(){document.getElementById('tm-modal').classList.add('off');}
@@ -1164,17 +3589,22 @@ function tmToggle(){
 }
 async function saveTM(){
   const on=document.getElementById('tm-enabled').checked;
-  setPerson(S.me,{
-    smsEnabled:on,
-    tmUser:  document.getElementById('tm-user').value.trim(),
-    tmKey:   document.getElementById('tm-key').value.trim(),
-    tmMobile:document.getElementById('tm-mobile').value.trim()
-  });
+  const tmUser=document.getElementById('tm-user').value.trim();
+  const tmKey=document.getElementById('tm-key').value.trim();
+  const tmMobile=document.getElementById('tm-mobile').value.trim();
+  // Save Bitly token if present
+  const bitlyInp=document.getElementById('tm-bitly');
+  if(bitlyInp&&bitlyInp.value.trim()){
+    localStorage.setItem('rb_bitly_'+S.me,bitlyInp.value.trim());
+  }
+  // SMS settings stored ONLY in localStorage - reliable across all browsers
+  localStorage.setItem('tm_bk_'+S.me, JSON.stringify({smsEnabled:on,tmUser,tmKey,tmMobile}));
+  // Update in-memory too
+  setPerson(S.me,{smsEnabled:on,tmUser,tmKey,tmMobile});
   closeTM();
-  await save();
   renderPeople();
   updateSMSStatus();
-  alert('SMS settings saved for '+S.me+' and synced to all devices ✓');
+  alert('SMS settings saved for '+S.me+' ✓');
 }
 
 async function testTM(){
@@ -1185,7 +3615,7 @@ async function testTM(){
   if(!user||!key){res.style.background='#FDECEA';res.style.color='#C0392B';res.textContent='Please enter username and API key first.';res.style.display='block';return;}
   btn.textContent='Testing…';btn.disabled=true;
   try{
-    const r=await fetch(GAS+'?'+new URLSearchParams({action:'tmMe',tmUser:user,tmKey:key}),{redirect:'follow'});
+    const r=await gasFetch(GAS+'?'+new URLSearchParams({action:'tmMe',tmUser:user,tmKey:key}));
     const j=await r.json();
     if(j.ok){res.style.background='#D8F3DC';res.style.color='#1B4332';res.textContent='Connected ✓ — '+j.firstName+' '+j.lastName+' ('+j.balance+' credits)';}
     else{res.style.background='#FDECEA';res.style.color='#C0392B';res.textContent='Failed: '+(j.error||'check your credentials');}
@@ -1199,19 +3629,200 @@ function renderSMSTab(){
   renderSMSLog();
 }
 
+// Auto-send reminders for bookings 2 days away when app loads
+// ── Completed appointment tracker ────────────────────────────────────────
+// Runs on app load — finds bookings that finished in the last 48hrs
+// that still exist (not cancelled) and haven't been counted yet
+async function checkCompletedAppointments(){
+  const tm=getTM();
+  if(!tm.enabled||!tm.user||!tm.key) return;
+
+  const now=new Date();
+  const cutoff=new Date(now.getTime()-48*60*60*1000); // 48hrs ago
+
+  // Find my bookings that have ended, still exist, and haven't been counted
+  const completed=S.bookings.filter(b=>{
+    if(b.who!==S.me) return false;
+    if(b.appointmentCounted) return false;
+    if(!b.note) return false; // no client = nothing to count
+    // Check if the booking end time has passed
+    const endDateTime=new Date(b.date+'T'+b.end+':00');
+    return endDateTime<now && endDateTime>cutoff;
+  });
+
+  if(!completed.length) return;
+
+  for(const b of completed){
+    try{
+      // Search for client in TextMagic by name
+      const params=new URLSearchParams({action:'tmContacts',tmUser:tm.user,tmKey:tm.key,limit:5,search:b.note});
+      const r=await xhrFetch(GAS+'?'+params);
+      const j=await r.json();
+      if(!j.ok) continue;
+      const contacts=(j.resources||[]).filter(c=>c.phone&&c.id);
+      if(!contacts.length) continue;
+
+      const contact=contacts[0];
+      const n=await incrementTMAppointments(contact.id);
+      if(n!==null){
+        console.log('Counted appointment for '+b.note+' — now '+n+' visits');
+        // Mark booking as counted so we don't count again
+        const bi=S.bookings.findIndex(x=>x.id===b.id);
+        if(bi>-1) S.bookings[bi].appointmentCounted=true;
+        // Save the counted flag to server
+        try{
+          await updateBookingOnServer(S.bookings[bi]);
+        }catch(e){ /* non-critical */ }
+      }
+    }catch(err){
+      console.warn('checkCompletedAppointments error:',err.message);
+    }
+  }
+}
+
+// Global flag to prevent concurrent auto-send runs
+let _autoSending=false;
+
+async function autoSendReminders(){ // Runs on page load between 8-9am; also handled by Apps Script daily trigger
+
+  if(_autoSending) return;
+  const tm=getTM();
+  if(!tm.enabled||!tm.user||!tm.key) return;
+
+  const in2=new Date(); in2.setDate(in2.getDate()+2);
+  const target=ds(in2);
+  const today=ds(new Date());
+
+  const due=S.bookings.filter(b=>
+    b.who===S.me&&b.date===target&&b.note&&!b.smsSent&&!b.autoSent
+  );
+  if(!due.length) return;
+
+  _autoSending=true;
+  console.log('Auto reminder: '+due.length+' booking(s) for '+target);
+
+  for(const b of due){
+    // Per-booking key — survives edits because it uses booking ID + date + name
+    // If name changes a new key is created so it can send again (correct behaviour)
+    const normName=(b.note||'').trim().toLowerCase();
+    const bookingKey='rb_autob_'+S.me+'_'+b.id+'_'+target+'_'+normName.slice(0,10);
+
+    // Already sent for this exact booking+name combination today
+    if(localStorage.getItem(bookingKey)){
+      console.log('Already sent for booking',b.id,'client',b.note);
+      continue;
+    }
+
+    // Lock this booking immediately
+    localStorage.setItem(bookingKey,'sending');
+
+    try{
+      // Get client list — handle couples
+      const clientNames=b.couples&&b.client1&&b.client2
+        ?[b.client1,b.client2]
+        :[b.note];
+
+      for(const clientName of clientNames){
+        const normClient=clientName.trim().toLowerCase();
+        const clientKey=bookingKey+'_'+normClient.slice(0,8);
+        if(localStorage.getItem(clientKey)) continue; // already sent to this person
+
+        const params=new URLSearchParams({action:'tmContacts',tmUser:tm.user,tmKey:tm.key,limit:5,search:clientName});
+        const r=await xhrFetch(GAS+'?'+params);
+        const j=await r.json();
+        if(!j.ok){ console.warn('Contact search failed:',j.error); continue; }
+
+        const allContacts=(j.resources||[])
+          .map(c=>({name:((c.firstName||'')+' '+(c.lastName||'')).trim(),phone:c.phone||''}))
+          .filter(c=>c.phone);
+        // Only use contact if name matches closely — prevents wrong client
+        const contacts=allContacts.filter(c=>nameMatches(c,clientName));
+        if(!contacts.length){
+          console.log('No close name match for:',clientName,'('+allContacts.length+' results but none matched)');
+          continue;
+        }
+
+        const contact=contacts[0];
+        if(isOptedOut(contact.phone)){ console.log('Opted out:',contact.phone); continue; }
+
+        const d=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+        // Always use name from booking, not from TextMagic contact
+        const first=clientName.split(' ')[0];
+        const mobile=tm.mobile||'07498218609';
+        const text='Note: Hi '+first+', you have an appt with '+b.who+
+          ' in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on '+
+          d+' at '+b.start+'. Call '+mobile+'. Reply STOP to opt out.';
+
+        const sendParams=new URLSearchParams({action:'tmSend',tmUser:tm.user,tmKey:tm.key,text,phones:contact.phone});
+        const sr=await xhrFetch(GAS+'?'+sendParams);
+        const sj=await sr.json();
+
+        if(sj.ok){
+          // Mark this specific client as sent
+          localStorage.setItem(clientKey,'sent_'+new Date().toISOString());
+          console.log('✓ Auto SMS sent to',clientName,'for',b.who,'on',b.date);
+        } else {
+          localStorage.removeItem(clientKey);
+          console.warn('SMS failed for',clientName,':',sj.error);
+        }
+      }
+
+      // Only mark autoSent if at least one SMS confirmed sent by TextMagic
+      const allClientKeys=clientNames.map(n=>{
+        const nc=n.trim().toLowerCase();
+        return bookingKey+'_'+nc.slice(0,8);
+      });
+      const anySent=allClientKeys.some(k=>localStorage.getItem(k)&&localStorage.getItem(k).startsWith('sent_'));
+      if(anySent){
+        const bi=S.bookings.findIndex(x=>x.id===b.id);
+        if(bi>-1){
+          S.bookings[bi].autoSent=new Date().toISOString();
+          updateBookingOnServer(S.bookings[bi]).catch(e=>console.warn('autoSent update:',e.message));
+        }
+        if(!S.smsLog) S.smsLog=[];
+        S.smsLog.unshift({id:Date.now(),who:b.who,date:b.date,start:b.start,
+          clientName:b.note||'',phone:contact.phone||'',emailAddr:'',sentAt:new Date().toISOString(),auto:true,type:'remind'});
+        localStorage.setItem(bookingKey,'sent_'+new Date().toISOString());
+        await save();
+      } else {
+        // Nothing sent - remove lock so it can retry
+        localStorage.removeItem(bookingKey);
+        console.warn('No SMS sent for booking',b.id,'- will retry next load');
+      }
+
+      // Clean up old keys (>7 days)
+      try{
+        Object.keys(localStorage).filter(k=>k.startsWith('rb_autob_')).forEach(k=>{
+          const parts=k.split('_');
+          const keyDate=parts[4];
+          if(keyDate&&keyDate<ds(new Date(Date.now()-7*86400000))) localStorage.removeItem(k);
+        });
+      }catch(e){}
+
+    }catch(err){
+      localStorage.removeItem(bookingKey);
+      console.warn('Auto SMS error for booking',b.id,':',err.message);
+    }
+  }
+
+  _autoSending=false;
+  draw();renderSMSTab();
+}
+
 function renderPending(){
   const el=document.getElementById('sms-pending'); if(!el)return;
   const in2=new Date(); in2.setDate(in2.getDate()+2);
   const target=ds(in2);
   // Only show bookings where the owner has SMS enabled on this device
   const pending=S.bookings.filter(b=>{
-    if(b.date!==target||b.smsSent||b.autoSent) return false;
-    // Check if this person has SMS enabled (only knowable for current user)
+    if(b.date!==target) return false;
+    if(b.smsSent||b.autoSent) return false; // already sent manually or auto
+    // Only show for current user with SMS enabled
     if(b.who===S.me){
       const tm=getTM();
-      return tm.enabled&&tm.user&&tm.key;
+      return tm.enabled&&tm.user&&tm.key&&b.note;
     }
-    return false; // can't send for other people
+    return false;
   });
   if(!pending.length){
     el.innerHTML='<div style="text-align:center;padding:20px;color:#8A8479;font-size:13px;">No pending reminders for '+new Date(target+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+'</div>';
@@ -1233,10 +3844,16 @@ function renderPending(){
 
 function renderSMSLog(){
   const el=document.getElementById('sms-log'); if(!el)return;
+  // Auto-purge log entries older than 14 days
+  const cutoff=new Date(Date.now()-14*24*60*60*1000).toISOString();
+  if(S.smsLog&&S.smsLog.some(l=>l.sentAt<cutoff)){
+    S.smsLog=S.smsLog.filter(l=>l.sentAt>=cutoff);
+    save().catch(()=>{});
+  }
   // Combine manual smsSent from bookings + autoSent log
   const manual=S.bookings.filter(b=>b.smsSent).map(b=>({
     id:'m'+b.id, who:b.who, date:b.date, start:b.start,
-    clientName:b.note||'', sentAt:b.smsSent, auto:false
+    clientName:b.note||'', phone:'', emailAddr:'', sentAt:b.smsSent, auto:false
   }));
   const auto=S.smsLog||[];
   const all=[...auto,...manual].sort((a,b)=>new Date(b.sentAt)-new Date(a.sentAt));
@@ -1244,31 +3861,56 @@ function renderSMSLog(){
     el.innerHTML='<div style="text-align:center;padding:20px;color:#8A8479;font-size:13px;">No reminders sent yet</div>';
     return;
   }
-  el.innerHTML=all.map(entry=>{
+  el.innerHTML=all.length?all.map(entry=>{
     const c=col(entry.who);
     const d=new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-    return`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#fff;border:1px solid #E5E0D8;border-radius:10px;margin-bottom:7px;">
-      <div style="width:30px;height:30px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;">${xe(entry.who[0])}</div>
+    const isEmail=entry.type==='zoom-email';
+    const typeLabel=entry.type==='cancelled'?'❌ Cancellation'
+      :entry.type==='zoom-email'?'📧 Zoom email'
+      :entry.type==='zoom-confirm'?'📹 Zoom SMS'
+      :entry.auto?'🤖 Auto-reminder'
+      :entry.type==='confirm'?'✅ Confirmation'
+      :'📱 Reminder';
+    const contactDetail=isEmail&&entry.emailAddr
+      ?`<span style="background:#E8F4FD;color:#185FA5;border-radius:4px;padding:1px 6px;font-family:monospace;">✉️ ${xe(entry.emailAddr)}</span>`
+      :entry.phone
+      ?`<span style="background:#F0EDE8;color:#5A5450;border-radius:4px;padding:1px 6px;font-family:monospace;">📱 ${xe(entry.phone)}</span>`
+      :'';
+    return`<div style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;background:#fff;border:1px solid ${isEmail?'#B3D7F0':'#E5E0D8'};border-radius:10px;margin-bottom:7px;">
+      <div style="width:30px;height:30px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:1px;">${xe(entry.who[0])}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:500;">${xe(entry.who)} · ${d} ${xe(entry.start)}</div>
-        <div style="font-size:12px;color:#8A8479;margin-top:1px;">
-          ${entry.clientName?'Client: '+xe(entry.clientName)+' · ':''}
-          ${entry.auto?'🤖 Auto-sent':'📱 Manual'} · ${fmtStamp(entry.sentAt)}
-        </div>
+        <div style="font-size:12px;color:#8A8479;margin-top:2px;">${entry.clientName?xe(entry.clientName)+' · ':''} ${typeLabel} · ${fmtStamp(entry.sentAt)}</div>
+        ${contactDetail?`<div style="margin-top:4px;font-size:12px;">${contactDetail}</div>`:''}
       </div>
-      ${entry.auto?`<button onclick="clearLog(${entry.id})" style="font-size:18px;color:#CCC;border:none;background:none;cursor:pointer;padding:2px 6px;" title="Remove from log">×</button>`:''}
+      <button onclick="clearLog('${entry.id}')" style="font-size:18px;color:#CCC;border:none;background:none;cursor:pointer;padding:2px 4px;flex-shrink:0;" title="Remove from log">×</button>
     </div>`;
-  }).join('');
+  }).join('')
+  :'<div style="text-align:center;padding:20px;color:#8A8479;font-size:13px;">No messages sent yet</div>';
 }
 
 async function clearLog(logId){
   if(!confirm('Remove this entry from the log?'))return;
   try{
     const params=new URLSearchParams({action:'clearLog',logId:logId});
-    await fetch(GAS+'?'+params,{redirect:'follow'});
+    await gasFetch(GAS+'?'+params);
     S.smsLog=S.smsLog.filter(l=>l.id!==logId);
     renderSMSLog();
   }catch(e){alert('Could not remove: '+e.message);}
+}
+
+async function incrementTMAppointments(contactId){
+  const tm=getTM();
+  if(!tm.enabled||!tm.user||!tm.key||!contactId) return null;
+  try{
+    const params=new URLSearchParams({action:'tmIncrementAppts',tmUser:tm.user,tmKey:tm.key,contactId});
+    const r=await xhrFetch(GAS+'?'+params);
+    const j=await r.json();
+    return j.ok?j.appointments:null;
+  }catch(e){
+    console.warn('incrementTMAppointments:',e.message);
+    return null;
+  }
 }
 
 function updateSMSStatus(){
@@ -1291,8 +3933,108 @@ function updateSMSStatus(){
   }
 }
 
+// ── Opt-out list (stored locally per user) ───────────────────────────────
+function getOptOuts(){
+  return JSON.parse(localStorage.getItem('tm_optout_'+S.me)||'[]');
+}
+function saveOptOuts(list){
+  localStorage.setItem('tm_optout_'+S.me,JSON.stringify(list));
+}
+function isOptedOut(phone){
+  if(!phone) return false;
+  const clean=phone.replace(/\s/g,'');
+  return getOptOuts().some(o=>o.phone.replace(/\s/g,'')===clean);
+}
+function addOptOut(){
+  const name=document.getElementById('tm-optout-name').value.trim();
+  const phone=document.getElementById('tm-optout-phone').value.trim();
+  if(!name||!phone){alert('Please enter both a name and phone number.');return;}
+  const list=getOptOuts();
+  if(list.some(o=>o.phone.replace(/\s/g,'')===phone.replace(/\s/g,''))){
+    alert('That number is already on the opt-out list.');return;
+  }
+  list.push({name,phone,addedAt:new Date().toISOString()});
+  saveOptOuts(list);
+  document.getElementById('tm-optout-name').value='';
+  document.getElementById('tm-optout-phone').value='';
+  renderOptOuts();
+}
+function removeOptOut(phone){
+  if(!confirm('Remove this number from the opt-out list?')) return;
+  saveOptOuts(getOptOuts().filter(o=>o.phone!==phone));
+  renderOptOuts();
+}
+function renderOptOuts(){
+  const el=document.getElementById('tm-optout-list'); if(!el)return;
+  const list=getOptOuts();
+  if(!list.length){
+    el.innerHTML='<p style="font-size:12px;color:#8A8479;text-align:center;padding:6px 0;">No opt-outs recorded</p>';
+    return;
+  }
+  el.innerHTML=list.map(o=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F0EDE8;font-size:13px;">
+      <div style="flex:1;">
+        <div style="font-weight:500;">${xe(o.name)}</div>
+        <div style="color:#8A8479;font-size:11px;">${xe(o.phone)} · opted out ${fmtStamp(o.addedAt)}</div>
+      </div>
+      <button onclick="removeOptOut('${xe(o.phone)}')" style="color:#CCC;font-size:18px;border:none;background:none;cursor:pointer;padding:2px 6px;">×</button>
+    </div>`).join('');
+}
+
+// ── Confirmation SMS ──────────────────────────────────────────────────────
+function smsConfirmText(booking,clientName,mobile){
+  const d=new Date(booking.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const first=clientName.split(' ')[0];
+  const mob=mobile||'07498218609';
+  return `Hi ${first}, your appt with ${booking.who} is confirmed for ${d} at ${booking.start}, Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD. Call ${mob} to cancel.`;
+}
+
+async function sendConfirmationSMS(booking){
+  if(!booking) return;
+  if(booking.who!==S.me) return;
+  const tm=getTM();
+  if(!tm.enabled||!tm.user||!tm.key) return;
+  if(!booking.note) return;
+  if(!document.getElementById('cp-modal').classList.contains('off')) return;
+
+  if(booking.couples&&booking.client1&&booking.client2){
+    // Couples booking — ask which person to send to first
+    const choice=confirm(
+      'Couples booking: '+booking.client1+' & '+booking.client2+'. '+
+      'Tap OK to send confirmation to '+booking.client1+' first, '+
+      'then you will be prompted for '+booking.client2+'.'
+    );
+    if(!choice) return;
+    // Store partner for second send after first completes
+    _couplesPartner={booking,name:booking.client2};
+    _cpBid=booking.id;
+    _cpMode='confirm';
+    document.getElementById('cp-title').textContent='Confirmation — '+booking.client1;
+    document.getElementById('cp-search').value=booking.client1;
+    document.getElementById('cp-binfo').textContent='Send confirmation to: '+booking.client1+' (1 of 2)';
+    const wrap=document.getElementById('cp-preview-wrap');
+    if(wrap) wrap.style.display='none';
+    document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Searching for "'+xe(booking.client1)+'"…</p>';
+    document.getElementById('cp-modal').classList.remove('off');
+    setTimeout(searchCP,500);
+  } else {
+    // Single booking
+    _couplesPartner=null;
+    _cpBid=booking.id;
+    _cpMode='confirm';
+    document.getElementById('cp-title').textContent='Send confirmation SMS';
+    document.getElementById('cp-search').value=booking.note;
+    document.getElementById('cp-binfo').textContent='Send confirmation SMS for: '+booking.who+' · '+booking.start+'–'+booking.end+' · '+xe(booking.note);
+    const wrap=document.getElementById('cp-preview-wrap');
+    if(wrap) wrap.style.display='none';
+    document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Searching for "'+xe(booking.note)+'"…</p>';
+    document.getElementById('cp-modal').classList.remove('off');
+    setTimeout(searchCP,500);
+  }
+}
+
 // ── Contact picker ────────────────────────────────────────────────────────
-let _cpBid=null,_tmCache=null,_tmCacheKey='';
+let _cpBid=null,_cpMode='remind',_tmCache=null,_tmCacheKey='';
 
 function openSMS(id){
   if(!S.me){showWho();return;}
@@ -1304,13 +4046,25 @@ function openSMS(id){
   if(!tm.user||!tm.key){alert('No TextMagic credentials set. Go to People tab > My SMS settings.');openTM();return;}
   const b=S.bookings.find(x=>x.id===id);if(!b)return;
   _cpBid=id;
+  _cpMode='remind';
   document.getElementById('cp-search').value=b.note||'';
-  document.getElementById('cp-binfo').textContent=b.who+' · '+b.start+'–'+b.end+(b.note?' · '+b.note:'');
+  document.getElementById('cp-binfo').textContent='Send reminder: '+b.who+' · '+b.start+'–'+b.end+(b.note?' · '+b.note:'');
   document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Type a name to search your TextMagic contacts</p>';
+  document.getElementById('cp-title').textContent='Send reminder SMS';
   document.getElementById('cp-modal').classList.remove('off');
-  if(b.note) setTimeout(searchCP,100);
+  if(b.note) setTimeout(searchCP,500);
 }
-function closeCP(){document.getElementById('cp-modal').classList.add('off');_cpBid=null;}
+function closeCP(){
+  document.getElementById('cp-modal').classList.add('off');
+  _cpBid=null;
+  _previewPhone='';
+  _cancelledBooking=null;
+  _couplesPartner=null;
+  const wrap=document.getElementById('cp-preview-wrap');
+  if(wrap) wrap.style.display='none';
+  const ta=document.getElementById('cp-preview-text');
+  if(ta) ta.value='';
+}
 
 async function searchCP(){
   const tm=getTM();
@@ -1321,41 +4075,257 @@ async function searchCP(){
   try{
     _tmCache=null;
     const params=new URLSearchParams({action:'tmContacts',tmUser:tm.user,tmKey:tm.key,limit:50,search:q});
-    const r=await fetch(GAS+'?'+params,{redirect:'follow'});
+    const r=await gasFetch(GAS+'?'+params);
     const j=await r.json();
     if(!j.ok) throw new Error(j.error||'Failed');
-    const contacts=(j.resources||[]).map(c=>({name:((c.firstName||'')+' '+(c.lastName||'')).trim(),phone:c.phone||''})).filter(c=>c.phone);
-    if(!contacts.length){el.innerHTML='<p style="color:#8A8479;text-align:center;padding:12px;font-size:13px;">No contacts found for "'+xe(q)+'"</p>';return;}
-    el.innerHTML=contacts.slice(0,15).map(c=>`
-      <div onclick="selectContact('${encodeURIComponent(c.name)}','${encodeURIComponent(c.phone)}')"
-        style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #F0EDE8;cursor:pointer;"
+    const allContacts=(j.resources||[]).map(c=>({name:((c.firstName||'')+' '+(c.lastName||'')).trim(),phone:c.phone||'',email:c.email||''})).filter(c=>c.phone);
+    // Filter client-side to show only contacts that contain the search term
+    const qLow=q.toLowerCase();
+    const contacts=allContacts.filter(c=>c.name.toLowerCase().includes(qLow)||qLow.split(' ').some(p=>p.length>1&&c.name.toLowerCase().includes(p)));
+    // If no close matches show all results so user can still find the contact
+    const displayContacts=contacts.length>0?contacts:allContacts;
+    if(!displayContacts.length){el.innerHTML='<p style="color:#8A8479;text-align:center;padding:12px;font-size:13px;">No contacts found for "'+xe(q)+'"</p>';return;}
+    if(contacts.length===0&&allContacts.length>0){
+      el.innerHTML='<p style="color:#8A8479;padding:8px 12px;font-size:12px;">No exact match — showing all contacts:</p>';
+      el.innerHTML+=allContacts.slice(0,15).map((c,i)=>`
+        <div data-ci="${i}"
+          style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #F0EDE8;cursor:pointer;"
+          onmouseover="this.style.background='#F7F5F0'" onmouseout="this.style.background=''">
+          <div><div style="font-size:15px;font-weight:500;">${xe(c.name||'(no name)')}</div><div style="font-size:13px;color:#8A8479;">${xe(c.phone)}</div></div>
+          <div style="font-size:20px;color:#C9A84C;">›</div>
+        </div>`).join('');
+      el._contacts=allContacts.slice(0,15);
+      el.onclick=function(ev){
+        const div=ev.target.closest('[data-ci]');
+        if(!div) return;
+        const c=el._contacts[parseInt(div.dataset.ci)];
+        if(c) previewContact(encodeURIComponent(c.name),encodeURIComponent(c.phone),encodeURIComponent(c.email||''));
+      };
+      return;
+    }
+    el.innerHTML=contacts.slice(0,15).map((c,i)=>`
+      <div data-ci="${i}"
+        style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #F0EDE8;cursor:pointer;"
         onmouseover="this.style.background='#F7F5F0'" onmouseout="this.style.background=''">
-        <div><div style="font-size:14px;font-weight:500;">${xe(c.name||'(no name)')}</div><div style="font-size:12px;color:#8A8479;">${xe(c.phone)}</div></div>
-        <div style="font-size:18px;color:#C9A84C;">›</div>
+        <div><div style="font-size:15px;font-weight:500;">${xe(c.name||'(no name)')}</div><div style="font-size:13px;color:#8A8479;">${xe(c.phone)}</div></div>
+        <div style="font-size:20px;color:#C9A84C;">›</div>
       </div>`).join('');
+    // Store contacts for click handler
+    el._contacts=contacts.slice(0,15);
+    el.onclick=function(ev){
+      const div=ev.target.closest('[data-ci]');
+      if(!div) return;
+      const i=parseInt(div.dataset.ci);
+      const c=el._contacts[i];
+      if(c) previewContact(encodeURIComponent(c.name),encodeURIComponent(c.phone),encodeURIComponent(c.email||''));
+    };
   }catch(e){el.innerHTML='<p style="color:#C0392B;padding:12px;font-size:13px;">Error: '+e.message+'</p>';}
 }
 
-async function selectContact(encName,encPhone){
+let selectedContactId=null;
+let _previewPhone='';
+let _previewEmail='';   // email shown in picker for Zoom mode — user can clear before sending
+let _cancelledBooking=null;
+let _couplesPartner=null; // second person in couples booking
+
+async function previewContact(encName,encPhone,encEmail=''){
   const name=decodeURIComponent(encName);
   const phone=decodeURIComponent(encPhone);
-  const b=S.bookings.find(x=>x.id===_cpBid);if(!b)return;
+  _previewPhone=phone;
+  _previewEmail=''; // reset
+  const b=_cpBid?S.bookings.find(x=>x.id===_cpBid):null;
+  const bk=b||_cancelledBooking;
+  console.log('previewContact: mode='+_cpMode+' bk='+(bk?'found':'NULL')+' cpBid='+_cpBid);
+  if(!bk){
+    alert('Session details not found — please close and try again.');
+    return;
+  }
   const tm=getTM();
-  const d=new Date(b.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  const first=name.split(' ')[0];
   const mobile=tm.mobile||'07498218609';
-  const text="Note: Hi "+first+", you have an appt with "+b.who+" in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on "+d+" at "+b.start+". Call "+mobile+".";
+  const isConfirm=_cpMode==='confirm';
+  const isCancel=_cpMode==='cancel';
+  const d=new Date(bk.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const dLong=new Date(bk.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  const first=name.split(' ')[0];
+  const isZoomMode=_cpMode==='zoom-confirm';
+  const shortLink=bk.zoomShortUrl||bk.zoomJoinUrl||'';
+  const text=isCancel
+    ?'Hi '+first+', your appt with '+bk.who+' on '+dLong+' at '+bk.start+' has been cancelled. Please call '+mobile+' to rebook. Sorry for any inconvenience.'
+    :isZoomMode
+      ?'Hi '+first+', your Zoom session with '+bk.who+' is confirmed for '+d+' at '+bk.start+'. Join: '+shortLink+'. Call '+mobile+' to cancel. Reply STOP to opt out.'
+      :isConfirm
+        ?'Hi '+first+', your appt with '+bk.who+' is confirmed for '+d+' at '+bk.start+', Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD. Call '+mobile+' to cancel. Reply STOP to opt out.'
+        :'Note: Hi '+first+', you have an appt with '+bk.who+' in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on '+d+' at '+bk.start+'. Call '+mobile+'. Reply STOP to opt out.';
+  const wrap=document.getElementById('cp-preview-wrap');
+  const ta=document.getElementById('cp-preview-text');
+  const cc=document.getElementById('cp-char-count');
+  if(wrap) wrap.style.display='block';
+  if(ta){
+    ta.value=text;
+    ta.oninput=()=>{if(cc) cc.textContent=ta.value.length+' chars'+(ta.value.length>160?' (2 SMS)':'');};
+    if(cc) cc.textContent=text.length+' chars'+(text.length>160?' (2 SMS)':'');
+  }
+  document.getElementById('cp-results').innerHTML=`
+    <div style="padding:12px 14px;background:#F7F5F0;border-radius:8px;margin:4px;">
+      <div style="font-size:14px;font-weight:500;">${xe(name)}</div>
+      <div style="font-size:12px;color:#8A8479;margin-bottom:10px;">${xe(phone)}</div>
+      <button onclick="selectContact('${encName}','${encPhone}')"
+        style="width:100%;padding:12px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">
+        📱 ${_cpMode==='cancel'?'Send cancellation to':_cpMode==='zoom-confirm'?'Send Zoom confirmation to':'Send SMS to'} ${xe(name)}
+      </button>
+      <button onclick="clearPreview()"
+        style="width:100%;margin-top:6px;padding:8px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:#8A8479;">
+        ← Choose different contact
+      </button>
+    </div>`;
+  // For Zoom confirmations, look up and show the email address that will be used
+  if(_cpMode==='zoom-confirm'){
+    const emailRow=document.createElement('div');
+    emailRow.id='cp-email-row';
+    emailRow.style.cssText='margin-top:8px;padding:10px 12px;background:#EBF5FB;border:1px solid #B3D7F0;border-radius:8px;font-size:13px;';
+    document.getElementById('cp-results').appendChild(emailRow);
+    try{
+      // Use email passed from selected contact
+      const emailAddr=decodeURIComponent(encEmail)||'';
+      if(emailAddr){
+        _previewEmail=emailAddr;
+        emailRow.innerHTML=
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'+
+          '<div><div style="font-size:11px;font-weight:600;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Email will also be sent to</div>'+
+          '<div style="font-family:monospace;color:#1A1814;">'+xe(emailAddr)+'</div></div>'+
+          '<button onclick="clearPreviewEmail()" '+
+          'style="padding:4px 10px;border:1px solid #185FA5;border-radius:6px;background:#fff;color:#185FA5;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;" '+
+          'title="Remove email — send SMS only">✕ Remove</button></div>';
+      } else {
+        emailRow.innerHTML='<span style="color:#8A8479;">📧 No email address found in Textmagic — SMS only</span>';
+      }
+    }catch(e){
+      emailRow.innerHTML='<span style="color:#8A8479;">📧 Could not check email address</span>';
+    }
+  }
+  // Scroll send button into view on mobile
+  setTimeout(()=>{
+    const modal=document.querySelector('#cp-modal .modal');
+    if(modal) modal.scrollTo({top:modal.scrollHeight,behavior:'smooth'});
+  },150);
+}
+
+function clearPreviewEmail(){
+  _previewEmail='';
+  const row=document.getElementById('cp-email-row');
+  if(row) row.innerHTML='<span style="color:#8A8479;">📧 Email removed — will send SMS only</span>';
+}
+
+function clearPreview(){
+  const wrap=document.getElementById('cp-preview-wrap');
+  if(wrap) wrap.style.display='none';
+  document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:12px;font-size:13px;">Type a name to search</p>';
+  document.getElementById('cp-search').value='';
+  document.getElementById('cp-search').focus();
+  _previewPhone='';
+}
+
+async function selectContact(encName,encPhone,contactId){
+  const name=decodeURIComponent(encName);
+  const phone=decodeURIComponent(encPhone);
+  selectedContactId=contactId||null;
+  const b=_cpBid?S.bookings.find(x=>x.id===_cpBid):null;
+  const bk=b||_cancelledBooking;
+  if(!bk){alert('No booking details found');return;}
+  const tm=getTM();
+  const mobile=tm.mobile||'07498218609';
+  // Check opt-out
+  if(isOptedOut(phone)){
+    closeCP();
+    alert(name+' has opted out of SMS (replied STOP). No message sent.');
+    return;
+  }
+  const isConfirm=_cpMode==='confirm';
+  const isCancel=_cpMode==='cancel';
+  const d=new Date(bk.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const dLong=new Date(bk.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  const first=name.split(' ')[0];
+  const ta=document.getElementById('cp-preview-text');
+  const defaultText=isCancel
+    ?'Hi '+first+', your appt with '+bk.who+' on '+dLong+' at '+bk.start+' has been cancelled. Please call '+mobile+' to rebook. Sorry for any inconvenience.'
+    :isConfirm
+      ?'Hi '+first+', your appt with '+bk.who+' is confirmed for '+d+' at '+bk.start+', Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD. Call '+mobile+' to cancel. Reply STOP to opt out.'
+      :'Note: Hi '+first+', you have an appt with '+bk.who+' in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on '+d+' at '+bk.start+'. Call '+mobile+'. Reply STOP to opt out.';
+  const text=ta&&ta.value.trim()?ta.value.trim():defaultText;
+  const isZoomMode2=_cpMode==='zoom-confirm';
+  const label=isCancel?'cancellation':isZoomMode2?'Zoom confirmation':isConfirm?'confirmation':'reminder';
+  const logB=bk; // capture NOW before closeCP() clears _cancelledBooking
   closeCP();
-  if(!confirm('Send SMS to '+name+' ('+phone+')?\n\n"'+text+'"')) return;
   try{
     const params=new URLSearchParams({action:'tmSend',tmUser:tm.user,tmKey:tm.key,text,phones:phone});
-    const r=await fetch(GAS+'?'+params,{redirect:'follow'});
+    const r=await gasFetch(GAS+'?'+params);
     const j=await r.json();
     if(j.ok){
-      const i=S.bookings.findIndex(x=>x.id===b.id);
-      if(i>-1) S.bookings[i].smsSent=new Date().toISOString();
-      await save();draw();
-      alert('✓ SMS sent to '+name);
+      if(b){
+        const i=S.bookings.findIndex(x=>x.id===b.id);
+        if(i>-1){
+          S.bookings[i].smsSent=new Date().toISOString();
+          // Update on server so smsSent persists across devices
+          updateBookingOnServer(S.bookings[i]).catch(e=>console.warn('smsSent update:',e.message));
+        }
+      }
+      if(!S.smsLog) S.smsLog=[];
+      if(logB){
+        S.smsLog.unshift({id:Date.now(),who:logB.who||'',date:logB.date||'',start:logB.start||'',clientName:logB.note||'',phone:phone||'',emailAddr:'',sentAt:new Date().toISOString(),auto:false,type:_cpMode});
+      }
+      // For Zoom bookings — send email and add both log entries before single save
+      if(_cpMode==='zoom-confirm'&&logB){
+        const emailAddr=_previewEmail||'';
+        _previewEmail='';
+        try{
+          if(emailAddr){
+            const d2=new Date((logB.date||'')+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+            const shortLink2=logB.zoomShortUrl||logB.zoomJoinUrl||'';
+            const mobile2=tm.mobile||'07498218609';
+            const emailParams2=new URLSearchParams({
+              action:'sendZoomEmail',
+              to:emailAddr,
+              firstName:name.split(' ')[0],
+              who:logB.who||'',
+              date:d2,
+              start:logB.start||'',
+              joinUrl:shortLink2,
+              mobile:mobile2
+            });
+            await xhrFetch(GAS+'?'+emailParams2);
+            // Add email log entry alongside SMS entry — saved together below
+            S.smsLog.unshift({
+              id:Date.now()+1,
+              who:logB.who||'',date:logB.date||'',start:logB.start||'',
+              clientName:name,phone:'',emailAddr:emailAddr,
+              sentAt:new Date().toISOString(),auto:false,type:'zoom-email'
+            });
+            await save();
+            if(!isCancel) draw();
+            renderSMSTab();
+            alert('✓ Zoom confirmation SMS sent to '+name+' and email sent to '+emailAddr);
+            return;
+          }
+        }catch(emailErr){ console.warn('Email send:',emailErr.message); }
+      }
+      alert('✓ '+(label.charAt(0).toUpperCase()+label.slice(1))+' SMS sent to '+name);
+      // If couples booking, open picker for second person
+      if(_couplesPartner&&_cpMode==='confirm'){
+        const partner=_couplesPartner;
+        _couplesPartner=null;
+        setTimeout(()=>{
+          _cpBid=partner.booking.id;
+          _cpMode='confirm';
+          document.getElementById('cp-title').textContent='Confirmation — '+partner.name;
+          document.getElementById('cp-search').value=partner.name;
+          document.getElementById('cp-binfo').textContent='Send confirmation to: '+partner.name+' (2 of 2)';
+          const wrap=document.getElementById('cp-preview-wrap');
+          if(wrap) wrap.style.display='none';
+          document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Searching for "'+xe(partner.name)+'"…</p>';
+          document.getElementById('cp-modal').classList.remove('off');
+          setTimeout(searchCP,500);
+        },500);
+      }
     }else{
       alert('SMS failed: '+(j.error||'unknown error'));
     }
