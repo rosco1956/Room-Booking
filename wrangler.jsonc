@@ -1,38 +1,4 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  // Top-level configuration
-  "name": "my-worker",
-  "main": "src/index.js",
-  // Set this to today's date
-  "compatibility_date": "2026-06-09",
-  "workers_dev": false,
-  "route": {
-    "pattern": "example.org/*",
-    "zone_name": "example.org",
-  },
-  "kv_namespaces": [
-    {
-      "binding": "<MY_NAMESPACE>",
-      "id": "<KV_ID>",
-    },
-  ],
-  "env": {
-    "staging": {
-      "name": "my-worker-staging",
-      "route": {
-        "pattern": "staging.example.org/*",
-        "zone_name": "example.org",
-      },
-      "kv_namespaces": [
-        {
-          "binding": "<MY_NAMESPACE>",
-          "id": "<STAGING_KV_ID>",
-        },
-      ],
-    },
-  },
-}
-      {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "room-booking",
   "compatibility_date": "2026-06-09",
