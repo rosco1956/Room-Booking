@@ -25,11 +25,11 @@ export default {
           }
         });
         const body = await response.text();
-        // Check if GAS returned JSON or an HTML error page
         const isJson = body.trim().startsWith('{') || body.trim().startsWith('[');
         if (!isJson) {
-          // GAS returned HTML — likely a login page or error
-          return new Response(JSON.stringify({ok:false, error:'GAS returned non-JSON', status:response.status, preview:body.slice(0,200)}), {
+          const preview = body.slice(0, 500);
+          console.log('GAS non-JSON response (status '+response.status+'): '+preview);
+          return new Response(JSON.stringify({ok:false, error:'GAS returned non-JSON', status:response.status, preview:preview}), {
             status: 200,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
           });
