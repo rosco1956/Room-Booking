@@ -1,5 +1,5 @@
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
@@ -16,9 +16,9 @@ export default {
       const gasUrl = 'https://script.google.com/macros/s/' +
         url.pathname.slice(5) + url.search;
 
-      // createZoom takes 60-90s — fire and forget, let polling find the result
       if (url.searchParams.get('action') === 'createZoom') {
-        fetch(gasUrl, { method: 'GET', redirect: 'follow' }).catch(() => {});
+        // Use waitUntil to keep the GAS call alive beyond the response
+        ctx.waitUntil(fetch(gasUrl, { method: 'GET', redirect: 'follow' }).catch(() => {}));
         return new Response(JSON.stringify({ok:true,queued:true}), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
