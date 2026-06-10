@@ -16,8 +16,24 @@ export default {
       const gasUrl = 'https://script.google.com/macros/s/' +
         url.pathname.slice(5) + url.search;
       try {
-        const response = await fetch(gasUrl, { method: 'GET', redirect: 'follow' });
+        const response = await fetch(gasUrl, {
+          method: 'GET',
+          redirect: 'follow',
+          headers: {
+            'Accept': 'application/json, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0'
+          }
+        });
         const body = await response.text();
+        // Check if GAS returned JSON or an HTML error page
+        const isJson = body.trim().startsWith('{') || body.trim().startsWith('[');
+        if (!isJson) {
+          // GAS returned HTML — likely a login page or error
+          return new Response(JSON.stringify({ok:false, error:'GAS returned non-JSON', status:response.status, preview:body.slice(0,200)}), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        }
         return new Response(body, {
           status: 200,
           headers: {
@@ -26,7 +42,7 @@ export default {
           }
         });
       } catch(e) {
-        return new Response(JSON.stringify({ok:false,error:e.message}), {
+        return new Response(JSON.stringify({ok:false, error:e.message}), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         });
