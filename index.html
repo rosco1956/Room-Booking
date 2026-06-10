@@ -2775,12 +2775,15 @@ async function doZoomBooking(){
 
   // Fire createZoom request via xhrFetch (handles CORS/redirects correctly)
   let zoomXHRResult=null;
-  // Fire createZoom directly to GAS with no-cors — bypasses CORS, GAS processes async
-  const directGAS='https://script.google.com/macros/s/AKfycbz3iJGFDgsRx90uEG-GiQWCQPLtx7YczV9U4F3qk2Map-LWOSQacQ3yJ9qh_9pHLgtN/exec';
+  // Fire createZoom via xhrFetch through Worker proxy
   console.log('Zoom request fired, pendingId:',pendingId,'date:',date,'start:',start);
-  fetch(directGAS+'?'+params,{mode:'no-cors',redirect:'follow'}).catch(e=>{
-    console.log('Zoom request note:',e.message);
-  });
+  xhrFetch(GAS+'?'+params, 120000).then(async r=>{
+    try{
+      const d=await r.json();
+      if(d.ok&&d.zoomJoinUrl){ zoomXHRResult=d; }
+      console.log('Zoom result:',d.ok,d.zoomShortUrl||d.zoomJoinUrl||d.error||JSON.stringify(d));
+    }catch(e){ console.log('Zoom parse error:',e.message); }
+  }).catch(e=>{ console.log('Zoom request error:',e.message); });
 
   // Poll for real Zoom details — update placeholder when found
   let found=null;
