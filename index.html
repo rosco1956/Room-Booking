@@ -462,6 +462,21 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
           </div>
         </div>
 
+        <!-- Online/Zoom session toggle -->
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#E8F4FD;border:1px solid #B3D7F0;border-radius:8px;cursor:pointer;" onclick="toggleOnlineSession()">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;">📹 Online session (Zoom)</div>
+              <div style="font-size:11px;color:#185FA5;margin-top:1px;">Suppresses room SMS — Zoom confirmation sent separately</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleOnlineSession()">
+              <input type="checkbox" id="online-toggle" style="opacity:0;width:0;height:0;"/>
+              <span id="online-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+              <span id="online-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+            </label>
+          </div>
+        </div>
+
         <!-- Repeat booking -->
         <div style="margin-bottom:12px;">
           <label class="lbl">Repeat</label>
@@ -1275,6 +1290,21 @@ function toggleCouples(){
   if(!on) document.getElementById('fnt2').value='';
 }
 
+function toggleOnlineSession(){
+  const cb=document.getElementById('online-toggle');
+  cb.checked=!cb.checked;
+  const on=cb.checked;
+  document.getElementById('online-track').style.background=on?'#185FA5':'#E5E0D8';
+  document.getElementById('online-thumb').style.transform=on?'translateX(20px)':'translateX(0)';
+}
+function isOnlineSession(){ return document.getElementById('online-toggle').checked; }
+function resetOnlineSession(){
+  const cb=document.getElementById('online-toggle');
+  if(cb) cb.checked=false;
+  document.getElementById('online-track').style.background='#E5E0D8';
+  document.getElementById('online-thumb').style.transform='translateX(0)';
+}
+
 function isCouples(){return document.getElementById('couples-toggle').checked;}
 
 function toggleEditCouples(){
@@ -1631,6 +1661,7 @@ async function doAdd(){
   const newBooking={id:Date.now(),who:S.me,date,start:from,end:to,
     note:couples?fullNote:note,
     ...(couples&&{couples:true,client1:note,client2:partnerName}),
+    ...(isOnlineSession()&&{isOnlineSession:true}),
     updated:new Date().toISOString()};
   startSaving();
   try{
@@ -1649,9 +1680,10 @@ async function doAdd(){
     document.getElementById('sbtn').style.background=c.fg;
     _addingBooking=false;
     resetCouples();
+    resetOnlineSession();
     // Show confirmation SMS button instead of auto-opening contact picker
     const tm=getTM();
-    if(tm.enabled&&newBooking.note){
+    if(tm.enabled&&newBooking.note&&!newBooking.isOnlineSession){
       const btnLabel=newBooking.couples?'📱 Send confirmations (both)':'📱 Send confirmation SMS';
       oEl.innerHTML='Booking added ✓ &nbsp;<button onclick="sendConfirmationSMS(S.bookings.find(b=>b.id==='+newBooking.id+'))" '+
         'style="padding:4px 10px;font-size:12px;border:1px solid #52B788;border-radius:6px;background:#D8F3DC;color:#1B4332;cursor:pointer;">'+btnLabel+'</button>';
@@ -2032,6 +2064,7 @@ function drawList(){
         <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;padding:8px;flex-shrink:0;">
           ${(()=>{
             if(!isOwner) return '';
+            if(b.isOnlineSession) return '<span style="font-size:11px;padding:4px 8px;border:1px solid #B3D7F0;border-radius:6px;background:#E8F4FD;color:#185FA5;" title="Online session — SMS handled via Zoom">📹 Online</span>';
             const tm=getTM();
             if(!tm.enabled) return '<span style="font-size:10px;color:#C8C3BB;padding:2px 4px;" title="SMS off — enable in People tab">📵</span>';
             const confirmBtn=`<button onclick="sendConfirmationSMS(S.bookings.find(x=>x.id===${b.id}))"
@@ -3695,7 +3728,7 @@ async function autoSendReminders(){ // Runs on page load between 8-9am; also han
   const today=ds(new Date());
 
   const due=S.bookings.filter(b=>
-    b.who===S.me&&b.date===target&&b.note&&!b.smsSent&&!b.autoSent
+    b.who===S.me&&b.date===target&&b.note&&!b.smsSent&&!b.autoSent&&!b.isOnlineSession
   );
   if(!due.length) return;
 
