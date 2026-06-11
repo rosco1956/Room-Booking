@@ -3156,6 +3156,44 @@ function subscribeZoomCal(){
   document.body.appendChild(modal);
 }
 
+function bookRoomForZoom(zoomId){
+  const zb=(S.zoomBookings||[]).find(b=>String(b.id)===String(zoomId));
+  if(!zb) return;
+  // Check if room booking already exists for this zoom session
+  const existing=S.bookings.find(b=>b.who===zb.who&&b.date===zb.date&&b.start===zb.start&&b.isOnlineSession);
+  if(existing){
+    alert('A room booking already exists for this Zoom session ('+zb.date+' at '+zb.start+').');
+    return;
+  }
+  // Switch to Book tab and pre-fill the form
+  goTab('book');
+  document.getElementById('fdt').value=zb.date;
+  document.getElementById('ffr').value=zb.start;
+  // Set duration from zoom booking
+  const[sh,sm]=zb.start.split(':').map(Number);
+  const[eh,em]=zb.end.split(':').map(Number);
+  const durMins=(eh*60+em)-(sh*60+sm);
+  selMins=durMins;
+  // Try to match a preset duration button
+  const presetBtn=Array.from(document.querySelectorAll('#pane-book .dur-btn')).find(b=>parseInt(b.dataset.mins)===durMins);
+  document.querySelectorAll('#pane-book .dur-btn').forEach(b=>b.classList.remove('on'));
+  if(presetBtn){ presetBtn.classList.add('on'); document.getElementById('custom-end-row').style.display='none'; }
+  else {
+    const customBtn=document.querySelector('#pane-book .dur-btn[data-mins="custom"]');
+    if(customBtn) customBtn.classList.add('on');
+    document.getElementById('custom-end-row').style.display='block';
+    document.getElementById('fto').value=zb.end;
+  }
+  calcEnd();
+  // Pre-fill client name
+  document.getElementById('fnt').value=zb.client1||zb.note||'';
+  // Auto-toggle online session on
+  const cb=document.getElementById('online-toggle');
+  if(cb&&!cb.checked) toggleOnlineSession();
+  // Focus the add button
+  document.getElementById('sbtn').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
 function renderZoomList(){
   const el=document.getElementById('zoom-list'); if(!el)return;
   if(!S.zoomBookings) S.zoomBookings=[];
@@ -3190,6 +3228,10 @@ function renderZoomList(){
           <button onclick="sendZoomConfirmation(S.zoomBookings.find(b=>String(b.id)==='${zb.id}'))"
             style="padding:5px 10px;font-size:11px;border:1px solid #C9A84C;border-radius:6px;background:#FFF3CD;color:#6B4C00;cursor:pointer;">
             ✉️ SMS
+          </button>
+          <button onclick="bookRoomForZoom('${zb.id}')"
+            style="padding:5px 10px;font-size:11px;border:1px solid #52B788;border-radius:6px;background:#D8F3DC;color:#1B4332;cursor:pointer;">
+            🏢 Book room
           </button>
           <button onclick="deleteZoomBooking('${zb.id}')"
             style="padding:5px 10px;font-size:11px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#C0392B;cursor:pointer;">
