@@ -4152,10 +4152,19 @@ function openSMS(id){
   const b=S.bookings.find(x=>x.id===id);if(!b)return;
   _cpBid=id;
   _cpMode='remind';
-  document.getElementById('cp-search').value=b.note||'';
-  document.getElementById('cp-binfo').textContent='Send reminder: '+b.who+' · '+b.start+'–'+b.end+(b.note?' · '+b.note:'');
+  // For couples bookings, search for first person individually
+  if(b.couples&&b.client1&&b.client2){
+    _couplesPartner={booking:b,name:b.client2};
+    document.getElementById('cp-title').textContent='Reminder — '+b.client1+' (1 of 2)';
+    document.getElementById('cp-search').value=b.client1;
+    document.getElementById('cp-binfo').textContent='Send reminder to: '+b.client1+' (1 of 2) · '+b.who+' · '+b.start+'–'+b.end;
+  } else {
+    _couplesPartner=null;
+    document.getElementById('cp-title').textContent='Send reminder SMS';
+    document.getElementById('cp-search').value=b.note||'';
+    document.getElementById('cp-binfo').textContent='Send reminder: '+b.who+' · '+b.start+'–'+b.end+(b.note?' · '+b.note:'');
+  }
   document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Type a name to search your TextMagic contacts</p>';
-  document.getElementById('cp-title').textContent='Send reminder SMS';
   document.getElementById('cp-modal').classList.remove('off');
   if(b.note) setTimeout(searchCP,500);
 }
