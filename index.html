@@ -2244,12 +2244,12 @@ function drawWeek(){
   el.innerHTML=html;
 
   // Render events as absolute overlays positioned against the grid container.
-  // Measuring the real header height (rather than guessing a fixed px value)
-  // keeps this correct regardless of font size/zoom/device.
+  // Measure the real offset of the first hour-row cell (rather than guessing
+  // a fixed px value) so this stays correct across devices/font sizes.
   const gridEl=el.querySelector('.wk-g');
   if(!gridEl) return;
-  const headerCells=gridEl.querySelectorAll('.wk-ch');
-  const headerH=headerCells.length?headerCells[0].offsetHeight:44;
+  const firstCell=gridEl.querySelector('.wk-cell, .wk-tc');
+  const headerH=firstCell?firstCell.offsetTop:44;
   let evHtml='';
   days.forEach((d,di)=>{
     const dstr=ds(d);
