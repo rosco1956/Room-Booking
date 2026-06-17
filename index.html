@@ -2244,16 +2244,22 @@ function drawWeek(){
   el.innerHTML=html;
 
   // Render events as absolute overlays positioned against the grid container.
-  // Measure the real offset of the first hour-row cell (rather than guessing
-  // a fixed px value) so this stays correct across devices/font sizes.
+  // Measure real cell geometry (rather than assuming equal-width columns —
+  // the time-label column is a fixed 38px while day columns flex) so events
+  // always line up under the correct day regardless of column widths.
   const gridEl=el.querySelector('.wk-g');
   if(!gridEl) return;
   const firstCell=gridEl.querySelector('.wk-cell, .wk-tc');
   const headerH=firstCell?firstCell.offsetTop:44;
+  // Grab one .wk-cell per day column from the first hour row to measure geometry
+  const sampleCells=Array.from(gridEl.querySelectorAll('.wk-cell')).slice(0,7);
   let evHtml='';
   days.forEach((d,di)=>{
     const dstr=ds(d);
     const evs=fb.filter(b=>b.date===dstr);
+    const sampleCell=sampleCells[di];
+    const colLeft=sampleCell?sampleCell.offsetLeft:0;
+    const colWidth=sampleCell?sampleCell.offsetWidth:0;
     evs.forEach(b=>{
       const[sh,sm]=b.start.split(':').map(Number);const[eh,em]=b.end.split(':').map(Number);
       const startMin=sh*60+sm-dayStartMin;
@@ -2261,10 +2267,8 @@ function drawWeek(){
       const ht=Math.max(((eh*60+em-sh*60-sm)/60)*H,16);
       const c=col(b.who);const canEdit=b.who===S.me;
       const tipText=b.who+(b.note?' — '+b.note:'')+' ('+b.start+'–'+b.end+')';
-      const leftPct=((di+1)/8)*100;
-      const widthPct=100/8;
       const catTag=b.category?`<div style="font-size:7px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${xe(b.category)}</div>`:'';
-      evHtml+=`<div class="wk-ev" style="position:absolute;top:${top}px;height:${ht}px;left:calc(${leftPct}% + 2px);width:calc(${widthPct}% - 4px);background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};cursor:${canEdit?'pointer':'default'};z-index:5;"
+      evHtml+=`<div class="wk-ev" style="position:absolute;top:${top}px;height:${ht}px;left:${colLeft+2}px;width:${colWidth-4}px;background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};cursor:${canEdit?'pointer':'default'};z-index:5;"
         ${canEdit?`onclick="openEdit(${b.id})"`:''} onmouseenter="showTip(event,'${tipText.replace(/'/g,"\'")}');event.stopPropagation();" onmousemove="moveTip(event)" onmouseleave="hideTip()"><div style="display:flex;justify-content:space-between;"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${xe(b.who)}</div>${canEdit&&ht>=24?'<div style="font-size:9px;opacity:.7;">✏️</div>':''}</div>${ht>=28?`<div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>`:''}${ht>=40?catTag:''}</div>`;
     });
   });
