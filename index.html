@@ -345,6 +345,12 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
       <span style="color:#8A8479;">Ends at</span><strong id="e-end-display">—</strong>
     </div>
     <div style="margin-bottom:10px;"><label class="lbl" for="e-note">Client name</label><input class="inp" type="text" id="e-note" placeholder="e.g. Sam Smith"/></div>
+    <div style="margin-bottom:10px;">
+      <label class="lbl" for="e-cat">Category (optional)</label>
+      <select class="inp" id="e-cat">
+        <option value="">— None —</option>
+      </select>
+    </div>
     <div style="margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleEditCouples()">
         <div style="flex:1;">
@@ -456,7 +462,14 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
         </div>
         <div style="margin-bottom:10px;">
           <label class="lbl" for="fnt">Client name</label>
-          <input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith"/>
+          <input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith" oninput="suggestCategory('fnt','fcat','fcat-suggest')"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="fcat">Category (optional)</label>
+          <select class="inp" id="fcat">
+            <option value="">— None —</option>
+          </select>
+          <div id="fcat-suggest" style="display:none;margin-top:6px;"></div>
         </div>
         <div style="margin-bottom:12px;">
           <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleCouples()">
@@ -644,6 +657,12 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
         <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings per person</div>
         <div id="person-report-body"></div>
       </div>
+
+      <!-- Category breakdown -->
+      <div class="card" style="margin-top:16px;">
+        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings by category</div>
+        <div id="category-report-body"></div>
+      </div>
     </div>
 
     <!-- ZOOM -->
@@ -671,11 +690,18 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
         </div>
         <div style="margin-bottom:10px;">
           <label class="lbl" for="z-client">Client name</label>
-          <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith"/>
+          <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith" oninput="suggestCategory('z-client','z-cat','z-cat-suggest')"/>
         </div>
         <div style="margin-bottom:10px;">
           <label class="lbl" for="z-topic">Meeting topic (optional)</label>
           <input class="inp" type="text" id="z-topic" placeholder="e.g. Consultation"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="lbl" for="z-cat">Category (optional)</label>
+          <select class="inp" id="z-cat">
+            <option value="">— None —</option>
+          </select>
+          <div id="z-cat-suggest" style="display:none;margin-top:6px;"></div>
         </div>
         <!-- Couples option -->
         <div style="margin-bottom:12px;">
@@ -739,6 +765,12 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
           <label class="lbl" for="ze-topic">Meeting topic</label>
           <input class="inp" type="text" id="ze-topic"/>
         </div>
+        <div style="margin-bottom:14px;">
+          <label class="lbl" for="ze-cat">Category (optional)</label>
+          <select class="inp" id="ze-cat">
+            <option value="">— None —</option>
+          </select>
+        </div>
         <button class="btn-main" onclick="saveZoomEdit()">Save changes</button>
         <p style="font-size:11px;color:#8A8479;text-align:center;margin-top:8px;">Note: date/time changes update the booking system only — please also update the meeting in Zoom if needed.</p>
       </div>
@@ -792,6 +824,7 @@ const PAL=[
   {bg:'#D6EAF8',mid:'#5DADE2',fg:'#1A5276'},
   {bg:'#FDEBD0',mid:'#E59866',fg:'#784212'},
 ];
+const BOOKING_CATEGORIES=['WPO','FL19','AXA','Private Practice','Supervision','WPA','BUPA','Aviva','Concessionary','Mind Right'];
 const S={
   me:localStorage.getItem('rb_me')||'',
   bookings:[],
@@ -857,6 +890,58 @@ setTimeout(()=>{
 },200);
 document.getElementById('rate-inp').value=S.rate||'';
 setTimeout(calcEnd,100);
+// Populate category dropdowns
+function populateCategoryOptions(){
+  ['fcat','e-cat','z-cat','ze-cat'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    BOOKING_CATEGORIES.forEach(cat=>{
+      const opt=document.createElement('option');
+      opt.value=cat; opt.textContent=cat;
+      el.appendChild(opt);
+    });
+  });
+}
+populateCategoryOptions();
+
+// ── Category suggestion based on client's most recent booking ─────────────
+let _catSuggestTimer=null;
+function findLastCategoryForClient(name){
+  const n=name.trim().toLowerCase();
+  if(!n) return null;
+  // Combine room bookings and zoom bookings, sorted newest first
+  const all=[
+    ...S.bookings.map(b=>({...b,_isZoom:false})),
+    ...(S.zoomBookings||[]).map(b=>({...b,_isZoom:true}))
+  ];
+  const matches=all.filter(b=>{
+    const names=b.couples&&b.client1&&b.client2
+      ?[b.client1.toLowerCase(),b.client2.toLowerCase()]
+      :[(b.client1||b.note||'').toLowerCase()];
+    return names.some(x=>x===n||x.includes(n)||n.includes(x));
+  }).filter(b=>b.category);
+  if(!matches.length) return null;
+  matches.sort((a,b)=>(b.date+b.start).localeCompare(a.date+a.start));
+  return matches[0].category;
+}
+function suggestCategory(nameFieldId,catFieldId,suggestBoxId){
+  clearTimeout(_catSuggestTimer);
+  _catSuggestTimer=setTimeout(()=>{
+    const nameEl=document.getElementById(nameFieldId);
+    const catEl=document.getElementById(catFieldId);
+    const boxEl=document.getElementById(suggestBoxId);
+    if(!nameEl||!catEl||!boxEl) return;
+    const name=nameEl.value.trim();
+    if(!name||catEl.value){ boxEl.style.display='none'; return; }
+    const suggestion=findLastCategoryForClient(name);
+    if(!suggestion){ boxEl.style.display='none'; return; }
+    boxEl.style.display='block';
+    boxEl.innerHTML=`<button type="button" onclick="document.getElementById('${catFieldId}').value='${xe(suggestion)}';document.getElementById('${suggestBoxId}').style.display='none';"
+      style="font-size:12px;padding:5px 10px;border-radius:99px;border:1px solid #C9A84C;background:#FFF8E7;color:#6B4C00;cursor:pointer;font-family:inherit;">
+      💡 Use "${xe(suggestion)}" (last used for this client)
+    </button>`;
+  },400);
+}
 if(!S.me||!S.people.map(pName).includes(S.me)) showWho();
 else applyMe();
 renderLegend();
@@ -1464,7 +1549,7 @@ function showBHModal(date,holName){
   });
 }
 
-async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl,couplesData){
+async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl,couplesData,category){
   const now=new Date().toISOString();
   let added=0;
   let aborted=false;
@@ -1511,6 +1596,7 @@ async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl
     const newB={
       id:Date.now()+i,who:S.me,date:d,
       start:useStart,end:useEnd,note,updated:now,
+      ...(category&&{category}),
       ...(repId&&{repeatId:repId,repeatMode:repMode}),
       ...(couplesData||{})
     };
@@ -1541,6 +1627,7 @@ async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl
 
   S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
   document.getElementById('fnt').value='';
+  document.getElementById('fcat').value='';
   setRep('none');
   const msg=added===1?'Booking added ✓':added+' bookings added ✓';
   oEl.textContent=msg;
@@ -1647,6 +1734,7 @@ async function doAdd(){
   const from=document.getElementById('ffr').value;
   const to=getEnd();
   const note=document.getElementById('fnt').value.trim();
+  const category=document.getElementById('fcat').value||'';
   const partnerName=isCouples()?getPartnerName():'';
   const fullNote=note&&partnerName?note+' & '+partnerName:note;
   const couples=isCouples()&&note&&partnerName;
@@ -1687,6 +1775,7 @@ async function doAdd(){
   // Add directly to server — server does final clash check
   const newBooking={id:Date.now(),who:S.me,date,start:from,end:to,
     note:couples?fullNote:note,
+    ...(category&&{category}),
     ...(couples&&{couples:true,client1:note,client2:partnerName}),
     ...(isOnlineSession()&&{isOnlineSession:true}),
     updated:new Date().toISOString()};
@@ -1698,6 +1787,7 @@ async function doAdd(){
     S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
     _lastSaveTime=Date.now();
     document.getElementById('fnt').value='';
+    document.getElementById('fcat').value='';
     oEl.style.display='block';
     setTimeout(()=>oEl.style.display='none',3000);
     draw();renderCosts();
@@ -1738,7 +1828,7 @@ async function doAdd(){
   // Process all dates - handle clashes interactively
   // Pass couples data so confirmation SMS sends to both clients
   const couplesData=couples?{couples:true,client1:note,client2:partnerName}:null;
-  await processRepeatBookings(allDates,from,to,dur,couples?fullNote:note,repId,eEl,oEl,couplesData);
+  await processRepeatBookings(allDates,from,to,dur,couples?fullNote:note,repId,eEl,oEl,couplesData,category);
 }
 
 let _cancelBookingId=null;
@@ -1858,6 +1948,7 @@ function openEdit(id){
   document.getElementById('e-end-display').textContent=b.end;
   const stampEl=document.getElementById('edit-stamp');
   if(stampEl)stampEl.textContent=b.updated?'Last edited '+fmtStamp(b.updated):'';
+  document.getElementById('e-cat').value=b.category||'';
   setEditOnline(!!b.isOnlineSession);
   document.getElementById('edit-modal').classList.remove('off');
 }
@@ -1896,6 +1987,7 @@ async function saveEdit(){
   const from=document.getElementById('e-from').value;
   const to=getEditEnd();
   const note=document.getElementById('e-note').value.trim();
+  const category=document.getElementById('e-cat').value||'';
   const partner=isEditCouples()?(document.getElementById('e-note2').value.trim()):'';
   const editCouples=isEditCouples()&&note&&partner;
   const errEl=document.getElementById('eerr');
@@ -1909,6 +2001,7 @@ async function saveEdit(){
     const editedNote=editCouples?note+' & '+partner:note;
     const updated={...S.bookings[idx],date,start:from,end:to,
       note:editedNote,
+      category:category||undefined,
       couples:editCouples?true:undefined,
       client1:editCouples?note:undefined,
       client2:editCouples?partner:undefined,
@@ -2779,6 +2872,7 @@ async function doZoomBooking(){
   const date   =document.getElementById('z-date').value;
   const start  =document.getElementById('z-from').value;
   const client =document.getElementById('z-client').value.trim();
+  const category=document.getElementById('z-cat').value||'';
   const couples=document.getElementById('z-couples-toggle').checked;
   const client2=couples?(document.getElementById('z-client2').value.trim()):'';
   const topicRaw=(document.getElementById('z-topic').value.trim())||'Session';
@@ -2834,6 +2928,7 @@ async function doZoomBooking(){
     note:couples&&client2?client+' & '+client2:client,
     topic:topic, client1:client, client2:couples?client2:'',
     couples:couples&&!!client2,
+    ...(category&&{category}),
     zoomJoinUrl:'', zoomShortUrl:'', zoomPassword:'',
     zoomStartUrl:'', isZoom:true, pending:true,
     updated:new Date().toISOString()
@@ -2915,6 +3010,7 @@ async function doZoomBooking(){
     // Reset form
     document.getElementById('z-client').value='';
     document.getElementById('z-topic').value='';
+    document.getElementById('z-cat').value='';
     document.getElementById('z-couples-toggle').checked=false;
     document.getElementById('z-couples-track').style.background='#E5E0D8';
     document.getElementById('z-couples-thumb').style.transform='translateX(0)';
@@ -3098,6 +3194,7 @@ function openEditZoom(id){
   document.getElementById('ze-from').value=zb.start;
   document.getElementById('ze-client').value=zb.client1||zb.note||'';
   document.getElementById('ze-topic').value=zb.topic||'';
+  document.getElementById('ze-cat').value=zb.category||'';
   document.getElementById('ze-err').style.display='none';
   // Set duration buttons
   document.querySelectorAll('#zoom-edit-modal .dur-btn').forEach(b=>{
@@ -3116,6 +3213,7 @@ async function saveZoomEdit(){
   const start=document.getElementById('ze-from').value;
   const client=document.getElementById('ze-client').value.trim();
   const topicRaw=document.getElementById('ze-topic').value.trim()||'Session';
+  const category=document.getElementById('ze-cat').value||'';
   const eEl=document.getElementById('ze-err');
   eEl.style.display='none';
 
@@ -3132,7 +3230,7 @@ async function saveZoomEdit(){
   const topic=topicRaw+' for '+client;
 
   S.zoomBookings[idx]={...zb, date, start, end, client1:client,
-    note:client, topic, updated:new Date().toISOString()};
+    note:client, topic, category:category||undefined, updated:new Date().toISOString()};
   _localZoomBookings.set(String(_zoomEditId), S.zoomBookings[idx]);
 
   closeZoomEdit();
@@ -3280,6 +3378,21 @@ function getReportBookings(){
   });
 }
 
+function inReportPeriod(b){
+  const now=new Date();
+  const yr=now.getFullYear();
+  const mo=now.getMonth();
+  const d=new Date(b.date+'T12:00:00');
+  if(reportPeriod==='month') return d.getFullYear()===yr&&d.getMonth()===mo;
+  if(reportPeriod==='3month'){const t=new Date(now);t.setMonth(t.getMonth()-3);return d>=t;}
+  if(reportPeriod==='year') return d.getFullYear()===yr;
+  return true;
+}
+function getCategoryReportBookings(){
+  const roomB=S.bookings.filter(inReportPeriod).map(b=>({...b,_isZoom:false}));
+  const zoomB=(S.zoomBookings||[]).filter(inReportPeriod).map(b=>({...b,_isZoom:true}));
+  return [...roomB,...zoomB];
+}
 function getReportLabel(){
   const now=new Date();
   if(reportPeriod==='month') return now.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -3304,6 +3417,7 @@ function renderReports(){
   renderOccupancy();
   renderHeatmap();
   renderPersonReport();
+  renderCategoryReport();
 }
 
 // ── Occupancy ─────────────────────────────────────────────────────────────
@@ -3467,6 +3581,36 @@ function renderPersonReport(){
         <div style="font-size:12px;color:#8A8479;margin-top:2px;">${d.count} booking${d.count===1?'':'s'} · ${hd}</div>
       </div>
       ${S.rate>0?`<div style="text-align:right;"><div style="font-size:16px;font-weight:500;">${fmt(d.cost)}</div><div style="font-size:11px;color:#8A8479;">${fmt(S.rate)}/hr</div></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── Category breakdown ───────────────────────────────────────────────────
+function renderCategoryReport(){
+  const el=document.getElementById('category-report-body'); if(!el)return;
+  const bks=getCategoryReportBookings().filter(b=>b.category);
+  if(!bks.length){el.innerHTML='<p style="color:#8A8479;font-size:13px;">No categorised bookings in this period</p>';return;}
+
+  const byC={};
+  bks.forEach(b=>{
+    if(!byC[b.category]) byC[b.category]={count:0,hours:0,cost:0};
+    const h=hrs(b);
+    byC[b.category].count++;
+    byC[b.category].hours+=h;
+    byC[b.category].cost+=h*(S.rate||0);
+  });
+
+  const cats=Object.keys(byC).sort((a,b)=>byC[b].count-byC[a].count);
+  el.innerHTML=cats.map(cat=>{
+    const d=byC[cat];
+    const hd=d.hours%1===0?d.hours+'h':d.hours.toFixed(1)+'h';
+    return`<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F0EDE8;">
+      <div style="width:36px;height:36px;border-radius:8px;background:#F0EDE8;color:#1A1814;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;text-align:center;">${xe(cat.slice(0,4))}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:500;">${xe(cat)}</div>
+        <div style="font-size:12px;color:#8A8479;margin-top:2px;">${d.count} booking${d.count===1?'':'s'} · ${hd}</div>
+      </div>
+      ${S.rate>0?`<div style="text-align:right;"><div style="font-size:16px;font-weight:500;">${fmt(d.cost)}</div></div>`:''}
     </div>`;
   }).join('');
 }
