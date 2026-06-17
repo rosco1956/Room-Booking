@@ -1075,9 +1075,11 @@ async function load(spin=true){
     });
     S.zoomBookings=[...mergedZoom.values()];
     S.zoomBookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
-    // Clean up local tracking once server confirms
+    // Clean up local tracking once server confirms the SAME version (by updated timestamp)
+    const incomingZoomById=new Map(incomingZoom.map(b=>[String(b.id),b]));
     _localZoomBookings.forEach((b,id)=>{
-      if(serverZoomIds.has(id)) _localZoomBookings.delete(id);
+      const serverVersion=incomingZoomById.get(id);
+      if(serverVersion&&serverVersion.updated===b.updated) _localZoomBookings.delete(id);
     });
     // Clean up deleted IDs once server confirms removal
     _deletedZoomIds.forEach(id=>{
@@ -3245,6 +3247,7 @@ async function saveZoomEdit(){
   S.zoomBookings[idx]={...zb, date, start, end, client1:client,
     note:client, topic, category:category||undefined, updated:new Date().toISOString()};
   _localZoomBookings.set(String(_zoomEditId), S.zoomBookings[idx]);
+  _lastSaveTime=Date.now();
 
   closeZoomEdit();
   await saveZoom();
