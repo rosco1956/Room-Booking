@@ -560,6 +560,12 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
           <button class="p"    id="ch-mine" onclick="setF('mine')">Mine</button>
         </div>
       </div>
+      <div id="show-cat-row" style="margin-bottom:10px;">
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#8A8479;cursor:pointer;">
+          <input type="checkbox" id="show-cat-toggle" onchange="draw()" style="margin:0;"/>
+          Show categories
+        </label>
+      </div>
       <div id="vbody"></div>
       <div style="text-align:center;margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
         <button onclick="load()" style="padding:7px 18px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
@@ -2123,6 +2129,8 @@ function getFilt(){return S.filt==='mine'?S.bookings.filter(b=>b.who===S.me):[..
 function setV(v){
   S.view=v;
   ['list','day','week','month'].forEach(k=>{const el=document.getElementById('vb-'+k);if(el)el.className='p'+(k===v?' on':'');});
+  const catRow=document.getElementById('show-cat-row');
+  if(catRow) catRow.style.display=(v==='list')?'block':'none';
   updateLbl();draw();
 }
 function shift(d){
@@ -2144,6 +2152,7 @@ function draw(){updateLbl();if(S.view==='list')drawList();else if(S.view==='day'
 // List
 function drawList(){
   const el=document.getElementById('vbody');if(!el)return;
+  const showCat=document.getElementById('show-cat-toggle')?.checked;
   const tod=ds(new Date());
   const fb=getFilt().filter(b=>b.date>=tod);
   if(!fb.length){el.innerHTML='<p style="color:#8A8479;padding:20px 0;text-align:center;">No upcoming bookings'+(S.filt==='mine'?' for you':'')+'</p>';return;}
@@ -2165,7 +2174,7 @@ function drawList(){
         <div style="flex:1;min-width:0;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;">
           <div style="font-size:14px;font-weight:500;">${xe(b.who)}</div>
           <div style="font-size:13px;color:#8A8479;margin-top:2px;">${xe(b.start)} – ${xe(b.end)}${b.note?'<div style="font-size:12px;color:#8A8479;margin-top:2px;font-style:italic;">'+xe(b.note)+'</div>':''}</div>
-          ${b.category?`<div style="margin-top:3px;"><span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:99px;background:#F0EDE8;color:#5C564E;">${xe(b.category)}</span></div>`:''}
+          ${showCat&&b.category?`<div style="margin-top:3px;"><span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:99px;background:#F0EDE8;color:#5C564E;">${xe(b.category)}</span></div>`:''}
           ${cost?`<div style="font-size:12px;font-weight:500;margin-top:3px;">${cost}</div>`:''}
           ${b.updated?`<div style="font-size:11px;color:#B0AAA0;margin-top:4px;">✏️ ${fmtStamp(b.updated)}</div>`:''}
           ${b.smsSent?`<div style="font-size:11px;color:#52B788;margin-top:3px;">📱 Confirmation sent ${fmtStamp(b.smsSent)}</div>`:''}
