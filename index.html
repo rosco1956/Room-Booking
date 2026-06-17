@@ -2227,7 +2227,7 @@ function drawWeek(){
   const mon=wkMon(S.cursor);
   const days=Array.from({length:7},(_,i)=>addD(mon,i));
   const tod=ds(new Date());
-  const HOURS=Array.from({length:13},(_,i)=>i+7);
+  const HOURS=Array.from({length:15},(_,i)=>i+7);
   const H=48;const fb=getFilt();
   const dayStartMin=HOURS[0]*60;
   let html='<div class="wk-w"><div class="wk-g" style="position:relative;">';
