@@ -4604,15 +4604,17 @@ async function selectContact(encName,encPhone,contactId){
       }
       alert('✓ '+(label.charAt(0).toUpperCase()+label.slice(1))+' SMS sent to '+name);
       // If couples booking, open picker for second person
-      if(_couplesPartner&&_cpMode==='confirm'){
+      if(_couplesPartner&&(_cpMode==='confirm'||_cpMode==='remind')){
         const partner=_couplesPartner;
+        const currentMode=_cpMode;
         _couplesPartner=null;
         setTimeout(()=>{
           _cpBid=partner.booking.id;
-          _cpMode='confirm';
-          document.getElementById('cp-title').textContent='Confirmation — '+partner.name;
+          _cpMode=currentMode;
+          const modeLabel=currentMode==='remind'?'Reminder':'Confirmation';
+          document.getElementById('cp-title').textContent=modeLabel+' — '+partner.name+' (2 of 2)';
           document.getElementById('cp-search').value=partner.name;
-          document.getElementById('cp-binfo').textContent='Send confirmation to: '+partner.name+' (2 of 2)';
+          document.getElementById('cp-binfo').textContent='Send '+currentMode+' to: '+partner.name+' (2 of 2)';
           const wrap=document.getElementById('cp-preview-wrap');
           if(wrap) wrap.style.display='none';
           document.getElementById('cp-results').innerHTML='<p style="color:#8A8479;text-align:center;padding:16px;font-size:13px;">Searching for "'+xe(partner.name)+'"…</p>';
