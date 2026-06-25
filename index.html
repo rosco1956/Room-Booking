@@ -821,7 +821,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 </div>
 
 <script>
-    const GAS='/gas/AKfycbzDGu0whOMM1tLYPZxRVskdL2MTNbHmxNnPn833QVJ7-4YtwSvI43x8oDPkhqiPUaeb/exec';
+    const GAS ='/gas/AKfycbw1GFEMHZoYtbpHuE9ieatLWI5qnvXJ39W6NS1C1EI6gR5EWOgWKMFKTiMl5t_fgiah/exec';
 const PAL=[
   {bg:'#D8F3DC',mid:'#52B788',fg:'#1B4332'},
   {bg:'#EDE7F6',mid:'#9C6BC4',fg:'#3D1C5A'},
@@ -4611,6 +4611,13 @@ async function selectContact(encName,encPhone,contactId){
         setTimeout(()=>{
           _cpBid=partner.booking.id;
           _cpMode=currentMode;
+          // Store booking directly so previewContact can find it
+          // even if S.bookings has been refreshed by background poll
+          _cancelledBooking=null;
+          // Ensure booking is in S.bookings
+          if(!S.bookings.find(x=>x.id===partner.booking.id)){
+            S.bookings.push(partner.booking);
+          }
           const modeLabel=currentMode==='remind'?'Reminder':'Confirmation';
           document.getElementById('cp-title').textContent=modeLabel+' — '+partner.name+' (2 of 2)';
           document.getElementById('cp-search').value=partner.name;
