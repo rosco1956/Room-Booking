@@ -65,7 +65,7 @@ function doGet(e) {
       if (clash) return fail('Clash with '+clash.who+' ('+clash.start+'-'+clash.end+')');
       record.bookings.push(newBooking);
       sheet.getRange('A1').setValue(JSON.stringify(record));
-      return ok({count: record.bookings.length});
+      return ok({count: record.bookings.length, record: {bookings: record.bookings}});
     } catch(err) { return fail(err.message); }
   }
 
