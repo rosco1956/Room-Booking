@@ -821,7 +821,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 </div>
 
 <script>
-    const GAS ='/gas/AKfycbzbTDPjOINzLqRYCbcE4LK0VAZOPgVoa7Fvslo1-h9nSKtX2uXGaLAChV9FQ1VASqZW/exec';
+    const GAS='/gas/AKfycbzDGu0whOMM1tLYPZxRVskdL2MTNbHmxNnPn833QVJ7-4YtwSvI43x8oDPkhqiPUaeb/exec';
 const PAL=[
   {bg:'#D8F3DC',mid:'#52B788',fg:'#1B4332'},
   {bg:'#EDE7F6',mid:'#9C6BC4',fg:'#3D1C5A'},
@@ -4553,6 +4553,8 @@ async function selectContact(encName,encPhone,contactId){
   const isZoomMode2=_cpMode==='zoom-confirm';
   const label=isCancel?'cancellation':isZoomMode2?'Zoom confirmation':isConfirm?'confirmation':'reminder';
   const logB=bk; // capture NOW before closeCP() clears _cancelledBooking
+  const savedCouplesPartner=_couplesPartner; // capture BEFORE closeCP nulls it
+  const savedCpMode=_cpMode;                 // capture BEFORE closeCP resets it
   closeCP();
   try{
     const params=new URLSearchParams({action:'tmSend',tmUser:tm.user,tmKey:tm.key,text,phones:phone});
@@ -4608,15 +4610,12 @@ async function selectContact(encName,encPhone,contactId){
       }
       alert('✓ '+(label.charAt(0).toUpperCase()+label.slice(1))+' SMS sent to '+name);
       // If couples booking, open picker for second person
-      if(_couplesPartner&&(_cpMode==='confirm'||_cpMode==='remind')){
-        const partner=_couplesPartner;
-        const currentMode=_cpMode;
-        _couplesPartner=null;
+      if(savedCouplesPartner&&(savedCpMode==='confirm'||savedCpMode==='remind')){
+        const partner=savedCouplesPartner;
+        const currentMode=savedCpMode;
         setTimeout(()=>{
           _cpBid=partner.booking.id;
           _cpMode=currentMode;
-          // Store booking directly so previewContact can find it
-          // even if S.bookings has been refreshed by background poll
           _cancelledBooking=null;
           // Ensure booking is in S.bookings
           if(!S.bookings.find(x=>x.id===partner.booking.id)){
