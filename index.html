@@ -821,7 +821,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 </div>
 
 <script>
-    const GAS='/gas/AKfycbzDGu0whOMM1tLYPZxRVskdL2MTNbHmxNnPn833QVJ7-4YtwSvI43x8oDPkhqiPUaeb/exec';
+    const GAS='/gas/AKfycbzbTDPjOINzLqRYCbcE4LK0VAZOPgVoa7Fvslo1-h9nSKtX2uXGaLAChV9FQ1VASqZW/exec';
 const PAL=[
   {bg:'#D8F3DC',mid:'#52B788',fg:'#1B4332'},
   {bg:'#EDE7F6',mid:'#9C6BC4',fg:'#3D1C5A'},
@@ -953,6 +953,12 @@ else applyMe();
 renderLegend();
 // load(true) is called by unlockApp() after PIN entry, or above if already authenticated
 setInterval(()=>{if(Date.now()-_lastSaveTime>15000&&localStorage.getItem('rb_pin_ok')==='1')load(false);},10000);
+// Ping GAS every 4 minutes to prevent cold starts
+setInterval(()=>{
+  if(localStorage.getItem('rb_pin_ok')==='1'){
+    xhrFetch(GAS+'?action=load').catch(()=>{});
+  }
+},240000);
 
 // Sync
 // GAS fetch wrapper - handles cross-browser CORS/redirect issues
@@ -992,7 +998,7 @@ async function gasFetch(url,opts={}){
   }
 }
 
-function xhrFetch(url, timeoutMs=40000){
+function xhrFetch(url, timeoutMs=55000){
   return new Promise((resolve,reject)=>{
     const xhr=new XMLHttpRequest();
     xhr.open('GET',url,true);
@@ -1179,7 +1185,7 @@ async function gasAction(params){
     }catch(e){
       lastErr=e;
       console.warn('gasAction attempt '+(attempt+1)+' failed:',e.message,'action:',params.action);
-      if(attempt<2) await new Promise(r=>setTimeout(r,3000));
+      if(attempt<2) await new Promise(r=>setTimeout(r,5000));
     }
   }
   throw lastErr;
