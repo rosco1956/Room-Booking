@@ -1819,7 +1819,17 @@ async function doAdd(){
       setTimeout(()=>oEl.style.display='none',5000);
     }
   }catch(e){
-    eEl.textContent='Save failed: '+e.message;
+    // Auto-verify — GAS may have saved despite the network error on iPhone
+    console.warn('doAdd error:',e.message,'— auto-verifying...');
+    verifyBookingSaved(newBooking).then(()=>{
+      // verifyBookingSaved updates syncUI — if still unconfirmed show retry
+      const currentStatus=document.getElementById('sl')&&document.getElementById('sl').textContent;
+      if(currentStatus&&currentStatus.includes('unconfirmed')){
+        eEl.innerHTML='⚠️ Save unconfirmed — <button onclick="doAdd()" style="padding:3px 8px;font-size:12px;border:1px solid #C0392B;border-radius:6px;background:#FDECEA;color:#C0392B;cursor:pointer;">Retry</button>';
+        eEl.style.display='block';
+      }
+    });
+    eEl.innerHTML='⚠️ Network issue — checking if saved… <span style="font-size:11px;color:#8A8479;">tap Refresh if this persists</span>';
     eEl.style.display='block';
     document.getElementById('sbtn').disabled=false;
     document.getElementById('sbtn').textContent='Add booking';
