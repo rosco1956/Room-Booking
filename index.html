@@ -4595,7 +4595,7 @@ async function selectContact(encName,encPhone,contactId){
         _previewEmail='';
         try{
           if(emailAddr){
-            const d2=new Date((logB.date||'')+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+            const d2=new Date((logB.date||'')+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(',','');
             const shortLink2=logB.zoomShortUrl||logB.zoomJoinUrl||'';
             const mobile2=tm.mobile||'07498218609';
             const emailParams2=new URLSearchParams({
