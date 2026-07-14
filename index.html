@@ -2978,6 +2978,7 @@ async function doZoomBooking(){
     updated:new Date().toISOString()
   };
   btn.textContent='Creating Zoom meeting…';
+  _lastSaveTime=Date.now(); // block background poll during creation
 
   // Add placeholder to list immediately
   if(!S.zoomBookings) S.zoomBookings=[];
@@ -3004,6 +3005,7 @@ async function doZoomBooking(){
 
   for(let i=0;i<15;i++){
     await new Promise(r=>setTimeout(r,4000));
+    _lastSaveTime=Date.now(); // keep background poll blocked while we wait
 
     // Check if XHR already returned the result
     if(zoomXHRResult){
@@ -3032,10 +3034,10 @@ async function doZoomBooking(){
 
   // Update placeholder with real Zoom details
   if(found&&found.zoomJoinUrl){
-    // Remove any existing booking for same date/start before adding
+    // Remove only the placeholder for this booking (by pendingId), not other bookings
     if(!S.zoomBookings) S.zoomBookings=[];
     S.zoomBookings=S.zoomBookings.filter(b=>
-      !(b.who===S.me&&b.date===date&&b.start===start)
+      !(String(b.id)===String(pendingId)||String(b.pendingId)===String(pendingId))
     );
     const updated={...placeholder,...found,
       id:found.id||pendingId,
