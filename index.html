@@ -821,7 +821,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 </div>
 
 <script>
-    const GAS ='/gas/AKfycbxlgwtdh31ghIHm1Lq4guiEydGqR2OA7pnyLymXhuZO_Vj4w48NP1ec_xDku6Nh_hgI/exec';
+    const GAS ='/gas/AKfycbwX5f4l1yJ2_WzJG5svUW6ximFbZQfCZAE3ij-Bd2Qczhbtv48NHMIJF53DVRfZv3Et/exec';
 const PAL=[
   {bg:'#D8F3DC',mid:'#52B788',fg:'#1B4332'},
   {bg:'#EDE7F6',mid:'#9C6BC4',fg:'#3D1C5A'},
@@ -975,9 +975,10 @@ async function gasFetch(url,opts={}){
         return await xhrFetch(url);
       }catch(e){
         lastErr=e;
-        if(e.message.includes('timed out')&&attempt<2){
+        const retryable=e.message.includes('timed out')||e.message.includes('non-JSON')||e.message.includes('parse');
+        if(retryable&&attempt<2){
           syncUI(true,'Retrying… ('+(attempt+1)+')');
-          await new Promise(r=>setTimeout(r,3000));
+          await new Promise(r=>setTimeout(r,4000));
           continue;
         }
         throw e;
