@@ -3052,7 +3052,7 @@ async function doZoomBooking(){
     updated:new Date().toISOString()
   };
   btn.textContent='Creating Zoom meeting…';
-
+    btn.disabled = true;
   // Add placeholder to list immediately
   if(!S.zoomBookings) S.zoomBookings=[];
   S.zoomBookings.push(placeholder);
