@@ -3074,10 +3074,11 @@ async function doZoomBooking(){
   // Poll for real Zoom details — update placeholder when found
   let found=null;
   let secs=0;
-  const pollTimer=setInterval(()=>{secs+=4;btn.textContent='Creating… ('+secs+'s)';},4000);
+  const pollTimer=setInterval(()=>{secs+=5;btn.textContent='Creating… ('+secs+'s)';},5000);
 
-  for(let i=0;i<15;i++){
-    await new Promise(r=>setTimeout(r,4000));
+  for(let i=0;i<20;i++){
+    await new Promise(r=>setTimeout(r,5000));
+    _lastSaveTime=Date.now();
 
     // Check if XHR already returned the result
     if(zoomXHRResult){
@@ -3191,10 +3192,14 @@ async function doZoomBooking(){
       oEl.style.display='block';
       setTimeout(()=>{oEl.style.display='none';sendZoomConfirmation(finalUpdated);},1000);
     } else {
-      if(idx>-1) S.zoomBookings.splice(idx,1);
-      renderZoomList();
-      eEl.textContent='Zoom meeting created — tap ↻ Refresh to load details.';
+      // Poll timed out — Zoom meeting was created but we couldn't confirm it saved
+      // Keep the placeholder visible and add to pending queue for retry
+      console.warn('Poll timed out — adding to pending Zoom queue for retry');
+      _addPendingZoom(placeholder);
+      eEl.textContent='⚠️ Zoom created but not yet confirmed — will retry automatically.';
       eEl.style.display='block';
+      // Keep placeholder in list so it's visible
+      renderZoomList();
     }
   }
 }
