@@ -959,6 +959,11 @@ renderLegend();
     syncUI(false,'⚠️ '+pending.length+' booking(s) pending — retrying…',true);
     setTimeout(_retryPendingBookings,3000);
   }
+  const pendingZoom=_loadPendingZoom();
+  if(pendingZoom.length){
+    console.warn(pendingZoom.length+' pending Zoom booking(s) waiting to be saved');
+    setTimeout(_retryPendingZoom,5000);
+  }
 })();
 // load(true) is called by unlockApp() after PIN entry, or above if already authenticated
 setInterval(()=>{if(Date.now()-_lastSaveTime>15000&&localStorage.getItem('rb_pin_ok')==='1')load(false);},10000);
@@ -3101,10 +3106,10 @@ async function doZoomBooking(){
 
   // Update placeholder with real Zoom details
   if(found&&found.zoomJoinUrl){
-    // Remove any existing booking for same date/start before adding
+    // Remove only the placeholder by pendingId
     if(!S.zoomBookings) S.zoomBookings=[];
     S.zoomBookings=S.zoomBookings.filter(b=>
-      !(b.who===S.me&&b.date===date&&b.start===start)
+      !(String(b.id)===String(pendingId)||String(b.pendingId)===String(pendingId))
     );
     const updated={...placeholder,...found,
       id:found.id||pendingId,
@@ -3117,7 +3122,13 @@ async function doZoomBooking(){
       zoomStartUrl:found.zoomStartUrl||''};
     S.zoomBookings.push(updated);
     _localZoomBookings.set(String(updated.id), updated);
-    await saveZoom();
+    try{
+      await saveZoom();
+    }catch(e){
+      console.warn('saveZoom failed after creation — adding to pending queue');
+      _addPendingZoom(updated);
+      syncUI(false,'⚠️ Zoom save failed — will retry automatically',true);
+    }
     renderZoomList();
     oEl.style.display='block';
     // Reset form
@@ -3190,6 +3201,64 @@ async function doZoomBooking(){
 
 
 
+// ── Persistent pending Zoom bookings ─────────────────────────────────────
+function _loadPendingZoom(){
+  try{ return JSON.parse(localStorage.getItem('rb_pending_zoom')||'[]'); }
+  catch(e){ return []; }
+}
+function _savePendingZoom(arr){
+  try{ localStorage.setItem('rb_pending_zoom',JSON.stringify(arr)); }
+  catch(e){}
+}
+function _addPendingZoom(zb){
+  const pending=_loadPendingZoom();
+  if(!pending.find(b=>b.id===zb.id)){
+    pending.push(zb);
+    _savePendingZoom(pending);
+    console.warn('Zoom booking '+zb.id+' added to pending queue');
+  }
+}
+function _removePendingZoom(id){
+  const pending=_loadPendingZoom().filter(b=>b.id!==id);
+  _savePendingZoom(pending);
+}
+async function _retryPendingZoom(){
+  const pending=_loadPendingZoom();
+  if(!pending.length) return;
+  console.log('Retrying '+pending.length+' pending Zoom booking(s)…');
+  // Load fresh server state first
+  try{
+    const r=await xhrFetch(GAS+'?action=load');
+    const j=await r.json();
+    const serverZoom=(j.record&&j.record.zoomBookings)||[];
+    for(const zb of pending){
+      const onServer=serverZoom.find(b=>b.id===zb.id||String(b.pendingId)===String(zb.pendingId||zb.id));
+      if(onServer){
+        // Already on server — just update local and remove from queue
+        _removePendingZoom(zb.id);
+        if(!S.zoomBookings.find(b=>b.id===onServer.id)) S.zoomBookings.push(onServer);
+        console.log('Pending Zoom booking confirmed on server');
+      } else {
+        // Not on server — try saveSettings with current + this booking merged
+        try{
+          if(!S.zoomBookings.find(b=>b.id===zb.id)) S.zoomBookings.push(zb);
+          await saveZoom();
+          _removePendingZoom(zb.id);
+          console.log('Pending Zoom booking saved on retry');
+        }catch(e){ console.warn('Zoom retry failed:',e.message); }
+      }
+    }
+    renderZoomList();
+  }catch(e){ console.warn('Zoom retry load failed:',e.message); }
+}
+// Retry pending Zoom bookings every 30 seconds
+setInterval(()=>{
+  if(localStorage.getItem('rb_pin_ok')==='1') _retryPendingZoom();
+},31000);
+// Also retry on foreground
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&localStorage.getItem('rb_pin_ok')==='1') _retryPendingZoom();
+});
 async function saveZoom(){
   if(!S.smsLog) S.smsLog=[];
   if(!S.zoomBookings) S.zoomBookings=[];
