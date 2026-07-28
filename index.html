@@ -3222,17 +3222,22 @@ async function saveZoom(){
   };
   const encoded=encodeURIComponent(JSON.stringify(payload));
   console.log('Saving zoom bookings:',S.zoomBookings.length);
-  // Try xhrFetch first, fall back to no-cors fetch
+  // saveSettings payload grows with zoomBookings/smsLog/people/waitingList and can
+  // exceed what GAS's doGet can reliably parse as a query string, causing GAS to
+  // return non-JSON (HTML error) instead of a JSON response. The no-cors send hits
+  // the same endpoint but doesn't try to read/parse the response, so it isn't
+  // affected by that failure mode — use it as the primary path instead of wasting
+  // 3 retries (~15s) on xhrFetch first.
   try{
-    const j=await gasAction({action:'saveSettings',data:encoded});
-    console.log('saveZoom result:',j);
-    return j;
+    await fetch(GAS+'?action=saveSettings&data='+encoded,{mode:'no-cors',redirect:'follow'});
+    console.log('saveZoom no-cors sent');
+    return {ok:true};
   }catch(e){
-    console.warn('saveZoom xhrFetch failed, trying no-cors:',e.message);
+    console.warn('saveZoom no-cors failed, trying xhrFetch:',e.message);
     try{
-      await fetch(GAS+'?action=saveSettings&data='+encoded,{mode:'no-cors',redirect:'follow'});
-      console.log('saveZoom no-cors sent');
-      return {ok:true};
+      const j=await gasAction({action:'saveSettings',data:encoded});
+      console.log('saveZoom result:',j);
+      return j;
     }catch(e2){
       console.error('saveZoom both methods failed:',e2.message);
       throw e2;
