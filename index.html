@@ -3052,63 +3052,40 @@ async function doZoomBooking(){
     updated:new Date().toISOString()
   };
   btn.textContent='Creating Zoom meeting…';
-    btn.disabled = true;
+
   // Add placeholder to list immediately
   if(!S.zoomBookings) S.zoomBookings=[];
   S.zoomBookings.push(placeholder);
-  const idx=S.zoomBookings.length-1;
   renderZoomList();
 
-  // Fire createZoom request via xhrFetch (handles CORS/redirects correctly)
-  let zoomXHRResult=null;
-  // Fire createZoom via xhrFetch through Worker proxy
-  console.log('Zoom request fired, pendingId:',pendingId,'date:',date,'start:',start);
-  xhrFetch(GAS+'?'+params, 120000).then(async r=>{
-    try{
-      const d=await r.json();
-      if(d.ok&&d.zoomJoinUrl){ zoomXHRResult=d; }
-      console.log('Zoom result:',d.ok,d.zoomShortUrl||d.zoomJoinUrl||d.error||JSON.stringify(d));
-    }catch(e){ console.log('Zoom parse error:',e.message); }
-  }).catch(e=>{ console.log('Zoom request error:',e.message); });
-
-  // Poll for real Zoom details — update placeholder when found
+  // Fire createZoom and wait directly for its response — no polling
   let found=null;
-  let secs=0;
-  const pollTimer=setInterval(()=>{secs+=5;btn.textContent='Creating… ('+secs+'s)';},5000);
+  let lastErr=null;
 
-  for(let i=0;i<20;i++){
-    await new Promise(r=>setTimeout(r,5000));
-    _lastSaveTime=Date.now();
-
-    // Check if XHR already returned the result
-    if(zoomXHRResult){
-      found=zoomXHRResult;
-      console.log('✓ Got Zoom details from XHR response');
-      break;
-    }
-
-    // Poll the sheet
+  for(let attempt=1; attempt<=2; attempt++){
     try{
-      const r=await xhrFetch(GAS+'?action=load');
-      const j=await r.json();
-      const zbs=(j.record&&j.record.zoomBookings)||[];
-      console.log('Poll '+(i+1)+': '+zbs.length+' zoom bookings in sheet');
-      found=zbs.find(b=>
-        String(b.pendingId)===String(pendingId)||
-        (b.who===S.me&&b.date===date&&b.start===start&&b.zoomJoinUrl&&(Date.now()-b.id)<180000)
-      );
-      if(found){ console.log('✓ Found in sheet:',found.zoomShortUrl); break; }
-    }catch(e){ console.log('Poll '+(i+1)+':',e.message); }
+      const r=await xhrFetch(GAS+'?'+params, 120000);
+      const d=await r.json();
+      if(d.ok&&d.zoomJoinUrl){
+        found=d;
+        console.log('✓ Zoom meeting confirmed on attempt '+attempt);
+        break;
+      } else {
+        lastErr=new Error(d.error||'Zoom creation did not return a join URL');
+        console.log('Attempt '+attempt+' failed:',lastErr.message);
+      }
+    }catch(e){
+      lastErr=e;
+      console.log('Attempt '+attempt+' error:',e.message);
+    }
+    if(attempt===1) btn.textContent='Still trying…';
   }
 
-  clearInterval(pollTimer);
   btn.disabled=false;
   btn.textContent='📹 Create Zoom meeting';
 
-  // Update placeholder with real Zoom details
   if(found&&found.zoomJoinUrl){
     // Remove only the placeholder by pendingId
-    if(!S.zoomBookings) S.zoomBookings=[];
     S.zoomBookings=S.zoomBookings.filter(b=>
       !(String(b.id)===String(pendingId)||String(b.pendingId)===String(pendingId))
     );
@@ -3164,43 +3141,11 @@ async function doZoomBooking(){
     }
     setTimeout(()=>{oEl.style.display='none';sendZoomConfirmation(updated);},1000);
   } else {
-    // Poll timed out — do one final load attempt before giving up
-    let finalFound = null;
-    try {
-      const fr = await xhrFetch(GAS+'?action=load');
-      const fj = await fr.json();
-      const fzbs = (fj.record&&fj.record.zoomBookings)||[];
-      finalFound = fzbs.find(b=>
-        String(b.pendingId)===String(pendingId)||
-        (b.who===S.me&&b.date===date&&b.start===start&&b.zoomJoinUrl&&(Date.now()-b.id)<300000)
-      );
-    } catch(fe){ console.log('Final poll error:',fe.message); }
-
-    if(finalFound&&finalFound.zoomJoinUrl){
-      if(!S.zoomBookings) S.zoomBookings=[];
-      S.zoomBookings=S.zoomBookings.filter(b=>!(b.who===S.me&&b.date===date&&b.start===start));
-      const finalUpdated={...placeholder,...finalFound,
-        id:finalFound.id||pendingId,
-        pendingId:pendingId,
-        pending:false,
-        note:finalFound.note||placeholder.note,
-        zoomShortUrl:finalFound.zoomShortUrl||finalFound.zoomJoinUrl};
-      S.zoomBookings.push(finalUpdated);
-      _localZoomBookings.set(String(finalUpdated.id), finalUpdated);
-      await saveZoom();
-      renderZoomList();
-      oEl.style.display='block';
-      setTimeout(()=>{oEl.style.display='none';sendZoomConfirmation(finalUpdated);},1000);
-    } else {
-      // Poll timed out — Zoom meeting was created but we couldn't confirm it saved
-      // Keep the placeholder visible and add to pending queue for retry
-      console.warn('Poll timed out — adding to pending Zoom queue for retry');
-      _addPendingZoom(placeholder);
-      eEl.textContent='⚠️ Zoom created but not yet confirmed — will retry automatically.';
-      eEl.style.display='block';
-      // Keep placeholder in list so it's visible
-      renderZoomList();
-    }
+    console.warn('Zoom creation failed after 2 attempts:', lastErr&&lastErr.message);
+    _addPendingZoom(placeholder);
+    eEl.textContent='⚠️ Zoom creation failed — will retry automatically. ('+(lastErr?lastErr.message:'unknown error')+')';
+    eEl.style.display='block';
+    renderZoomList();
   }
 }
 
