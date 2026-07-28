@@ -1200,7 +1200,7 @@ async function gasAction(params){
     try{
       const r=await xhrFetch(url);
       const j=await r.json();
-      if(!j.ok) throw new Error(j.error||'Server error');
+      if(!j.ok) throw new Error((j.error||'Server error')+(j.preview?' — preview: '+j.preview:''));
       return j;
     }catch(e){
       lastErr=e;
@@ -3071,7 +3071,7 @@ async function doZoomBooking(){
         console.log('✓ Zoom meeting confirmed on attempt '+attempt);
         break;
       } else {
-        lastErr=new Error(d.error||'Zoom creation did not return a join URL');
+        lastErr=new Error((d.error||'Zoom creation did not return a join URL')+(d.preview?' — preview: '+d.preview:''));
         console.log('Attempt '+attempt+' failed:',lastErr.message);
       }
     }catch(e){
