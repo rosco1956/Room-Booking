@@ -2985,6 +2985,41 @@ function toggleZoomCouples(){
   document.getElementById('z-couples-row').style.display=on?'block':'none';
 }
 
+// Attempts to create a real Zoom meeting via the createZoom GAS action.
+// Shared by doZoomBooking (initial attempt) and _retryPendingZoom (automatic
+// retry), so a retry actually tries to create the meeting again instead of
+// just re-saving an empty placeholder as if it were a done deal.
+async function _attemptCreateZoomMeeting(zb, durationMins, onAttempt){
+  const params=new URLSearchParams({
+    action:'createZoom', who:zb.who,
+    topic:zb.topic||'Session',
+    date:zb.date, start:zb.start, duration:durationMins,
+    pendingId:zb.pendingId||zb.id,
+    client:zb.client1||'',
+    client2:zb.client2||'',
+    couples:zb.couples?'1':'0'
+  });
+  let lastErr=null;
+  for(let attempt=1;attempt<=2;attempt++){
+    if(onAttempt) onAttempt(attempt);
+    try{
+      const r=await xhrFetch(GAS+'?'+params, 120000);
+      const d=await r.json();
+      if(d.ok&&d.zoomJoinUrl){
+        console.log('✓ Zoom meeting confirmed on attempt '+attempt);
+        return {found:d, error:null};
+      } else {
+        lastErr=new Error((d.error||'Zoom creation did not return a join URL')+(d.preview?' — preview: '+d.preview:''));
+        console.log('Attempt '+attempt+' failed:',lastErr.message);
+      }
+    }catch(e){
+      lastErr=e;
+      console.log('Attempt '+attempt+' error:',e.message);
+    }
+  }
+  return {found:null, error:lastErr};
+}
+
 async function doZoomBooking(){
   if(!S.me){showWho();return;}
   const date   =document.getElementById('z-date').value;
@@ -3024,15 +3059,6 @@ async function doZoomBooking(){
   btn.disabled=true;
 
   const pendingId=Date.now();
-  const params=new URLSearchParams({
-    action:'createZoom', who:S.me,
-    topic:topic,
-    date, start, duration:zoomDurMins,
-    pendingId,
-    client:client,
-    client2:client2,
-    couples:couples?'1':'0'
-  });
 
   // Calculate end time
   const[zh,zm]=start.split(':').map(Number);
@@ -3059,27 +3085,8 @@ async function doZoomBooking(){
   renderZoomList();
 
   // Fire createZoom and wait directly for its response — no polling
-  let found=null;
-  let lastErr=null;
-
-  for(let attempt=1; attempt<=2; attempt++){
-    try{
-      const r=await xhrFetch(GAS+'?'+params, 120000);
-      const d=await r.json();
-      if(d.ok&&d.zoomJoinUrl){
-        found=d;
-        console.log('✓ Zoom meeting confirmed on attempt '+attempt);
-        break;
-      } else {
-        lastErr=new Error((d.error||'Zoom creation did not return a join URL')+(d.preview?' — preview: '+d.preview:''));
-        console.log('Attempt '+attempt+' failed:',lastErr.message);
-      }
-    }catch(e){
-      lastErr=e;
-      console.log('Attempt '+attempt+' error:',e.message);
-    }
-    if(attempt===1) btn.textContent='Still trying…';
-  }
+  const {found, error:lastErr}=await _attemptCreateZoomMeeting(placeholder, zoomDurMins,
+    (attempt)=>{ if(attempt===2) btn.textContent='Still trying…'; });
 
   btn.disabled=false;
   btn.textContent='📹 Create Zoom meeting';
@@ -3184,18 +3191,32 @@ async function _retryPendingZoom(){
     for(const zb of pending){
       const onServer=serverZoom.find(b=>b.id===zb.id||String(b.pendingId)===String(zb.pendingId||zb.id));
       if(onServer){
-        // Already on server — just update local and remove from queue
+        // Already on server with a real meeting — just update local and remove from queue
         _removePendingZoom(zb.id);
-        if(!S.zoomBookings.find(b=>b.id===onServer.id)) S.zoomBookings.push(onServer);
+        S.zoomBookings=S.zoomBookings.filter(b=>
+          String(b.id)!==String(zb.id)&&String(b.pendingId)!==String(zb.pendingId||zb.id));
+        S.zoomBookings.push(onServer);
         console.log('Pending Zoom booking confirmed on server');
       } else {
-        // Not on server — try saveSettings with current + this booking merged
-        try{
-          if(!S.zoomBookings.find(b=>b.id===zb.id)) S.zoomBookings.push(zb);
-          await saveZoom();
+        // Not on server — the meeting was never actually created in Zoom.
+        // Re-attempt creation itself (not just re-saving the blank
+        // placeholder), otherwise a booking with no real join URL or
+        // password silently "succeeds" without a meeting existing.
+        const {found}=await _attemptCreateZoomMeeting(zb, zoomDurMins);
+        if(found&&found.zoomJoinUrl){
+          S.zoomBookings=S.zoomBookings.filter(b=>
+            !(String(b.id)===String(zb.pendingId||zb.id)||String(b.pendingId)===String(zb.pendingId||zb.id)));
+          const updated={...zb,...found,
+            id:found.id||zb.id, pendingId:zb.pendingId||zb.id, pending:false,
+            zoomShortUrl:found.zoomShortUrl||found.zoomJoinUrl,
+            zoomPassword:found.zoomPassword||'', zoomStartUrl:found.zoomStartUrl||''};
+          S.zoomBookings.push(updated);
+          try{ await saveZoom(); }catch(e){ console.warn('saveZoom after retry-created meeting failed:',e.message); }
           _removePendingZoom(zb.id);
-          console.log('Pending Zoom booking saved on retry');
-        }catch(e){ console.warn('Zoom retry failed:',e.message); }
+          console.log('Pending Zoom meeting actually created on retry');
+        } else {
+          console.warn('Zoom meeting retry failed — still pending, will try again');
+        }
       }
     }
     renderZoomList();
@@ -3455,7 +3476,9 @@ function renderZoomList(){
     const c=col(zb.who);
     const d=new Date(zb.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
     const shortUrl=zb.zoomShortUrl||zb.zoomJoinUrl||'';
-    return`<div style="border:1px solid #E5E0D8;border-radius:12px;overflow:hidden;margin-bottom:10px;">
+    const notReal=zb.pending||!zb.zoomJoinUrl;
+    return`<div style="border:1px solid ${notReal?'#E8A33D':'#E5E0D8'};border-radius:12px;overflow:hidden;margin-bottom:10px;">
+      ${notReal?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⚠️ Not yet created in Zoom — retrying automatically. No join link or password exists yet.</div>`:''}
       <div style="padding:12px 16px;background:#F7F5F0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div style="width:34px;height:34px;border-radius:50%;background:#E8F4FD;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📹</div>
         <div style="flex:1;min-width:0;">
@@ -3464,6 +3487,7 @@ function renderZoomList(){
           ${zb.zoomShortUrl?`<a href="${xe(shortUrl)}" target="_blank" style="font-size:12px;color:#185FA5;word-break:break-all;">${xe(shortUrl)}</a>`:''}
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          ${notReal?'':`
           <a href="${xe(zb.zoomStartUrl||'')}" target="_blank"
             style="padding:5px 10px;font-size:11px;background:#1A1814;color:#fff;border-radius:6px;text-decoration:none;text-align:center;">
             Start
@@ -3479,7 +3503,7 @@ function renderZoomList(){
           <button onclick="bookRoomForZoom('${zb.id}')"
             style="padding:5px 10px;font-size:11px;border:1px solid #52B788;border-radius:6px;background:#D8F3DC;color:#1B4332;cursor:pointer;">
             🏢 Book room
-          </button>
+          </button>`}
           <button onclick="deleteZoomBooking('${zb.id}')"
             style="padding:5px 10px;font-size:11px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#C0392B;cursor:pointer;">
             Delete
