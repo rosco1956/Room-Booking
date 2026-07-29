@@ -3399,7 +3399,7 @@ async function saveZoomEdit(){
 
 function subscribeZoomCal(){
   if(!S.me){showWho();return;}
-  const url=GAS+'?action=zoomical&who='+encodeURIComponent(S.me);
+  const url=location.origin+GAS+'?action=zoomical&who='+encodeURIComponent(S.me);
   // Show modal with copy button and instructions
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -3784,7 +3784,7 @@ let icsWho=[], icsPeriod='future';
 let icsSubWho=null;
 
 function getSubURL(who){
-  return GAS+'?action=ical&who='+encodeURIComponent(who);
+  return location.origin+GAS+'?action=ical&who='+encodeURIComponent(who);
 }
 
 function getWebcalURL(who){
