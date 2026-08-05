@@ -617,58 +617,87 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 
     <!-- REPORTS -->
     <div id="pane-reports" style="display:none;">
-      <div style="font-size:17px;font-weight:500;margin-bottom:16px;">Reports</div>
+        <div style="font-size:17px;font-weight:500;margin-bottom:16px;">Reports</div>
 
-      <!-- Period selector -->
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <label class="lbl" style="margin:0;">Period</label>
-          <div class="pr">
-            <button class="p on" id="rp-month" onclick="setReportPeriod('month')">This month</button>
-            <button class="p"    id="rp-3month" onclick="setReportPeriod('3month')">3 months</button>
-            <button class="p"    id="rp-year"  onclick="setReportPeriod('year')">This year</button>
-            <button class="p"    id="rp-all"   onclick="setReportPeriod('all')">All time</button>
-          </div>
-          <span id="report-period-lbl" style="font-size:12px;color:#8A8479;"></span>
+        <!-- Period selector -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <label class="lbl" style="margin:0;">Period</label>
+                <div class="pr">
+                    <button class="p on" id="rp-month" onclick="setReportPeriod('month')">This month</button>
+                    <button class="p" id="rp-3month" onclick="setReportPeriod('3month')">3 months</button>
+                    <button class="p" id="rp-year" onclick="setReportPeriod('year')">This year</button>
+                    <button class="p" id="rp-all" onclick="setReportPeriod('all')">All time</button>
+                </div>
+                <span id="report-period-lbl" style="font-size:12px;color:#8A8479;"></span>
+            </div>
         </div>
-      </div>
+        <!-- IVOICE -->
+        <div id="invoiceTab" style="padding:16px;">
+            <h3>Monthly Invoice</h3>
 
-      <!-- Occupancy rate -->
-      <div class="card" style="margin-bottom:16px;">
-        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Occupancy rate</div>
-        <div style="font-size:12px;color:#8A8479;margin-bottom:12px;">Available hours: 07:00–21:00 (14hrs/day), Mon–Sun</div>
-        <div id="occupancy-body"></div>
-      </div>
+            <label>Practitioner</label>
+            <select id="invoicePractitioner">
+                <option value="Rosswell">Rosswell</option>
+                <option value="Donna">Donna</option>
+                <option value="Helen">Helen</option>
+            </select>
 
-      <!-- Heatmap -->
-      <div class="card" style="margin-bottom:16px;">
-        <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Busiest times</div>
-        <div style="font-size:12px;color:#8A8479;margin-bottom:14px;">Hours most in demand across the period</div>
-        <div id="heatmap-body"></div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:#8A8479;">
-          <span>Quiet</span>
-          <div style="display:flex;gap:2px;">
-            <div style="width:16px;height:16px;border-radius:3px;background:#EDE7F6;"></div>
-            <div style="width:16px;height:16px;border-radius:3px;background:#C9B8E8;"></div>
-            <div style="width:16px;height:16px;border-radius:3px;background:#9C6BC4;"></div>
-            <div style="width:16px;height:16px;border-radius:3px;background:#6B3D9A;"></div>
-            <div style="width:16px;height:16px;border-radius:3px;background:#3D1C5A;"></div>
-          </div>
-          <span>Busy</span>
+            <label>Month</label>
+            <select id="invoiceMonth"></select>
+
+            <label>Year</label>
+            <select id="invoiceYear"></select>
+
+            <label>Client</label>
+            <select id="invoiceClient">
+                <option value="All">All clients</option>
+            </select>
+
+            <label>Category</label>
+            <select id="invoiceCategory">
+                <option value="All">All categories</option>
+            </select>
+
+            <button id="downloadInvoiceBtn">Download PDF</button>
         </div>
-      </div>
 
-      <!-- Per person breakdown -->
-      <div class="card">
-        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings per person</div>
-        <div id="person-report-body"></div>
-      </div>
+        <!-- Occupancy rate -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Occupancy rate</div>
+            <div style="font-size:12px;color:#8A8479;margin-bottom:12px;">Available hours: 07:00–21:00 (14hrs/day), Mon–Sun</div>
+            <div id="occupancy-body"></div>
+        </div>
 
-      <!-- Category breakdown -->
-      <div class="card" style="margin-top:16px;">
-        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings by category</div>
-        <div id="category-report-body"></div>
-      </div>
+        <!-- Heatmap -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Busiest times</div>
+            <div style="font-size:12px;color:#8A8479;margin-bottom:14px;">Hours most in demand across the period</div>
+            <div id="heatmap-body"></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:#8A8479;">
+                <span>Quiet</span>
+                <div style="display:flex;gap:2px;">
+                    <div style="width:16px;height:16px;border-radius:3px;background:#EDE7F6;"></div>
+                    <div style="width:16px;height:16px;border-radius:3px;background:#C9B8E8;"></div>
+                    <div style="width:16px;height:16px;border-radius:3px;background:#9C6BC4;"></div>
+                    <div style="width:16px;height:16px;border-radius:3px;background:#6B3D9A;"></div>
+                    <div style="width:16px;height:16px;border-radius:3px;background:#3D1C5A;"></div>
+                </div>
+                <span>Busy</span>
+            </div>
+        </div>
+
+        <!-- Per person breakdown -->
+        <div class="card">
+            <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings per person</div>
+            <div id="person-report-body"></div>
+        </div>
+
+        <!-- Category breakdown -->
+        <div class="card" style="margin-top:16px;">
+            <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings by category</div>
+            <div id="category-report-body"></div>
+        </div>
     </div>
 
     <!-- ZOOM -->
@@ -821,7 +850,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 </div>
 
 <script>
-const GAS ='/gas/AKfycbwoACFUKAyhPcmDbersddrZzuZAozMw1GZ2Ml_70UsanTQ1HfwuRfupELX6u76p_eKq/exec';
+    const GAS ='/gas/AKfycbwoACFUKAyhPcmDbersddrZzuZAozMw1GZ2Ml_70UsanTQ1HfwuRfupELX6u76p_eKq/exec';
 const PAL=[
   {bg:'#D8F3DC',mid:'#52B788',fg:'#1B4332'},
   {bg:'#EDE7F6',mid:'#9C6BC4',fg:'#3D1C5A'},
@@ -3716,6 +3745,80 @@ function renderHeatmap(){
 
   el.innerHTML=html;
 }
+// Invoice 
+
+    (function () {
+        const monthSel = document.getElementById('invoiceMonth');
+        const yearSel = document.getElementById('invoiceYear');
+        const now = new Date();
+
+        // Populate months
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+        monthNames.forEach(function (name, i) {
+            const opt = document.createElement('option');
+            opt.value = i + 1;
+            opt.textContent = name;
+            if (i === now.getMonth()) opt.selected = true;
+            monthSel.appendChild(opt);
+        });
+
+        // Populate a few recent years
+        for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            yearSel.appendChild(opt);
+        }
+
+        const practitionerSel = document.getElementById('invoicePractitioner');
+        const clientSel = document.getElementById('invoiceClient');
+        const categorySel = document.getElementById('invoiceCategory');
+
+        function fillSelect(select, values, placeholderLabel) {
+            // Keep the "All" option, replace everything after it.
+            select.innerHTML = '<option value="All">' + placeholderLabel + '</option>';
+            values.forEach(function (v) {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                select.appendChild(opt);
+            });
+        }
+
+        function refreshInvoiceMeta() {
+            const practitioner = practitionerSel.value;
+            xhrFetch(GAS + '?action=invoiceMeta&practitioner=' + encodeURIComponent(practitioner))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    fillSelect(clientSel, data.clients || [], 'All clients');
+                    fillSelect(categorySel, data.categories || [], 'All categories');
+                })
+                .catch(function (err) { console.error('Could not load invoice filters', err); });
+        }
+
+        practitionerSel.addEventListener('change', refreshInvoiceMeta);
+        refreshInvoiceMeta(); // initial load for the default-selected practitioner
+
+        document.getElementById('downloadInvoiceBtn').addEventListener('click', function () {
+            const practitioner = practitionerSel.value;
+            const month = monthSel.value;
+            const year = yearSel.value;
+            const client = clientSel.value;
+            const category = categorySel.value;
+
+            // GAS should be your existing deployment/proxy URL constant, e.g.:
+            // const GAS = 'https://room-booking.psychotherapy.workers.dev/gas/<id>/exec';
+            const url = GAS + '?action=invoice&practitioner=' + encodeURIComponent(practitioner) +
+                '&month=' + month + '&year=' + year +
+                '&client=' + encodeURIComponent(client) +
+                '&category=' + encodeURIComponent(category);
+
+            // Opens the URL directly — since doGet returns a PDF blob, the
+            // browser will download it rather than navigate to it.
+            window.open(url, '_blank');
+        });
+    })();
 
 // ── Per person breakdown ──────────────────────────────────────────────────
 function renderPersonReport(){
