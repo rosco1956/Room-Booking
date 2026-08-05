@@ -632,7 +632,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
                 <span id="report-period-lbl" style="font-size:12px;color:#8A8479;"></span>
             </div>
         </div>
-        <!-- IVOICE -->
+        <!-- INVOICE -->
         <div id="invoiceTab" style="padding:16px;">
             <h3>Monthly Invoice</h3>
 
@@ -2206,7 +2206,8 @@ function renderPeople(){
 // Rate
 function saveRate(){
   const v=parseFloat(document.getElementById('rate-inp').value)||0;
-  S.rate=v;localStorage.setItem('rb_rate',v);save();renderCosts();
+    S.rate = v; localStorage.setItem('rb_rate', v); save(); renderCosts();
+  const rate = INVOICE_RATE; // single constant, same for everyone
 }
 
 // Costs
@@ -3807,16 +3808,31 @@ function renderHeatmap(){
             const client = clientSel.value;
             const category = categorySel.value;
 
-            // GAS should be your existing deployment/proxy URL constant, e.g.:
-            // const GAS = 'https://room-booking.psychotherapy.workers.dev/gas/<id>/exec';
             const url = GAS + '?action=invoice&practitioner=' + encodeURIComponent(practitioner) +
                 '&month=' + month + '&year=' + year +
                 '&client=' + encodeURIComponent(client) +
                 '&category=' + encodeURIComponent(category);
 
-            // Opens the URL directly — since doGet returns a PDF blob, the
-            // browser will download it rather than navigate to it.
-            window.open(url, '_blank');
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            xhrFetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.ok === false) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('Invoice created and emailed: ' + data.filename);
+                    }
+                })
+                .catch(function (err) {
+                    alert('Request failed: ' + err.message);
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = 'Download Invoice';
+                });
         });
     })();
 
