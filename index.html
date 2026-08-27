@@ -1152,6 +1152,7 @@ async function load(spin=true){
     S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
     syncUI(false,'Synced · '+S.bookings.length+' booking'+(S.bookings.length===1?'':'s'));
     draw(); renderPeople(); renderCosts(); renderSMSTab();
+    if(document.getElementById('zoom-list')) renderZoomList(); // keep Zoom payment status fresh without manual refresh
     if(S.tab==='reports') renderReports();
     if(S.tab==='clients'){renderClientPersonRow();renderClients();}
     else if(document.getElementById('clients-body')) renderClients(); // keep client counts fresh
