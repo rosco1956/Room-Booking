@@ -617,87 +617,58 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 
     <!-- REPORTS -->
     <div id="pane-reports" style="display:none;">
-        <div style="font-size:17px;font-weight:500;margin-bottom:16px;">Reports</div>
+      <div style="font-size:17px;font-weight:500;margin-bottom:16px;">Reports</div>
 
-        <!-- Period selector -->
-        <div class="card" style="margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <label class="lbl" style="margin:0;">Period</label>
-                <div class="pr">
-                    <button class="p on" id="rp-month" onclick="setReportPeriod('month')">This month</button>
-                    <button class="p" id="rp-3month" onclick="setReportPeriod('3month')">3 months</button>
-                    <button class="p" id="rp-year" onclick="setReportPeriod('year')">This year</button>
-                    <button class="p" id="rp-all" onclick="setReportPeriod('all')">All time</button>
-                </div>
-                <span id="report-period-lbl" style="font-size:12px;color:#8A8479;"></span>
-            </div>
+      <!-- Period selector -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label class="lbl" style="margin:0;">Period</label>
+          <div class="pr">
+            <button class="p on" id="rp-month" onclick="setReportPeriod('month')">This month</button>
+            <button class="p"    id="rp-3month" onclick="setReportPeriod('3month')">3 months</button>
+            <button class="p"    id="rp-year"  onclick="setReportPeriod('year')">This year</button>
+            <button class="p"    id="rp-all"   onclick="setReportPeriod('all')">All time</button>
+          </div>
+          <span id="report-period-lbl" style="font-size:12px;color:#8A8479;"></span>
         </div>
-        <!-- INVOICE -->
-        <div id="invoiceTab" style="padding:16px;">
-            <h3>Monthly Invoice</h3>
+      </div>
 
-            <label>Practitioner</label>
-            <select id="invoicePractitioner">
-                <option value="Rosswell">Rosswell</option>
-                <option value="Donna">Donna</option>
-                <option value="Helen">Helen</option>
-            </select>
+      <!-- Occupancy rate -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Occupancy rate</div>
+        <div style="font-size:12px;color:#8A8479;margin-bottom:12px;">Available hours: 07:00–21:00 (14hrs/day), Mon–Sun</div>
+        <div id="occupancy-body"></div>
+      </div>
 
-            <label>Month</label>
-            <select id="invoiceMonth"></select>
-
-            <label>Year</label>
-            <select id="invoiceYear"></select>
-
-            <label>Client</label>
-            <select id="invoiceClient">
-                <option value="All">All clients</option>
-            </select>
-
-            <label>Category</label>
-            <select id="invoiceCategory">
-                <option value="All">All categories</option>
-            </select>
-
-            <button id="downloadInvoiceBtn">Download PDF</button>
+      <!-- Heatmap -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Busiest times</div>
+        <div style="font-size:12px;color:#8A8479;margin-bottom:14px;">Hours most in demand across the period</div>
+        <div id="heatmap-body"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:#8A8479;">
+          <span>Quiet</span>
+          <div style="display:flex;gap:2px;">
+            <div style="width:16px;height:16px;border-radius:3px;background:#EDE7F6;"></div>
+            <div style="width:16px;height:16px;border-radius:3px;background:#C9B8E8;"></div>
+            <div style="width:16px;height:16px;border-radius:3px;background:#9C6BC4;"></div>
+            <div style="width:16px;height:16px;border-radius:3px;background:#6B3D9A;"></div>
+            <div style="width:16px;height:16px;border-radius:3px;background:#3D1C5A;"></div>
+          </div>
+          <span>Busy</span>
         </div>
+      </div>
 
-        <!-- Occupancy rate -->
-        <div class="card" style="margin-bottom:16px;">
-            <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Occupancy rate</div>
-            <div style="font-size:12px;color:#8A8479;margin-bottom:12px;">Available hours: 07:00–21:00 (14hrs/day), Mon–Sun</div>
-            <div id="occupancy-body"></div>
-        </div>
+      <!-- Per person breakdown -->
+      <div class="card">
+        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings per person</div>
+        <div id="person-report-body"></div>
+      </div>
 
-        <!-- Heatmap -->
-        <div class="card" style="margin-bottom:16px;">
-            <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Busiest times</div>
-            <div style="font-size:12px;color:#8A8479;margin-bottom:14px;">Hours most in demand across the period</div>
-            <div id="heatmap-body"></div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:#8A8479;">
-                <span>Quiet</span>
-                <div style="display:flex;gap:2px;">
-                    <div style="width:16px;height:16px;border-radius:3px;background:#EDE7F6;"></div>
-                    <div style="width:16px;height:16px;border-radius:3px;background:#C9B8E8;"></div>
-                    <div style="width:16px;height:16px;border-radius:3px;background:#9C6BC4;"></div>
-                    <div style="width:16px;height:16px;border-radius:3px;background:#6B3D9A;"></div>
-                    <div style="width:16px;height:16px;border-radius:3px;background:#3D1C5A;"></div>
-                </div>
-                <span>Busy</span>
-            </div>
-        </div>
-
-        <!-- Per person breakdown -->
-        <div class="card">
-            <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings per person</div>
-            <div id="person-report-body"></div>
-        </div>
-
-        <!-- Category breakdown -->
-        <div class="card" style="margin-top:16px;">
-            <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings by category</div>
-            <div id="category-report-body"></div>
-        </div>
+      <!-- Category breakdown -->
+      <div class="card" style="margin-top:16px;">
+        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings by category</div>
+        <div id="category-report-body"></div>
+      </div>
     </div>
 
     <!-- ZOOM -->
@@ -751,6 +722,30 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
           <div id="z-couples-row" style="display:none;margin-top:8px;">
             <label class="lbl" for="z-client2">Partner name</label>
             <input class="inp" type="text" id="z-client2" placeholder="e.g. Alex Smith"/>
+          </div>
+        </div>
+        <!-- Require prepayment (testing — off by default) -->
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleZoomPrepay()">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;">Require prepayment</div>
+              <div style="font-size:11px;color:#8A8479;margin-top:2px;">Zoom link is held back until payment is matched</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomPrepay()">
+              <input type="checkbox" id="z-prepay-toggle" style="opacity:0;width:0;height:0;"/>
+              <span id="z-prepay-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+              <span id="z-prepay-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+            </label>
+          </div>
+          <div id="z-prepay-row" style="display:none;margin-top:8px;">
+            <div style="margin-bottom:10px;">
+              <label class="lbl" for="z-prepay-amount">Expected fee (£)</label>
+              <input class="inp" type="number" step="0.01" min="0" id="z-prepay-amount" placeholder="e.g. 65"/>
+            </div>
+            <div>
+              <label class="lbl" for="z-prepay-email">Client email</label>
+              <input class="inp" type="email" id="z-prepay-email" placeholder="client@example.com"/>
+            </div>
           </div>
         </div>
         <button class="btn-main" id="z-btn" onclick="doZoomBooking()">📹 Create Zoom meeting</button>
@@ -850,7 +845,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 </div>
 
 <script>
-    const GAS ='/gas/AKfycbwoOOf_52JVPTf52qruZZNURaeDLBvFDTarqxC27rMY1nL5dlzwkG2ZOnOMYLXtaOQ/exec';
+const GAS ='/gas/AKfycbwoOOf_52JVPTf52qruZZNURaeDLBvFDTarqxC27rMY1nL5dlzwkG2ZOnOMYLXtaOQ/exec';
 const PAL=[
   {bg:'#D8F3DC',mid:'#52B788',fg:'#1B4332'},
   {bg:'#EDE7F6',mid:'#9C6BC4',fg:'#3D1C5A'},
@@ -2206,8 +2201,7 @@ function renderPeople(){
 // Rate
 function saveRate(){
   const v=parseFloat(document.getElementById('rate-inp').value)||0;
-    S.rate = v; localStorage.setItem('rb_rate', v); save(); renderCosts();
-  const rate = INVOICE_RATE; // single constant, same for everyone
+  S.rate=v;localStorage.setItem('rb_rate',v);save();renderCosts();
 }
 
 // Costs
@@ -3015,6 +3009,17 @@ function toggleZoomCouples(){
   document.getElementById('z-couples-row').style.display=on?'block':'none';
 }
 
+// Off by default — flip per-booking while testing the prepayment flow.
+function toggleZoomPrepay(){
+  const cb=document.getElementById('z-prepay-toggle');
+  cb.checked=!cb.checked;
+  const on=cb.checked;
+  document.getElementById('z-prepay-track').style.background=on?'#1A1814':'#E5E0D8';
+  document.getElementById('z-prepay-thumb').style.transform=on?'translateX(20px)':'translateX(0)';
+  document.getElementById('z-prepay-row').style.display=on?'block':'none';
+}
+function isZoomPrepay(){return document.getElementById('z-prepay-toggle').checked;}
+
 // Attempts to create a real Zoom meeting via the createZoom GAS action.
 // Shared by doZoomBooking (initial attempt) and _retryPendingZoom (automatic
 // retry), so a retry actually tries to create the meeting again instead of
@@ -3027,7 +3032,12 @@ async function _attemptCreateZoomMeeting(zb, durationMins, onAttempt){
     pendingId:zb.pendingId||zb.id,
     client:zb.client1||'',
     client2:zb.client2||'',
-    couples:zb.couples?'1':'0'
+    couples:zb.couples?'1':'0',
+    ...(zb.requirePrepay&&{
+      requirePrepay:'1',
+      expectedAmount:zb.expectedAmount,
+      clientEmail:zb.clientEmail||''
+    })
   });
   let lastErr=null;
   for(let attempt=1;attempt<=2;attempt++){
@@ -3067,6 +3077,16 @@ async function doZoomBooking(){
   if(!date||!start){eEl.textContent='Please enter date and time.';eEl.style.display='block';return;}
   if(!client){eEl.textContent='Please enter a client name.';eEl.style.display='block';return;}
 
+  const requirePrepay=isZoomPrepay();
+  const expectedAmount=requirePrepay?parseFloat(document.getElementById('z-prepay-amount').value||''):null;
+  const clientEmail=requirePrepay?document.getElementById('z-prepay-email').value.trim():'';
+  if(requirePrepay&&(!expectedAmount||expectedAmount<=0)){
+    eEl.textContent='Please enter the expected fee for prepayment.';eEl.style.display='block';return;
+  }
+  if(requirePrepay&&!clientEmail){
+    eEl.textContent='Please enter the client\'s email for prepayment.';eEl.style.display='block';return;
+  }
+
   // Calculate end time for clash check
   const[czh,czm]=start.split(':').map(Number);
   const czEndMins=czh*60+czm+zoomDurMins;
@@ -3103,6 +3123,7 @@ async function doZoomBooking(){
     topic:topic, client1:client, client2:couples?client2:'',
     couples:couples&&!!client2,
     ...(category&&{category}),
+    ...(requirePrepay&&{requirePrepay:true,expectedAmount,clientEmail,paymentStatus:'awaiting'}),
     zoomJoinUrl:'', zoomShortUrl:'', zoomPassword:'',
     zoomStartUrl:'', isZoom:true, pending:true,
     updated:new Date().toISOString()
@@ -3155,6 +3176,12 @@ async function doZoomBooking(){
     document.getElementById('z-couples-thumb').style.transform='translateX(0)';
     document.getElementById('z-couples-row').style.display='none';
     document.getElementById('z-client2').value='';
+    document.getElementById('z-prepay-toggle').checked=false;
+    document.getElementById('z-prepay-track').style.background='#E5E0D8';
+    document.getElementById('z-prepay-thumb').style.transform='translateX(0)';
+    document.getElementById('z-prepay-row').style.display='none';
+    document.getElementById('z-prepay-amount').value='';
+    document.getElementById('z-prepay-email').value='';
     // Try to shorten URL via Bitly directly
     const bitlyToken=localStorage.getItem('rb_bitly_'+S.me);
     if(bitlyToken&&updated.zoomJoinUrl&&!updated.zoomShortUrl.includes('bit.ly')){
@@ -3429,7 +3456,7 @@ async function saveZoomEdit(){
 
 function subscribeZoomCal(){
   if(!S.me){showWho();return;}
-  const url=location.origin+GAS+'?action=zoomical&who='+encodeURIComponent(S.me);
+  const url=GAS+'?action=zoomical&who='+encodeURIComponent(S.me);
   // Show modal with copy button and instructions
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -3746,95 +3773,6 @@ function renderHeatmap(){
 
   el.innerHTML=html;
 }
-// Invoice 
-
-    (function () {
-        const monthSel = document.getElementById('invoiceMonth');
-        const yearSel = document.getElementById('invoiceYear');
-        const now = new Date();
-
-        // Populate months
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'];
-        monthNames.forEach(function (name, i) {
-            const opt = document.createElement('option');
-            opt.value = i + 1;
-            opt.textContent = name;
-            if (i === now.getMonth()) opt.selected = true;
-            monthSel.appendChild(opt);
-        });
-
-        // Populate a few recent years
-        for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) {
-            const opt = document.createElement('option');
-            opt.value = y;
-            opt.textContent = y;
-            yearSel.appendChild(opt);
-        }
-
-        const practitionerSel = document.getElementById('invoicePractitioner');
-        const clientSel = document.getElementById('invoiceClient');
-        const categorySel = document.getElementById('invoiceCategory');
-
-        function fillSelect(select, values, placeholderLabel) {
-            // Keep the "All" option, replace everything after it.
-            select.innerHTML = '<option value="All">' + placeholderLabel + '</option>';
-            values.forEach(function (v) {
-                const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = v;
-                select.appendChild(opt);
-            });
-        }
-
-        function refreshInvoiceMeta() {
-            const practitioner = practitionerSel.value;
-            xhrFetch(GAS + '?action=invoiceMeta&practitioner=' + encodeURIComponent(practitioner))
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    fillSelect(clientSel, data.clients || [], 'All clients');
-                    fillSelect(categorySel, data.categories || [], 'All categories');
-                })
-                .catch(function (err) { console.error('Could not load invoice filters', err); });
-        }
-
-        practitionerSel.addEventListener('change', refreshInvoiceMeta);
-        refreshInvoiceMeta(); // initial load for the default-selected practitioner
-
-        document.getElementById('downloadInvoiceBtn').addEventListener('click', function () {
-            const practitioner = practitionerSel.value;
-            const month = monthSel.value;
-            const year = yearSel.value;
-            const client = clientSel.value;
-            const category = categorySel.value;
-
-            const url = GAS + '?action=invoice&practitioner=' + encodeURIComponent(practitioner) +
-                '&month=' + month + '&year=' + year +
-                '&client=' + encodeURIComponent(client) +
-                '&category=' + encodeURIComponent(category);
-
-            const btn = this;
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
-
-            xhrFetch(url)
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.ok === false) {
-                        alert('Error: ' + data.error);
-                    } else {
-                        alert('Invoice created and emailed: ' + data.filename);
-                    }
-                })
-                .catch(function (err) {
-                    alert('Request failed: ' + err.message);
-                })
-                .finally(function () {
-                    btn.disabled = false;
-                    btn.textContent = 'Download Invoice';
-                });
-        });
-    })();
 
 // ── Per person breakdown ──────────────────────────────────────────────────
 function renderPersonReport(){
@@ -3903,7 +3841,7 @@ let icsWho=[], icsPeriod='future';
 let icsSubWho=null;
 
 function getSubURL(who){
-  return location.origin+GAS+'?action=ical&who='+encodeURIComponent(who);
+  return GAS+'?action=ical&who='+encodeURIComponent(who);
 }
 
 function getWebcalURL(who){
