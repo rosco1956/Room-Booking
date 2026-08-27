@@ -3594,8 +3594,15 @@ async function sendZoomPaymentLink(zbId){
   const zb=S.zoomBookings.find(b=>String(b.id)===String(zbId));
   if(!zb){alert('Booking not found.');return;}
   if(!zb.clientEmail){alert('No client email on this booking — edit it in the Zoom form first.');return;}
-  const paymentLink=prompt('Paste the iZettle payment link for '+(zb.note||zb.client1)+' (£'+zb.expectedAmount+'):');
-  if(!paymentLink)return;
+  const pasted=prompt('Paste the iZettle payment link for '+(zb.note||zb.client1)+' (£'+zb.expectedAmount+'):');
+  if(!pasted)return;
+  // iZettle's own copy/share button often copies a whole sentence
+  // ("Hi! Open this link to make a secure payment to...: https://...")
+  // rather than just the bare URL. Pull out the actual link so a
+  // straight paste always works, even if the wrapper text changes.
+  const urlMatch=pasted.match(/https?:\/\/\S+/);
+  if(!urlMatch){alert('That doesn\'t look like it contains a link — please paste the iZettle payment link again.');return;}
+  const paymentLink=urlMatch[0].replace(/[.,;:!?)\]]+$/,''); // trim trailing punctuation
   const first=(zb.note||zb.client1||'').split(' ')[0]||'there';
   const d=new Date(zb.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const tm=getTM();
