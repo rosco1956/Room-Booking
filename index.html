@@ -3534,14 +3534,20 @@ function renderZoomList(){
     const d=new Date(zb.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
     const shortUrl=zb.zoomShortUrl||zb.zoomJoinUrl||'';
     const notReal=zb.pending||!zb.zoomJoinUrl;
-    return`<div style="border:1px solid ${notReal?'#E8A33D':'#E5E0D8'};border-radius:12px;overflow:hidden;margin-bottom:10px;">
+    const awaitingPay=zb.requirePrepay&&zb.paymentStatus==='awaiting';
+    const isPaid=zb.requirePrepay&&zb.paymentStatus==='paid';
+    const ambiguous=zb.requirePrepay&&zb.paymentAmbiguous;
+    return`<div style="border:1px solid ${notReal?'#E8A33D':(awaitingPay||ambiguous)?'#C9A84C':'#E5E0D8'};border-radius:12px;overflow:hidden;margin-bottom:10px;">
       ${notReal?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⚠️ Not yet created in Zoom — retrying automatically. No join link or password exists yet.</div>`:''}
+      ${ambiguous?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ Payment ambiguous — two or more matching payments found. Confirm manually below.</div>`
+        :awaitingPay?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⏳ Awaiting payment (£${zb.expectedAmount}) — Zoom link held back until payment is matched.</div>`
+        :isPaid?`<div style="padding:6px 16px;background:#D8F3DC;font-size:12px;color:#1B4332;">✅ Paid — confirmation sent${zb.confirmationSentAt?'':' automatically'}.</div>`:''}
       <div style="padding:12px 16px;background:#F7F5F0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div style="width:34px;height:34px;border-radius:50%;background:#E8F4FD;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📹</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:500;">${xe(zb.topic||zb.note||zb.client1)}</div>
           <div style="font-size:12px;color:#8A8479;">${xe(zb.note||zb.client1)} · ${d} · ${zb.start}–${zb.end}</div>
-          ${zb.zoomShortUrl?`<a href="${xe(shortUrl)}" target="_blank" style="font-size:12px;color:#185FA5;word-break:break-all;">${xe(shortUrl)}</a>`:''}
+          ${awaitingPay?'':(zb.zoomShortUrl?`<a href="${xe(shortUrl)}" target="_blank" style="font-size:12px;color:#185FA5;word-break:break-all;">${xe(shortUrl)}</a>`:'')}
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
           ${notReal?'':`
@@ -3553,10 +3559,19 @@ function renderZoomList(){
             style="padding:5px 10px;font-size:11px;border:1px solid #185FA5;border-radius:6px;background:#E8F4FD;color:#185FA5;cursor:pointer;">
             ✏️ Edit
           </button>
+          ${(awaitingPay||ambiguous)?`
+          <button onclick="sendZoomPaymentLink('${zb.id}')"
+            style="padding:5px 10px;font-size:11px;border:1px solid #C9A84C;border-radius:6px;background:#FFF3CD;color:#6B4C00;cursor:pointer;">
+            💳 Send payment link
+          </button>
+          <button onclick="markZoomPaidManually('${zb.id}')"
+            style="padding:5px 10px;font-size:11px;border:1px solid #52B788;border-radius:6px;background:#D8F3DC;color:#1B4332;cursor:pointer;">
+            ✅ Mark as paid
+          </button>`:`
           <button onclick="sendZoomConfirmation(S.zoomBookings.find(b=>String(b.id)==='${zb.id}'))"
             style="padding:5px 10px;font-size:11px;border:1px solid #C9A84C;border-radius:6px;background:#FFF3CD;color:#6B4C00;cursor:pointer;">
             ✉️ SMS
-          </button>
+          </button>`}
           <button onclick="bookRoomForZoom('${zb.id}')"
             style="padding:5px 10px;font-size:11px;border:1px solid #52B788;border-radius:6px;background:#D8F3DC;color:#1B4332;cursor:pointer;">
             🏢 Book room
@@ -3567,9 +3582,63 @@ function renderZoomList(){
           </button>
         </div>
       </div>
-      ${zb.zoomPassword?`<div style="padding:6px 16px;font-size:12px;color:#8A8479;border-top:1px solid #F0EDE8;">Password: ${xe(zb.zoomPassword)}</div>`:''}
+      ${zb.zoomPassword&&!awaitingPay?`<div style="padding:6px 16px;font-size:12px;color:#8A8479;border-top:1px solid #F0EDE8;">Password: ${xe(zb.zoomPassword)}</div>`:''}
     </div>`;
   }).join('');
+}
+
+// Prompts for the iZettle payment link, then emails it to the client
+// instead of the Zoom join link (which stays held back until payment
+// is matched by checkZettlePayments on the backend).
+async function sendZoomPaymentLink(zbId){
+  const zb=S.zoomBookings.find(b=>String(b.id)===String(zbId));
+  if(!zb){alert('Booking not found.');return;}
+  if(!zb.clientEmail){alert('No client email on this booking — edit it in the Zoom form first.');return;}
+  const paymentLink=prompt('Paste the iZettle payment link for '+(zb.note||zb.client1)+' (£'+zb.expectedAmount+'):');
+  if(!paymentLink)return;
+  const first=(zb.note||zb.client1||'').split(' ')[0]||'there';
+  const d=new Date(zb.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const tm=getTM();
+  const mobile=(tm&&tm.mobile)||'07498218609';
+  try{
+    const params=new URLSearchParams({
+      action:'sendPaymentLinkEmail',
+      to:zb.clientEmail, firstName:first, who:zb.who,
+      date:d, start:zb.start, paymentLink, amount:zb.expectedAmount, mobile
+    });
+    const r=await gasFetch(GAS+'?'+params);
+    const j=await r.json();
+    if(j.ok){
+      alert('Payment link sent to '+zb.clientEmail);
+    }else{
+      alert('Failed to send: '+(j.error||'unknown error'));
+    }
+  }catch(e){
+    alert('Error sending payment link: '+e.message);
+  }
+}
+
+// Manual override — for the ambiguous-match case, or any payment taken
+// outside the automatic Zettle matching (e.g. cash, bank transfer).
+// This is a safety net, not the primary path: checkZettlePayments should
+// resolve most bookings on its own.
+async function markZoomPaidManually(zbId){
+  const zb=S.zoomBookings.find(b=>String(b.id)===String(zbId));
+  if(!zb){alert('Booking not found.');return;}
+  if(!confirm('Mark '+(zb.note||zb.client1)+'\'s session as paid and send the Zoom confirmation now?'))return;
+  try{
+    const params=new URLSearchParams({action:'markZoomPaid', id:zb.id});
+    const r=await gasFetch(GAS+'?'+params);
+    const j=await r.json();
+    if(j.ok){
+      await load();
+      renderZoomList();
+    }else{
+      alert('Failed: '+(j.error||'unknown error'));
+    }
+  }catch(e){
+    alert('Error marking as paid: '+e.message);
+  }
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────
