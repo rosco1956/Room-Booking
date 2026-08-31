@@ -3546,11 +3546,19 @@ function renderZoomList(){
     const isPaid=zb.requirePrepay&&zb.paymentStatus==='paid';
     const ambiguous=zb.requirePrepay&&zb.paymentAmbiguous;
     const chaseExhausted=zb.requirePrepay&&zb.paymentChaseExhausted&&zb.paymentStatus==='awaiting';
+    const fmtSent=iso=>{
+      if(!iso) return '';
+      const dt=new Date(iso);
+      return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' at '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    };
+    // Reflects whichever email actually went out most recently: a chase
+    // reminder if one has been sent, otherwise the original payment-link email.
+    const sentAt=zb.chaseCount?fmtSent(zb.lastChaseSentAt):fmtSent(zb.paymentLinkSentAt);
     return`<div style="border:1px solid ${notReal?'#E8A33D':chaseExhausted?'#C0392B':(awaitingPay||ambiguous)?'#C9A84C':'#E5E0D8'};border-radius:12px;overflow:hidden;margin-bottom:10px;">
       ${notReal?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⚠️ Not yet created in Zoom — retrying automatically. No join link or password exists yet.</div>`:''}
       ${ambiguous?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ Payment ambiguous for ${d} at ${zb.start} — two or more matching payments found. Confirm manually below.</div>`
         :chaseExhausted?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ No response after 3 reminders (£${zb.expectedAmount}) for the ${d} session at ${zb.start} — no further automatic emails will be sent. Chase manually or delete the booking.</div>`
-        :awaitingPay?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⏳ Awaiting payment (£${zb.expectedAmount}) for ${d} at ${zb.start}${zb.chaseCount?' · reminder '+zb.chaseCount+' of 3 sent':(zb.paymentLinkSentAt?' · link sent':'')} — Zoom link held back until payment is matched.</div>`
+        :awaitingPay?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⏳ Awaiting payment (£${zb.expectedAmount}) for ${d} at ${zb.start}${sentAt?(zb.chaseCount?' · reminder '+zb.chaseCount+' of 3 sent '+sentAt:' · link sent '+sentAt):''} — Zoom link held back until payment is matched.</div>`
         :isPaid?`<div style="padding:6px 16px;background:#D8F3DC;font-size:12px;color:#1B4332;">✅ Paid for ${d} at ${zb.start} — confirmation sent${zb.confirmationSentAt?'':' automatically'}.</div>`:''}
       <div style="padding:12px 16px;background:#F7F5F0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div style="width:34px;height:34px;border-radius:50%;background:#E8F4FD;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📹</div>
