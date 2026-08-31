@@ -698,6 +698,30 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
           <label class="lbl" for="z-client">Client name</label>
           <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith" oninput="suggestCategory('z-client','z-cat','z-cat-suggest')"/>
         </div>
+        <!-- Require prepayment (testing — off by default) -->
+        <div style="margin-bottom:12px;">
+          <div id="z-prepay-header" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:background .2s,border-color .2s;" onclick="toggleZoomPrepay()">
+            <div style="flex:1;">
+              <div id="z-prepay-label" style="font-size:13px;font-weight:500;">Require prepayment</div>
+              <div style="font-size:11px;color:#8A8479;margin-top:2px;">Zoom link is held back until payment is matched</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomPrepay()">
+              <input type="checkbox" id="z-prepay-toggle" style="opacity:0;width:0;height:0;"/>
+              <span id="z-prepay-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+              <span id="z-prepay-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+            </label>
+          </div>
+          <div id="z-prepay-row" style="display:none;margin-top:8px;">
+            <div style="margin-bottom:10px;">
+              <label class="lbl" for="z-prepay-amount">Expected fee (£)</label>
+              <input class="inp" type="number" step="0.01" min="0" id="z-prepay-amount" placeholder="e.g. 65"/>
+            </div>
+            <div>
+              <label class="lbl" for="z-prepay-email">Client email</label>
+              <input class="inp" type="email" id="z-prepay-email" placeholder="client@example.com"/>
+            </div>
+          </div>
+        </div>
         <div style="margin-bottom:10px;">
           <label class="lbl" for="z-topic">Meeting topic (optional)</label>
           <input class="inp" type="text" id="z-topic" placeholder="e.g. Consultation"/>
@@ -722,30 +746,6 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
           <div id="z-couples-row" style="display:none;margin-top:8px;">
             <label class="lbl" for="z-client2">Partner name</label>
             <input class="inp" type="text" id="z-client2" placeholder="e.g. Alex Smith"/>
-          </div>
-        </div>
-        <!-- Require prepayment (testing — off by default) -->
-        <div style="margin-bottom:12px;">
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleZoomPrepay()">
-            <div style="flex:1;">
-              <div style="font-size:13px;font-weight:500;">Require prepayment</div>
-              <div style="font-size:11px;color:#8A8479;margin-top:2px;">Zoom link is held back until payment is matched</div>
-            </div>
-            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomPrepay()">
-              <input type="checkbox" id="z-prepay-toggle" style="opacity:0;width:0;height:0;"/>
-              <span id="z-prepay-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
-              <span id="z-prepay-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
-            </label>
-          </div>
-          <div id="z-prepay-row" style="display:none;margin-top:8px;">
-            <div style="margin-bottom:10px;">
-              <label class="lbl" for="z-prepay-amount">Expected fee (£)</label>
-              <input class="inp" type="number" step="0.01" min="0" id="z-prepay-amount" placeholder="e.g. 65"/>
-            </div>
-            <div>
-              <label class="lbl" for="z-prepay-email">Client email</label>
-              <input class="inp" type="email" id="z-prepay-email" placeholder="client@example.com"/>
-            </div>
           </div>
         </div>
         <button class="btn-main" id="z-btn" onclick="doZoomBooking()">📹 Create Zoom meeting</button>
@@ -3018,6 +3018,10 @@ function toggleZoomPrepay(){
   document.getElementById('z-prepay-track').style.background=on?'#1A1814':'#E5E0D8';
   document.getElementById('z-prepay-thumb').style.transform=on?'translateX(20px)':'translateX(0)';
   document.getElementById('z-prepay-row').style.display=on?'block':'none';
+  const header=document.getElementById('z-prepay-header');
+  header.style.background=on?'#FFF3CD':'#F7F5F0';
+  header.style.borderColor=on?'#C9A84C':'transparent';
+  document.getElementById('z-prepay-label').textContent=on?'💳 Prepayment required':'Require prepayment';
 }
 function isZoomPrepay(){return document.getElementById('z-prepay-toggle').checked;}
 
@@ -3183,6 +3187,9 @@ async function doZoomBooking(){
     document.getElementById('z-prepay-row').style.display='none';
     document.getElementById('z-prepay-amount').value='';
     document.getElementById('z-prepay-email').value='';
+    document.getElementById('z-prepay-header').style.background='#F7F5F0';
+    document.getElementById('z-prepay-header').style.borderColor='transparent';
+    document.getElementById('z-prepay-label').textContent='Require prepayment';
     // Try to shorten URL via Bitly directly
     const bitlyToken=localStorage.getItem('rb_bitly_'+S.me);
     if(bitlyToken&&updated.zoomJoinUrl&&!updated.zoomShortUrl.includes('bit.ly')){
@@ -3541,10 +3548,10 @@ function renderZoomList(){
     const chaseExhausted=zb.requirePrepay&&zb.paymentChaseExhausted&&zb.paymentStatus==='awaiting';
     return`<div style="border:1px solid ${notReal?'#E8A33D':chaseExhausted?'#C0392B':(awaitingPay||ambiguous)?'#C9A84C':'#E5E0D8'};border-radius:12px;overflow:hidden;margin-bottom:10px;">
       ${notReal?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⚠️ Not yet created in Zoom — retrying automatically. No join link or password exists yet.</div>`:''}
-      ${ambiguous?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ Payment ambiguous — two or more matching payments found. Confirm manually below.</div>`
-        :chaseExhausted?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ No response after 3 reminders (£${zb.expectedAmount}) — no further automatic emails will be sent. Chase manually or delete the booking.</div>`
-        :awaitingPay?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⏳ Awaiting payment (£${zb.expectedAmount})${zb.chaseCount?' · reminder '+zb.chaseCount+' of 3 sent':(zb.paymentLinkSentAt?' · link sent':'')} — Zoom link held back until payment is matched.</div>`
-        :isPaid?`<div style="padding:6px 16px;background:#D8F3DC;font-size:12px;color:#1B4332;">✅ Paid — confirmation sent${zb.confirmationSentAt?'':' automatically'}.</div>`:''}
+      ${ambiguous?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ Payment ambiguous for ${d} at ${zb.start} — two or more matching payments found. Confirm manually below.</div>`
+        :chaseExhausted?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ No response after 3 reminders (£${zb.expectedAmount}) for the ${d} session at ${zb.start} — no further automatic emails will be sent. Chase manually or delete the booking.</div>`
+        :awaitingPay?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⏳ Awaiting payment (£${zb.expectedAmount}) for ${d} at ${zb.start}${zb.chaseCount?' · reminder '+zb.chaseCount+' of 3 sent':(zb.paymentLinkSentAt?' · link sent':'')} — Zoom link held back until payment is matched.</div>`
+        :isPaid?`<div style="padding:6px 16px;background:#D8F3DC;font-size:12px;color:#1B4332;">✅ Paid for ${d} at ${zb.start} — confirmation sent${zb.confirmationSentAt?'':' automatically'}.</div>`:''}
       <div style="padding:12px 16px;background:#F7F5F0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div style="width:34px;height:34px;border-radius:50%;background:#E8F4FD;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📹</div>
         <div style="flex:1;min-width:0;">
