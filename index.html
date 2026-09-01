@@ -432,413 +432,441 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 
   <div class="dg">
 
-    <!-- BOOK -->
-    <div id="pane-book">
-      <div class="card">
-        <div style="font-size:17px;font-weight:500;margin-bottom:14px;">New booking</div>
-        <div class="fm e" id="ferr"></div>
-        <div class="fm ok" id="fok">Booking added ✓</div>
-        <div style="margin-bottom:10px;"><label class="lbl" for="fdt">Date <span id="fdt-year-warn" style="color:#C0392B;font-weight:500;display:none;"></span></label><input class="inp" type="date" id="fdt" onchange="checkDateYear()"/></div>
-        <div style="margin-bottom:10px;"><label class="lbl" for="ffr">Start time</label><input class="inp" type="time" id="ffr" value="09:00" oninput="calcEnd()"/></div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl">Duration</label>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-            <button type="button" class="dur-btn" data-mins="15"     onclick="selDur(this)">15 min</button>
-            <button type="button" class="dur-btn" data-mins="30"     onclick="selDur(this)">30 min</button>
-            <button type="button" class="dur-btn" data-mins="45"     onclick="selDur(this)">45 min</button>
-            <button type="button" class="dur-btn on" data-mins="60"  onclick="selDur(this)">1 hr</button>
-            <button type="button" class="dur-btn" data-mins="90"     onclick="selDur(this)">1.5 hr</button>
-            <button type="button" class="dur-btn" data-mins="120"    onclick="selDur(this)">2 hr</button>
-            <button type="button" class="dur-btn" data-mins="180"    onclick="selDur(this)">3 hr</button>
-            <button type="button" class="dur-btn" data-mins="custom" onclick="selDur(this)">Custom</button>
+      <!-- BOOK -->
+      <div id="pane-book">
+          <div class="card">
+              <div style="font-size:17px;font-weight:500;margin-bottom:14px;">New booking</div>
+              <div class="fm e" id="ferr"></div>
+              <div class="fm ok" id="fok">Booking added ✓</div>
+              <div style="margin-bottom:10px;"><label class="lbl" for="fdt">Date <span id="fdt-year-warn" style="color:#C0392B;font-weight:500;display:none;"></span></label><input class="inp" type="date" id="fdt" onchange="checkDateYear()" /></div>
+              <div style="margin-bottom:10px;"><label class="lbl" for="ffr">Start time</label><input class="inp" type="time" id="ffr" value="09:00" oninput="calcEnd()" /></div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl">Duration</label>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                      <button type="button" class="dur-btn" data-mins="15" onclick="selDur(this)">15 min</button>
+                      <button type="button" class="dur-btn" data-mins="30" onclick="selDur(this)">30 min</button>
+                      <button type="button" class="dur-btn" data-mins="45" onclick="selDur(this)">45 min</button>
+                      <button type="button" class="dur-btn on" data-mins="60" onclick="selDur(this)">1 hr</button>
+                      <button type="button" class="dur-btn" data-mins="90" onclick="selDur(this)">1.5 hr</button>
+                      <button type="button" class="dur-btn" data-mins="120" onclick="selDur(this)">2 hr</button>
+                      <button type="button" class="dur-btn" data-mins="180" onclick="selDur(this)">3 hr</button>
+                      <button type="button" class="dur-btn" data-mins="custom" onclick="selDur(this)">Custom</button>
+                  </div>
+              </div>
+              <div style="margin-bottom:10px;display:none;" id="custom-end-row">
+                  <label class="lbl" for="fto">Custom end time</label>
+                  <input class="inp" type="time" id="fto" value="10:00" oninput="durFromEnd()" />
+              </div>
+              <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
+                  <span style="color:#8A8479;">Ends at</span><strong id="end-display">10:00</strong>
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="fnt">Client name</label>
+                  <input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith" oninput="suggestCategory('fnt','fcat','fcat-suggest')" />
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="fcat">Category (optional)</label>
+                  <select class="inp" id="fcat">
+                      <option value="">— None —</option>
+                  </select>
+                  <div id="fcat-suggest" style="display:none;margin-top:6px;"></div>
+              </div>
+              <div style="margin-bottom:12px;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleCouples()">
+                      <div style="flex:1;">
+                          <div style="font-size:13px;font-weight:500;">Couples appointment</div>
+                          <div style="font-size:11px;color:#8A8479;margin-top:1px;">Both partners receive reminders</div>
+                      </div>
+                      <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleCouples()">
+                          <input type="checkbox" id="couples-toggle" style="opacity:0;width:0;height:0;" />
+                          <span id="couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+                          <span id="couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+                      </label>
+                  </div>
+                  <div id="couples-row" style="display:none;margin-top:8px;">
+                      <label class="lbl" for="fnt2">Partner name</label>
+                      <input class="inp" type="text" id="fnt2" placeholder="e.g. Alex Smith" />
+                  </div>
+              </div>
+
+              <!-- Online/Zoom session toggle -->
+              <div style="margin-bottom:12px;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#E8F4FD;border:1px solid #B3D7F0;border-radius:8px;cursor:pointer;" onclick="toggleOnlineSession()">
+                      <div style="flex:1;">
+                          <div style="font-size:13px;font-weight:500;">📹 Online session (Zoom)</div>
+                          <div style="font-size:11px;color:#185FA5;margin-top:1px;">Suppresses room SMS — Zoom confirmation sent separately</div>
+                      </div>
+                      <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleOnlineSession()">
+                          <input type="checkbox" id="online-toggle" style="opacity:0;width:0;height:0;" />
+                          <span id="online-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+                          <span id="online-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+                      </label>
+                  </div>
+              </div>
+
+              <!-- Repeat booking -->
+              <div style="margin-bottom:12px;">
+                  <label class="lbl">Repeat</label>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
+                      <button type="button" class="dur-btn on" id="rep-none" onclick="setRep('none')">None</button>
+                      <button type="button" class="dur-btn" id="rep-weekly" onclick="setRep('weekly')">Weekly</button>
+                      <button type="button" class="dur-btn" id="rep-2week" onclick="setRep('2week')">2-Weekly</button>
+                      <button type="button" class="dur-btn" id="rep-monthly" onclick="setRep('monthly')">Monthly</button>
+                  </div>
+                  <div id="rep-options" style="display:none;background:#F7F5F0;border-radius:10px;padding:12px;border:1px solid #E5E0D8;">
+                      <label class="lbl" style="margin-bottom:8px;">End repeat</label>
+                      <div style="display:flex;gap:8px;margin-bottom:10px;">
+                          <button type="button" class="dur-btn on" id="rep-end-date" onclick="setRepEnd('date')" style="flex:1;">On a date</button>
+                          <button type="button" class="dur-btn" id="rep-end-count" onclick="setRepEnd('count')" style="flex:1;">After N bookings</button>
+                      </div>
+                      <div id="rep-end-date-row" style="margin-bottom:0;">
+                          <label class="lbl" for="rep-until">End date</label>
+                          <input class="inp" type="date" id="rep-until" />
+                      </div>
+                      <div id="rep-end-count-row" style="display:none;">
+                          <label class="lbl" for="rep-count">Number of bookings</label>
+                          <input class="inp" type="number" id="rep-count" min="2" max="52" value="4" style="width:100%;" />
+                      </div>
+                      <div id="rep-preview" style="margin-top:10px;font-size:12px;color:#8A8479;line-height:1.8;"></div>
+                  </div>
+              </div>
+
+              <!-- SMS note -->
+              <div style="margin-bottom:12px;padding:10px 12px;background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;font-size:12px;color:#6B4C00;line-height:1.5;">
+                  📱 <strong>SMS reminder:</strong> An SMS will be sent to the client 2 days before this appointment via TextMagic. Enable this per-user in the People tab.
+              </div>
+              <button class="btn-main" id="sbtn" onclick="doAdd()">Add booking</button>
           </div>
-        </div>
-        <div style="margin-bottom:10px;display:none;" id="custom-end-row">
-          <label class="lbl" for="fto">Custom end time</label>
-          <input class="inp" type="time" id="fto" value="10:00" oninput="durFromEnd()"/>
-        </div>
-        <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="color:#8A8479;">Ends at</span><strong id="end-display">10:00</strong>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="fnt">Client name</label>
-          <input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith" oninput="suggestCategory('fnt','fcat','fcat-suggest')"/>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="fcat">Category (optional)</label>
-          <select class="inp" id="fcat">
-            <option value="">— None —</option>
-          </select>
-          <div id="fcat-suggest" style="display:none;margin-top:6px;"></div>
-        </div>
-        <div style="margin-bottom:12px;">
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleCouples()">
-            <div style="flex:1;">
-              <div style="font-size:13px;font-weight:500;">Couples appointment</div>
-              <div style="font-size:11px;color:#8A8479;margin-top:1px;">Both partners receive reminders</div>
-            </div>
-            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleCouples()">
-              <input type="checkbox" id="couples-toggle" style="opacity:0;width:0;height:0;"/>
-              <span id="couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
-              <span id="couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
-            </label>
+      </div>
+
+      <!-- VIEW -->
+      <div id="pane-view" style="display:none;">
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8A8479;margin-bottom:12px;"><div class="sd" id="sd2"></div><span id="sl2">—</span></div>
+          <div class="nr">
+              <button class="ar" onclick="shift(-1)" aria-label="Previous">&#8249;</button>
+              <span class="plbl" id="plbl">Upcoming</span>
+              <button class="ar" onclick="shift(1)" aria-label="Next">&#8250;</button>
+              <button class="td-btn" onclick="goToday()">Today</button>
           </div>
-          <div id="couples-row" style="display:none;margin-top:8px;">
-            <label class="lbl" for="fnt2">Partner name</label>
-            <input class="inp" type="text" id="fnt2" placeholder="e.g. Alex Smith"/>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+              <div class="pr">
+                  <button class="p on" id="vb-list" onclick="setV('list')">List</button>
+                  <button class="p" id="vb-day" onclick="setV('day')">Day</button>
+                  <button class="p" id="vb-week" onclick="setV('week')">Week</button>
+                  <button class="p" id="vb-month" onclick="setV('month')">Month</button>
+              </div>
+              <div class="pr">
+                  <button class="p on" id="ch-all" onclick="setF('all')">All</button>
+                  <button class="p" id="ch-mine" onclick="setF('mine')">Mine</button>
+              </div>
           </div>
-        </div>
-
-        <!-- Online/Zoom session toggle -->
-        <div style="margin-bottom:12px;">
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#E8F4FD;border:1px solid #B3D7F0;border-radius:8px;cursor:pointer;" onclick="toggleOnlineSession()">
-            <div style="flex:1;">
-              <div style="font-size:13px;font-weight:500;">📹 Online session (Zoom)</div>
-              <div style="font-size:11px;color:#185FA5;margin-top:1px;">Suppresses room SMS — Zoom confirmation sent separately</div>
-            </div>
-            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleOnlineSession()">
-              <input type="checkbox" id="online-toggle" style="opacity:0;width:0;height:0;"/>
-              <span id="online-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
-              <span id="online-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
-            </label>
+          <div id="show-cat-row" style="margin-bottom:10px;">
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#8A8479;cursor:pointer;">
+                  <input type="checkbox" id="show-cat-toggle" onchange="draw()" style="margin:0;" />
+                  Show categories
+              </label>
           </div>
-        </div>
-
-        <!-- Repeat booking -->
-        <div style="margin-bottom:12px;">
-          <label class="lbl">Repeat</label>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
-            <button type="button" class="dur-btn on" id="rep-none"   onclick="setRep('none')">None</button>
-            <button type="button" class="dur-btn"    id="rep-weekly" onclick="setRep('weekly')">Weekly</button>
-            <button type="button" class="dur-btn"    id="rep-2week"  onclick="setRep('2week')">2-Weekly</button>
-            <button type="button" class="dur-btn"    id="rep-monthly" onclick="setRep('monthly')">Monthly</button>
+          <div id="vbody"></div>
+          <div style="text-align:center;margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+              <button onclick="load()" style="padding:7px 18px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
+              <button onclick="exportICS()" style="padding:7px 18px;font-size:13px;border:1px solid #52B788;border-radius:99px;background:#D8F3DC;color:#1B4332;cursor:pointer;">📅 Export to Calendar</button>
           </div>
-          <div id="rep-options" style="display:none;background:#F7F5F0;border-radius:10px;padding:12px;border:1px solid #E5E0D8;">
-            <label class="lbl" style="margin-bottom:8px;">End repeat</label>
-            <div style="display:flex;gap:8px;margin-bottom:10px;">
-              <button type="button" class="dur-btn on" id="rep-end-date"  onclick="setRepEnd('date')"  style="flex:1;">On a date</button>
-              <button type="button" class="dur-btn"    id="rep-end-count" onclick="setRepEnd('count')" style="flex:1;">After N bookings</button>
-            </div>
-            <div id="rep-end-date-row" style="margin-bottom:0;">
-              <label class="lbl" for="rep-until">End date</label>
-              <input class="inp" type="date" id="rep-until"/>
-            </div>
-            <div id="rep-end-count-row" style="display:none;">
-              <label class="lbl" for="rep-count">Number of bookings</label>
-              <input class="inp" type="number" id="rep-count" min="2" max="52" value="4" style="width:100%;"/>
-            </div>
-            <div id="rep-preview" style="margin-top:10px;font-size:12px;color:#8A8479;line-height:1.8;"></div>
+      </div>
+
+      <!-- COSTS -->
+      <div id="pane-costs" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+              <div style="font-size:17px;font-weight:500;">Monthly costs</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                  <button class="ar" onclick="shiftCost(-1)" aria-label="Previous month">&#8249;</button>
+                  <span style="font-size:14px;font-weight:500;min-width:120px;text-align:center;" id="cost-period"></span>
+                  <button class="ar" onclick="shiftCost(1)" aria-label="Next month">&#8250;</button>
+              </div>
           </div>
-        </div>
-
-        <!-- SMS note -->
-        <div style="margin-bottom:12px;padding:10px 12px;background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;font-size:12px;color:#6B4C00;line-height:1.5;">
-          📱 <strong>SMS reminder:</strong> An SMS will be sent to the client 2 days before this appointment via TextMagic. Enable this per-user in the People tab.
-        </div>
-        <button class="btn-main" id="sbtn" onclick="doAdd()">Add booking</button>
-      </div>
-    </div>
-
-    <!-- VIEW -->
-    <div id="pane-view" style="display:none;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8A8479;margin-bottom:12px;"><div class="sd" id="sd2"></div><span id="sl2">—</span></div>
-      <div class="nr">
-        <button class="ar" onclick="shift(-1)" aria-label="Previous">&#8249;</button>
-        <span class="plbl" id="plbl">Upcoming</span>
-        <button class="ar" onclick="shift(1)" aria-label="Next">&#8250;</button>
-        <button class="td-btn" onclick="goToday()">Today</button>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-        <div class="pr">
-          <button class="p on" id="vb-list"  onclick="setV('list')">List</button>
-          <button class="p"    id="vb-day"   onclick="setV('day')">Day</button>
-          <button class="p"    id="vb-week"  onclick="setV('week')">Week</button>
-          <button class="p"    id="vb-month" onclick="setV('month')">Month</button>
-        </div>
-        <div class="pr">
-          <button class="p on" id="ch-all"  onclick="setF('all')">All</button>
-          <button class="p"    id="ch-mine" onclick="setF('mine')">Mine</button>
-        </div>
-      </div>
-      <div id="show-cat-row" style="margin-bottom:10px;">
-        <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#8A8479;cursor:pointer;">
-          <input type="checkbox" id="show-cat-toggle" onchange="draw()" style="margin:0;"/>
-          Show categories
-        </label>
-      </div>
-      <div id="vbody"></div>
-      <div style="text-align:center;margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-        <button onclick="load()" style="padding:7px 18px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
-        <button onclick="exportICS()" style="padding:7px 18px;font-size:13px;border:1px solid #52B788;border-radius:99px;background:#D8F3DC;color:#1B4332;cursor:pointer;">📅 Export to Calendar</button>
-      </div>
-    </div>
-
-    <!-- COSTS -->
-    <div id="pane-costs" style="display:none;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-        <div style="font-size:17px;font-weight:500;">Monthly costs</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="ar" onclick="shiftCost(-1)" aria-label="Previous month">&#8249;</button>
-          <span style="font-size:14px;font-weight:500;min-width:120px;text-align:center;" id="cost-period"></span>
-          <button class="ar" onclick="shiftCost(1)" aria-label="Next month">&#8250;</button>
-        </div>
-      </div>
-      <div class="card" style="margin-bottom:16px;">
-        <div style="font-size:14px;font-weight:500;margin-bottom:10px;">Room rate</div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="position:relative;flex:1;">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8A8479;font-size:14px;">£</span>
-            <input class="inp" type="number" id="rate-inp" min="0" step="0.50" placeholder="0.00" style="padding-left:28px;" onchange="saveRate()" aria-label="Hourly rate in pounds"/>
+          <div class="card" style="margin-bottom:16px;">
+              <div style="font-size:14px;font-weight:500;margin-bottom:10px;">Room rate</div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="position:relative;flex:1;">
+                      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8A8479;font-size:14px;">£</span>
+                      <input class="inp" type="number" id="rate-inp" min="0" step="0.50" placeholder="0.00" style="padding-left:28px;" onchange="saveRate()" aria-label="Hourly rate in pounds" />
+                  </div>
+                  <span style="font-size:13px;color:#8A8479;white-space:nowrap;">per hour</span>
+              </div>
           </div>
-          <span style="font-size:13px;color:#8A8479;white-space:nowrap;">per hour</span>
-        </div>
+          <div id="cost-body"></div>
       </div>
-      <div id="cost-body"></div>
-    </div>
 
-    <!-- SMS REMINDERS -->
-    <div id="pane-sms" style="display:none;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:17px;font-weight:500;">SMS Reminders</div>
-        <button onclick="load()" style="padding:6px 14px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
-      </div>
-      <!-- Pending reminders -->
-      <div id="sms-pending" style="margin-bottom:20px;"></div>
-      <!-- Sent log -->
-      <div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Sent reminders</div>
-      <div id="sms-log"></div>
-    </div>
-
-    <!-- SERIES -->
-    <div id="pane-series" style="display:none;">
-      <div style="font-size:17px;font-weight:500;margin-bottom:14px;">Recurring series</div>
-      <div id="series-body"></div>
-    </div>
-
-    <!-- REPORTS -->
-    <div id="pane-reports" style="display:none;">
-      <div style="font-size:17px;font-weight:500;margin-bottom:16px;">Reports</div>
-
-      <!-- Period selector -->
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <label class="lbl" style="margin:0;">Period</label>
-          <div class="pr">
-            <button class="p on" id="rp-month" onclick="setReportPeriod('month')">This month</button>
-            <button class="p"    id="rp-3month" onclick="setReportPeriod('3month')">3 months</button>
-            <button class="p"    id="rp-year"  onclick="setReportPeriod('year')">This year</button>
-            <button class="p"    id="rp-all"   onclick="setReportPeriod('all')">All time</button>
+      <!-- SMS REMINDERS -->
+      <div id="pane-sms" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+              <div style="font-size:17px;font-weight:500;">SMS Reminders</div>
+              <button onclick="load()" style="padding:6px 14px;font-size:13px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
           </div>
-          <span id="report-period-lbl" style="font-size:12px;color:#8A8479;"></span>
-        </div>
+          <!-- Pending reminders -->
+          <div id="sms-pending" style="margin-bottom:20px;"></div>
+          <!-- Sent log -->
+          <div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Sent reminders</div>
+          <div id="sms-log"></div>
       </div>
 
-      <!-- Occupancy rate -->
-      <div class="card" style="margin-bottom:16px;">
-        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Occupancy rate</div>
-        <div style="font-size:12px;color:#8A8479;margin-bottom:12px;">Available hours: 07:00–21:00 (14hrs/day), Mon–Sun</div>
-        <div id="occupancy-body"></div>
+      <!-- SERIES -->
+      <div id="pane-series" style="display:none;">
+          <div style="font-size:17px;font-weight:500;margin-bottom:14px;">Recurring series</div>
+          <div id="series-body"></div>
       </div>
 
-      <!-- Heatmap -->
-      <div class="card" style="margin-bottom:16px;">
-        <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Busiest times</div>
-        <div style="font-size:12px;color:#8A8479;margin-bottom:14px;">Hours most in demand across the period</div>
-        <div id="heatmap-body"></div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:#8A8479;">
-          <span>Quiet</span>
-          <div style="display:flex;gap:2px;">
-            <div style="width:16px;height:16px;border-radius:3px;background:#EDE7F6;"></div>
-            <div style="width:16px;height:16px;border-radius:3px;background:#C9B8E8;"></div>
-            <div style="width:16px;height:16px;border-radius:3px;background:#9C6BC4;"></div>
-            <div style="width:16px;height:16px;border-radius:3px;background:#6B3D9A;"></div>
-            <div style="width:16px;height:16px;border-radius:3px;background:#3D1C5A;"></div>
+      <!-- REPORTS -->
+      <div id="pane-reports" style="display:none;">
+          <div style="font-size:17px;font-weight:500;margin-bottom:16px;">Reports</div>
+
+          <!-- Period selector -->
+          <div class="card" style="margin-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <label class="lbl" style="margin:0;">Period</label>
+                  <div class="pr">
+                      <button class="p on" id="rp-month" onclick="setReportPeriod('month')">This month</button>
+                      <button class="p" id="rp-3month" onclick="setReportPeriod('3month')">3 months</button>
+                      <button class="p" id="rp-year" onclick="setReportPeriod('year')">This year</button>
+                      <button class="p" id="rp-all" onclick="setReportPeriod('all')">All time</button>
+                  </div>
+                  <span id="report-period-lbl" style="font-size:12px;color:#8A8479;"></span>
+              </div>
           </div>
-          <span>Busy</span>
-        </div>
+
+          <!-- Occupancy rate -->
+          <div class="card" style="margin-bottom:16px;">
+              <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Occupancy rate</div>
+              <div style="font-size:12px;color:#8A8479;margin-bottom:12px;">Available hours: 07:00–21:00 (14hrs/day), Mon–Sun</div>
+              <div id="occupancy-body"></div>
+          </div>
+
+          <!-- Heatmap -->
+          <div class="card" style="margin-bottom:16px;">
+              <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Busiest times</div>
+              <div style="font-size:12px;color:#8A8479;margin-bottom:14px;">Hours most in demand across the period</div>
+              <div id="heatmap-body"></div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:#8A8479;">
+                  <span>Quiet</span>
+                  <div style="display:flex;gap:2px;">
+                      <div style="width:16px;height:16px;border-radius:3px;background:#EDE7F6;"></div>
+                      <div style="width:16px;height:16px;border-radius:3px;background:#C9B8E8;"></div>
+                      <div style="width:16px;height:16px;border-radius:3px;background:#9C6BC4;"></div>
+                      <div style="width:16px;height:16px;border-radius:3px;background:#6B3D9A;"></div>
+                      <div style="width:16px;height:16px;border-radius:3px;background:#3D1C5A;"></div>
+                  </div>
+                  <span>Busy</span>
+              </div>
+          </div>
+
+          <!-- Per person breakdown -->
+          <div class="card">
+              <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings per person</div>
+              <div id="person-report-body"></div>
+          </div>
+
+          <!-- Category breakdown -->
+          <div class="card" style="margin-top:16px;">
+              <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings by category</div>
+              <div id="category-report-body"></div>
+          </div>
       </div>
 
-      <!-- Per person breakdown -->
-      <div class="card">
-        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings per person</div>
-        <div id="person-report-body"></div>
-      </div>
-
-      <!-- Category breakdown -->
+      <!-- Monthly Invoice -->
       <div class="card" style="margin-top:16px;">
-        <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings by category</div>
-        <div id="category-report-body"></div>
+          <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Monthly Invoice</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+              <div>
+                  <label class="lbl">Practitioner</label>
+                  <select class="inp" id="invoicePractitioner" style="width:auto;"></select>
+              </div>
+              <div>
+                  <label class="lbl">Month</label>
+                  <select class="inp" id="invoiceMonth" style="width:auto;"></select>
+              </div>
+              <div>
+                  <label class="lbl">Year</label>
+                  <select class="inp" id="invoiceYear" style="width:auto;"></select>
+              </div>
+              <div>
+                  <label class="lbl">Client</label>
+                  <select class="inp" id="invoiceClient" style="width:auto;"></select>
+              </div>
+              <div>
+                  <label class="lbl">Category</label>
+                  <select class="inp" id="invoiceCategory" style="width:auto;"></select>
+              </div>
+          </div>
+          <button class="btn-main" id="downloadInvoiceBtn" style="width:auto;padding:10px 20px;">Download Invoice</button>
       </div>
-    </div>
 
-    <!-- ZOOM -->
-    <div id="pane-zoom" style="display:none;">
-      <div class="card" style="margin-bottom:16px;">
-        <div style="font-size:17px;font-weight:500;margin-bottom:14px;">New Zoom session</div>
-        <div class="fm e" id="zoom-err"></div>
-        <div class="fm ok" id="zoom-ok">Zoom meeting created ✓</div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="z-date">Date</label>
-          <input class="inp" type="date" id="z-date"/>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="z-from">Start time</label>
-          <input class="inp" type="time" id="z-from" value="09:00"/>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl">Duration</label>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-            <button type="button" class="dur-btn" data-mins="30"  onclick="selZoomDur(this)">30 min</button>
-            <button type="button" class="dur-btn on" data-mins="60" onclick="selZoomDur(this)">1 hr</button>
-            <button type="button" class="dur-btn" data-mins="90"  onclick="selZoomDur(this)">1.5 hr</button>
-            <button type="button" class="dur-btn" data-mins="120" onclick="selZoomDur(this)">2 hr</button>
+      <!-- ZOOM -->
+      <div id="pane-zoom" style="display:none;">
+          <div class="card" style="margin-bottom:16px;">
+              <div style="font-size:17px;font-weight:500;margin-bottom:14px;">New Zoom session</div>
+              <div class="fm e" id="zoom-err"></div>
+              <div class="fm ok" id="zoom-ok">Zoom meeting created ✓</div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="z-date">Date</label>
+                  <input class="inp" type="date" id="z-date" />
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="z-from">Start time</label>
+                  <input class="inp" type="time" id="z-from" value="09:00" />
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl">Duration</label>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                      <button type="button" class="dur-btn" data-mins="30" onclick="selZoomDur(this)">30 min</button>
+                      <button type="button" class="dur-btn on" data-mins="60" onclick="selZoomDur(this)">1 hr</button>
+                      <button type="button" class="dur-btn" data-mins="90" onclick="selZoomDur(this)">1.5 hr</button>
+                      <button type="button" class="dur-btn" data-mins="120" onclick="selZoomDur(this)">2 hr</button>
+                  </div>
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="z-client">Client name</label>
+                  <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith" oninput="suggestCategory('z-client','z-cat','z-cat-suggest')" />
+              </div>
+              <!-- Require prepayment (testing — off by default) -->
+              <div style="margin-bottom:12px;">
+                  <div id="z-prepay-header" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:background .2s,border-color .2s;" onclick="toggleZoomPrepay()">
+                      <div style="flex:1;">
+                          <div id="z-prepay-label" style="font-size:13px;font-weight:500;">Require prepayment</div>
+                          <div style="font-size:11px;color:#8A8479;margin-top:2px;">Zoom link is held back until payment is matched</div>
+                      </div>
+                      <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomPrepay()">
+                          <input type="checkbox" id="z-prepay-toggle" style="opacity:0;width:0;height:0;" />
+                          <span id="z-prepay-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+                          <span id="z-prepay-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+                      </label>
+                  </div>
+                  <div id="z-prepay-row" style="display:none;margin-top:8px;">
+                      <div style="margin-bottom:10px;">
+                          <label class="lbl" for="z-prepay-amount">Expected fee (£)</label>
+                          <input class="inp" type="number" step="0.01" min="0" id="z-prepay-amount" placeholder="e.g. 65" />
+                      </div>
+                      <div>
+                          <label class="lbl" for="z-prepay-email">Client email</label>
+                          <input class="inp" type="email" id="z-prepay-email" placeholder="client@example.com" />
+                      </div>
+                  </div>
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="z-topic">Meeting topic (optional)</label>
+                  <input class="inp" type="text" id="z-topic" placeholder="e.g. Consultation" />
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="z-cat">Category (optional)</label>
+                  <select class="inp" id="z-cat">
+                      <option value="">— None —</option>
+                  </select>
+                  <div id="z-cat-suggest" style="display:none;margin-top:6px;"></div>
+              </div>
+              <!-- Couples option -->
+              <div style="margin-bottom:12px;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleZoomCouples()">
+                      <div style="flex:1;"><div style="font-size:13px;font-weight:500;">Couples session</div></div>
+                      <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomCouples()">
+                          <input type="checkbox" id="z-couples-toggle" style="opacity:0;width:0;height:0;" />
+                          <span id="z-couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+                          <span id="z-couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+                      </label>
+                  </div>
+                  <div id="z-couples-row" style="display:none;margin-top:8px;">
+                      <label class="lbl" for="z-client2">Partner name</label>
+                      <input class="inp" type="text" id="z-client2" placeholder="e.g. Alex Smith" />
+                  </div>
+              </div>
+              <button class="btn-main" id="z-btn" onclick="doZoomBooking()">📹 Create Zoom meeting</button>
+              <p style="font-size:11px;color:#8A8479;text-align:center;margin-top:8px;">Meeting will appear below within 30 seconds</p>
           </div>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="z-client">Client name</label>
-          <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith" oninput="suggestCategory('z-client','z-cat','z-cat-suggest')"/>
-        </div>
-        <!-- Require prepayment (testing — off by default) -->
-        <div style="margin-bottom:12px;">
-          <div id="z-prepay-header" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:background .2s,border-color .2s;" onclick="toggleZoomPrepay()">
-            <div style="flex:1;">
-              <div id="z-prepay-label" style="font-size:13px;font-weight:500;">Require prepayment</div>
-              <div style="font-size:11px;color:#8A8479;margin-top:2px;">Zoom link is held back until payment is matched</div>
-            </div>
-            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomPrepay()">
-              <input type="checkbox" id="z-prepay-toggle" style="opacity:0;width:0;height:0;"/>
-              <span id="z-prepay-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
-              <span id="z-prepay-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
-            </label>
+          <!-- Zoom bookings list -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+              <div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;">Upcoming Zoom sessions</div>
+              <div style="display:flex;gap:6px;">
+                  <button onclick="subscribeZoomCal()" style="padding:6px 14px;font-size:12px;border:1px solid #C9A84C;border-radius:99px;background:#FFF3CD;color:#6B4C00;cursor:pointer;">📅 Subscribe</button>
+                  <button onclick="load().then(()=>renderZoomList())" style="padding:6px 14px;font-size:12px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
+              </div>
           </div>
-          <div id="z-prepay-row" style="display:none;margin-top:8px;">
-            <div style="margin-bottom:10px;">
-              <label class="lbl" for="z-prepay-amount">Expected fee (£)</label>
-              <input class="inp" type="number" step="0.01" min="0" id="z-prepay-amount" placeholder="e.g. 65"/>
-            </div>
-            <div>
-              <label class="lbl" for="z-prepay-email">Client email</label>
-              <input class="inp" type="email" id="z-prepay-email" placeholder="client@example.com"/>
-            </div>
-          </div>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="z-topic">Meeting topic (optional)</label>
-          <input class="inp" type="text" id="z-topic" placeholder="e.g. Consultation"/>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="z-cat">Category (optional)</label>
-          <select class="inp" id="z-cat">
-            <option value="">— None —</option>
-          </select>
-          <div id="z-cat-suggest" style="display:none;margin-top:6px;"></div>
-        </div>
-        <!-- Couples option -->
-        <div style="margin-bottom:12px;">
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleZoomCouples()">
-            <div style="flex:1;"><div style="font-size:13px;font-weight:500;">Couples session</div></div>
-            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomCouples()">
-              <input type="checkbox" id="z-couples-toggle" style="opacity:0;width:0;height:0;"/>
-              <span id="z-couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
-              <span id="z-couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
-            </label>
-          </div>
-          <div id="z-couples-row" style="display:none;margin-top:8px;">
-            <label class="lbl" for="z-client2">Partner name</label>
-            <input class="inp" type="text" id="z-client2" placeholder="e.g. Alex Smith"/>
-          </div>
-        </div>
-        <button class="btn-main" id="z-btn" onclick="doZoomBooking()">📹 Create Zoom meeting</button>
-        <p style="font-size:11px;color:#8A8479;text-align:center;margin-top:8px;">Meeting will appear below within 30 seconds</p>
+          <div id="zoom-list"></div>
       </div>
-      <!-- Zoom bookings list -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
-        <div style="font-size:13px;font-weight:500;color:#8A8479;text-transform:uppercase;letter-spacing:.06em;">Upcoming Zoom sessions</div>
-        <div style="display:flex;gap:6px;">
-          <button onclick="subscribeZoomCal()" style="padding:6px 14px;font-size:12px;border:1px solid #C9A84C;border-radius:99px;background:#FFF3CD;color:#6B4C00;cursor:pointer;">📅 Subscribe</button>
-          <button onclick="load().then(()=>renderZoomList())" style="padding:6px 14px;font-size:12px;border:1px solid #E5E0D8;border-radius:99px;background:none;color:#8A8479;cursor:pointer;">↻ Refresh</button>
-        </div>
-      </div>
-      <div id="zoom-list"></div>
-    </div>
 
-    <!-- ZOOM EDIT MODAL -->
-    <div class="modal-bg off" id="zoom-edit-modal">
-      <div class="modal">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="font-size:17px;font-weight:500;">Edit Zoom session</div>
-          <button onclick="closeZoomEdit()" style="background:none;border:none;font-size:22px;color:#8A8479;cursor:pointer;">×</button>
-        </div>
-        <div class="fm e" id="ze-err"></div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="ze-date">Date</label>
-          <input class="inp" type="date" id="ze-date"/>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="ze-from">Start time</label>
-          <input class="inp" type="time" id="ze-from"/>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl">Duration</label>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-            <button type="button" class="dur-btn" data-mins="30"  onclick="selZoomEditDur(this)">30 min</button>
-            <button type="button" class="dur-btn" data-mins="60"  onclick="selZoomEditDur(this)">1 hr</button>
-            <button type="button" class="dur-btn" data-mins="90"  onclick="selZoomEditDur(this)">1.5 hr</button>
-            <button type="button" class="dur-btn" data-mins="120" onclick="selZoomEditDur(this)">2 hr</button>
+      <!-- ZOOM EDIT MODAL -->
+      <div class="modal-bg off" id="zoom-edit-modal">
+          <div class="modal">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                  <div style="font-size:17px;font-weight:500;">Edit Zoom session</div>
+                  <button onclick="closeZoomEdit()" style="background:none;border:none;font-size:22px;color:#8A8479;cursor:pointer;">×</button>
+              </div>
+              <div class="fm e" id="ze-err"></div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="ze-date">Date</label>
+                  <input class="inp" type="date" id="ze-date" />
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="ze-from">Start time</label>
+                  <input class="inp" type="time" id="ze-from" />
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl">Duration</label>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                      <button type="button" class="dur-btn" data-mins="30" onclick="selZoomEditDur(this)">30 min</button>
+                      <button type="button" class="dur-btn" data-mins="60" onclick="selZoomEditDur(this)">1 hr</button>
+                      <button type="button" class="dur-btn" data-mins="90" onclick="selZoomEditDur(this)">1.5 hr</button>
+                      <button type="button" class="dur-btn" data-mins="120" onclick="selZoomEditDur(this)">2 hr</button>
+                  </div>
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="ze-client">Client name</label>
+                  <input class="inp" type="text" id="ze-client" />
+              </div>
+              <div style="margin-bottom:14px;">
+                  <label class="lbl" for="ze-topic">Meeting topic</label>
+                  <input class="inp" type="text" id="ze-topic" />
+              </div>
+              <div style="margin-bottom:14px;">
+                  <label class="lbl" for="ze-cat">Category (optional)</label>
+                  <select class="inp" id="ze-cat">
+                      <option value="">— None —</option>
+                  </select>
+              </div>
+              <button class="btn-main" onclick="saveZoomEdit()">Save changes</button>
+              <p style="font-size:11px;color:#8A8479;text-align:center;margin-top:8px;">Note: date/time changes update the booking system only — please also update the meeting in Zoom if needed.</p>
           </div>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label class="lbl" for="ze-client">Client name</label>
-          <input class="inp" type="text" id="ze-client"/>
-        </div>
-        <div style="margin-bottom:14px;">
-          <label class="lbl" for="ze-topic">Meeting topic</label>
-          <input class="inp" type="text" id="ze-topic"/>
-        </div>
-        <div style="margin-bottom:14px;">
-          <label class="lbl" for="ze-cat">Category (optional)</label>
-          <select class="inp" id="ze-cat">
-            <option value="">— None —</option>
-          </select>
-        </div>
-        <button class="btn-main" onclick="saveZoomEdit()">Save changes</button>
-        <p style="font-size:11px;color:#8A8479;text-align:center;margin-top:8px;">Note: date/time changes update the booking system only — please also update the meeting in Zoom if needed.</p>
       </div>
-    </div>
 
-    <!-- CLIENTS -->
-    <div id="pane-clients" style="display:none;">
-      <div style="font-size:17px;font-weight:500;margin-bottom:12px;">Clients</div>
-      <div id="cl-person-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
-      <input class="inp" type="text" id="client-search" placeholder="🔍 Search clients…" oninput="renderClients()" style="margin-bottom:12px;font-size:14px;"/>
-      <div id="clients-body"></div>
-    </div>
+      <!-- CLIENTS -->
+      <div id="pane-clients" style="display:none;">
+          <div style="font-size:17px;font-weight:500;margin-bottom:12px;">Clients</div>
+          <div id="cl-person-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+          <input class="inp" type="text" id="client-search" placeholder="🔍 Search clients…" oninput="renderClients()" style="margin-bottom:12px;font-size:14px;" />
+          <div id="clients-body"></div>
+      </div>
 
-    <!-- PEOPLE -->
-    <div id="pane-people" style="display:none;">
-      <div class="card">
-        <div style="font-size:17px;font-weight:500;margin-bottom:12px;">Manage people</div>
-        <p style="font-size:13px;color:#8A8479;margin-bottom:14px;">Changes sync to everyone immediately.</p>
-        <div id="plist" style="margin-bottom:12px;"></div>
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-          <input class="inp" type="text" id="pinp" placeholder="Add a name…" aria-label="Add a person" style="flex:1;" onkeydown="if(event.key==='Enter')addP()"/>
-          <button onclick="addP()" style="padding:10px 16px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:14px;cursor:pointer;">Add</button>
-        </div>
-        <div style="padding-top:14px;border-top:1px solid #F0EDE8;margin-bottom:12px;">
-          <button id="sms-settings-btn" onclick="openTM()" style="width:100%;padding:10px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;color:#1A1814;cursor:pointer;font-weight:500;">⚙️ My SMS settings</button>
-          <span id="sms-status" style="display:block;text-align:center;font-size:11px;font-weight:500;margin-top:8px;padding:4px 0;border-radius:99px;"></span>
-        </div>
-        <div style="padding-top:14px;border-top:1px solid #F0EDE8;">
-          <div style="font-size:14px;font-weight:500;margin-bottom:4px;">🔐 App PIN</div>
-          <p style="font-size:12px;color:#8A8479;margin-bottom:10px;">Change the PIN required to access this app. Stored in the cloud — applies to all devices.</p>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input class="inp" type="password" id="pin-change-inp" placeholder="New PIN (4–6 digits)" maxlength="6" style="flex:1;letter-spacing:4px;font-size:18px;" aria-label="New PIN"/>
-            <button onclick="changePIN()" style="padding:10px 16px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:13px;cursor:pointer;white-space:nowrap;">Save PIN</button>
+      <!-- PEOPLE -->
+      <div id="pane-people" style="display:none;">
+          <div class="card">
+              <div style="font-size:17px;font-weight:500;margin-bottom:12px;">Manage people</div>
+              <p style="font-size:13px;color:#8A8479;margin-bottom:14px;">Changes sync to everyone immediately.</p>
+              <div id="plist" style="margin-bottom:12px;"></div>
+              <div style="display:flex;gap:8px;margin-bottom:14px;">
+                  <input class="inp" type="text" id="pinp" placeholder="Add a name…" aria-label="Add a person" style="flex:1;" onkeydown="if(event.key==='Enter')addP()" />
+                  <button onclick="addP()" style="padding:10px 16px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:14px;cursor:pointer;">Add</button>
+              </div>
+              <div style="padding-top:14px;border-top:1px solid #F0EDE8;margin-bottom:12px;">
+                  <button id="sms-settings-btn" onclick="openTM()" style="width:100%;padding:10px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:13px;color:#1A1814;cursor:pointer;font-weight:500;">⚙️ My SMS settings</button>
+                  <span id="sms-status" style="display:block;text-align:center;font-size:11px;font-weight:500;margin-top:8px;padding:4px 0;border-radius:99px;"></span>
+              </div>
+              <div style="padding-top:14px;border-top:1px solid #F0EDE8;">
+                  <div style="font-size:14px;font-weight:500;margin-bottom:4px;">🔐 App PIN</div>
+                  <p style="font-size:12px;color:#8A8479;margin-bottom:10px;">Change the PIN required to access this app. Stored in the cloud — applies to all devices.</p>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                      <input class="inp" type="password" id="pin-change-inp" placeholder="New PIN (4–6 digits)" maxlength="6" style="flex:1;letter-spacing:4px;font-size:18px;" aria-label="New PIN" />
+                      <button onclick="changePIN()" style="padding:10px 16px;border-radius:8px;background:#1A1814;color:#fff;border:none;font-size:13px;cursor:pointer;white-space:nowrap;">Save PIN</button>
+                  </div>
+                  <div id="pin-change-msg" style="font-size:12px;margin-top:6px;display:none;"></div>
+              </div>
           </div>
-          <div id="pin-change-msg" style="font-size:12px;margin-top:6px;display:none;"></div>
-        </div>
       </div>
-    </div>
 
   </div>
 </div>
@@ -2463,7 +2491,7 @@ function goTab(t){
   if(t==='costs')renderCosts();
   if(t==='sms'){load();renderSMSTab();}
   if(t==='series'){load();renderSeries();}
-  if(t==='reports'){load();renderReports();}
+  if(t === 'reports') { load(); renderReports(); initInvoiceForm();}
   if(t==='clients'){load();renderClientPersonRow();renderClients();}
   if(t==='zoom'){load();renderZoomList();initZoomForm();}
 }
@@ -4922,6 +4950,96 @@ async function selectContact(encName,encPhone,contactId){
     }
   }catch(e){alert('SMS error: '+e.message);}
 }
+
+    let _invoiceInited = false;
+    function initInvoiceForm() {
+        if (_invoiceInited) return;
+        _invoiceInited = true;
+
+        const monthSel = document.getElementById('invoiceMonth');
+        const yearSel = document.getElementById('invoiceYear');
+        const now = new Date();
+
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        monthNames.forEach(function (name, i) {
+            const opt = document.createElement('option');
+            opt.value = i + 1; opt.textContent = name;
+            if (i === now.getMonth()) opt.selected = true;
+            monthSel.appendChild(opt);
+        });
+
+        for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) {
+            const opt = document.createElement('option');
+            opt.value = y; opt.textContent = y;
+            yearSel.appendChild(opt);
+        }
+
+        const practitionerSel = document.getElementById('invoicePractitioner');
+        practitionerSel.innerHTML = S.people.map(function (p) {
+            const n = pName(p);
+            return '<option value="' + xe(n) + '">' + xe(n) + '</option>';
+        }).join('');
+
+        const clientSel = document.getElementById('invoiceClient');
+        const categorySel = document.getElementById('invoiceCategory');
+
+        function fillSelect(select, values, placeholderLabel) {
+            select.innerHTML = '<option value="All">' + placeholderLabel + '</option>';
+            values.forEach(function (v) {
+                const opt = document.createElement('option');
+                opt.value = v; opt.textContent = v;
+                select.appendChild(opt);
+            });
+        }
+
+        function refreshInvoiceMeta() {
+            const practitioner = practitionerSel.value;
+            xhrFetch(GAS + '?action=invoiceMeta&practitioner=' + encodeURIComponent(practitioner))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    fillSelect(clientSel, data.clients || [], 'All clients');
+                    fillSelect(categorySel, data.categories || [], 'All categories');
+                })
+                .catch(function (err) { console.error('Could not load invoice filters', err); });
+        }
+
+        practitionerSel.addEventListener('change', refreshInvoiceMeta);
+        refreshInvoiceMeta();
+
+        document.getElementById('downloadInvoiceBtn').addEventListener('click', function () {
+            const practitioner = practitionerSel.value;
+            const month = monthSel.value;
+            const year = yearSel.value;
+            const client = clientSel.value;
+            const category = categorySel.value;
+
+            const url = GAS + '?action=invoice&practitioner=' + encodeURIComponent(practitioner) +
+                '&month=' + month + '&year=' + year +
+                '&client=' + encodeURIComponent(client) +
+                '&category=' + encodeURIComponent(category);
+
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            xhrFetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.ok === false) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('Invoice created and emailed: ' + data.filename);
+                    }
+                })
+                .catch(function (err) {
+                    alert('Request failed: ' + err.message);
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = 'Download Invoice';
+                });
+        });
+    }
 
 updateSMSStatus();
 </script>
