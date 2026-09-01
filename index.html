@@ -669,34 +669,34 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
               <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Bookings by category</div>
               <div id="category-report-body"></div>
           </div>
-      </div>
 
-      <!-- Monthly Invoice -->
-      <div class="card" style="margin-top:16px;">
-          <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Monthly Invoice</div>
-          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-              <div>
-                  <label class="lbl">Practitioner</label>
-                  <select class="inp" id="invoicePractitioner" style="width:auto;"></select>
+          <!-- Monthly Invoice -->
+          <div class="card" style="margin-top:16px;">
+              <div style="font-size:15px;font-weight:500;margin-bottom:14px;">Monthly Invoice</div>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                  <div>
+                      <label class="lbl">Practitioner</label>
+                      <select class="inp" id="invoicePractitioner" style="width:auto;"></select>
+                  </div>
+                  <div>
+                      <label class="lbl">Month</label>
+                      <select class="inp" id="invoiceMonth" style="width:auto;"></select>
+                  </div>
+                  <div>
+                      <label class="lbl">Year</label>
+                      <select class="inp" id="invoiceYear" style="width:auto;"></select>
+                  </div>
+                  <div>
+                      <label class="lbl">Client</label>
+                      <select class="inp" id="invoiceClient" style="width:auto;"></select>
+                  </div>
+                  <div>
+                      <label class="lbl">Category</label>
+                      <select class="inp" id="invoiceCategory" style="width:auto;"></select>
+                  </div>
               </div>
-              <div>
-                  <label class="lbl">Month</label>
-                  <select class="inp" id="invoiceMonth" style="width:auto;"></select>
-              </div>
-              <div>
-                  <label class="lbl">Year</label>
-                  <select class="inp" id="invoiceYear" style="width:auto;"></select>
-              </div>
-              <div>
-                  <label class="lbl">Client</label>
-                  <select class="inp" id="invoiceClient" style="width:auto;"></select>
-              </div>
-              <div>
-                  <label class="lbl">Category</label>
-                  <select class="inp" id="invoiceCategory" style="width:auto;"></select>
-              </div>
+              <button class="btn-main" id="downloadInvoiceBtn" style="width:auto;padding:10px 20px;">Download Invoice</button>
           </div>
-          <button class="btn-main" id="downloadInvoiceBtn" style="width:auto;padding:10px 20px;">Download Invoice</button>
       </div>
 
       <!-- ZOOM -->
