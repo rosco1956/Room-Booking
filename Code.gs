@@ -934,8 +934,14 @@ function dailyReminders() {
         b.autoSent = new Date().toISOString();
     });
 
+    // Prepayment bookings must not get their join link leaked via this
+    // day-before reminder before payment is confirmed — the link is only
+    // meant to go out once checkZettlePayments matches payment (or via
+    // markZoomPaid). Non-prepay bookings, and prepay bookings already
+    // paid, are unaffected by this check.
     const zoomDue = zoomBookings.filter(function (b) {
-        return b.date === targetStr && !b.zoomReminderSent && b.zoomJoinUrl;
+        const unpaidPrepay = b.requirePrepay && b.paymentStatus !== 'paid';
+        return b.date === targetStr && !b.zoomReminderSent && b.zoomJoinUrl && !unpaidPrepay;
     });
     Logger.log('Zoom bookings due: ' + zoomDue.length);
 
