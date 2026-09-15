@@ -3432,27 +3432,41 @@ function selZoomEditDur(btn){
   _zoomEditDurMins=parseInt(btn.dataset.mins);
 }
 
-function openEditZoom(id){
-  const zb=(S.zoomBookings||[]).find(b=>String(b.id)===String(id));
-  if(!zb) return;
-  _zoomEditId=id;
-  // Calculate current duration
-  const[sh,sm]=zb.start.split(':').map(Number);
-  const[eh,em]=zb.end.split(':').map(Number);
-  _zoomEditDurMins=(eh*60+em)-(sh*60+sm);
-  // Populate form
-  document.getElementById('ze-date').value=zb.date;
-  document.getElementById('ze-from').value=zb.start;
-  document.getElementById('ze-client').value=zb.client1||zb.note||'';
-  document.getElementById('ze-topic').value=zb.topic||'';
-  document.getElementById('ze-cat').value=zb.category||'';
-  document.getElementById('ze-err').style.display='none';
-  // Set duration buttons
-  document.querySelectorAll('#zoom-edit-modal .dur-btn').forEach(b=>{
-    b.classList.toggle('on',parseInt(b.dataset.mins)===_zoomEditDurMins);
-  });
-  document.getElementById('zoom-edit-modal').classList.remove('off');
-}
+    function openEditZoom(id) {
+        const zb = (S.zoomBookings || []).find(b => String(b.id) === String(id));
+        if (!zb) return;
+        _zoomEditId = id;
+        // Calculate current duration
+        const [sh, sm] = zb.start.split(':').map(Number);
+        const [eh, em] = zb.end.split(':').map(Number);
+        _zoomEditDurMins = (eh * 60 + em) - (sh * 60 + sm);
+        // Populate form
+
+        // Strip the auto-appended " for <client>" suffix before showing the
+        // topic in the edit field. topic is always built as
+        // `topicRaw + ' for ' + client`, so without this, editing repeatedly
+        // compounds the suffix onto itself every time ("... for Kate Owen for
+        // Kate Owens for Kate Owens ..."). The raw topic the user actually
+        // typed is whatever's left after removing that known suffix.
+        const existingClient = zb.client1 || zb.note || '';
+        let rawTopic = zb.topic || '';
+        const suffix = ' for ' + existingClient;
+        if (existingClient && rawTopic.endsWith(suffix)) {
+            rawTopic = rawTopic.slice(0, -suffix.length);
+        }
+
+        document.getElementById('ze-date').value = zb.date;
+        document.getElementById('ze-from').value = zb.start;
+        document.getElementById('ze-client').value = zb.client1 || zb.note || '';
+        document.getElementById('ze-topic').value = rawTopic;
+        document.getElementById('ze-cat').value = zb.category || '';
+        document.getElementById('ze-err').style.display = 'none';
+        // Set duration buttons
+        document.querySelectorAll('#zoom-edit-modal .dur-btn').forEach(b => {
+            b.classList.toggle('on', parseInt(b.dataset.mins) === _zoomEditDurMins);
+        });
+        document.getElementById('zoom-edit-modal').classList.remove('off');
+    }
 
 function closeZoomEdit(){
   document.getElementById('zoom-edit-modal').classList.add('off');
