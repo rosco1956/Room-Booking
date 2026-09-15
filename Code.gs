@@ -874,6 +874,22 @@ function dailyReminders() {
     const targetStr = Utilities.formatDate(target, Session.getScriptTimeZone(), 'yyyy-MM-dd');
     Logger.log('Daily reminders running for target date: ' + targetStr);
 
+    // Track exactly what this run changes, keyed by booking id, so the
+    // final write only ever applies these specific field updates onto a
+    // *freshly re-read* record — never the stale snapshot captured at the
+    // top of this function. Sending SMS/emails to potentially many
+    // clients can take anywhere from several seconds to a minute or more
+    // (one UrlFetchApp round-trip per client), and this function does not
+    // hold the script lock during that time — so by the time it's ready
+    // to write, other actions (payments matching, bookings being added,
+    // edited or deleted by anyone) may well have changed the sheet.
+    // Writing back the original snapshot would silently overwrite all of
+    // that. Collecting only the deltas here and merging them onto a fresh
+    // read at write time avoids that "lost update" entirely.
+    const roomUpdates = {};   // id -> { autoSent }
+    const zoomUpdates = {};   // id -> { zoomReminderSent }
+    const newSmsLogEntries = [];
+
     const due = bookings.filter(function (b) {
         return b.date === targetStr && !b.smsSent && !b.autoSent && b.note && !b.isOnlineSession;
     });
@@ -919,9 +935,7 @@ function dailyReminders() {
                     payload: { text: text, phones: clientPhone }, muteHttpExceptions: true
                 });
                 if (sendR.getResponseCode() === 201) {
-                    b.autoSent = new Date().toISOString();
-                    if (!record.smsLog) record.smsLog = [];
-                    record.smsLog.unshift({
+                    newSmsLogEntries.unshift({
                         id: Date.now(), who: b.who, date: b.date, start: b.start,
                         clientName: clientName, phone: clientPhone, sentAt: new Date().toISOString(), auto: true, type: 'remind'
                     });
@@ -931,7 +945,7 @@ function dailyReminders() {
                 }
             } catch (err) { Logger.log('SMS error: ' + err.message); }
         });
-        b.autoSent = new Date().toISOString();
+        roomUpdates[b.id] = { autoSent: new Date().toISOString() };
     });
 
     // Prepayment bookings must not get their join link leaked via this
@@ -991,14 +1005,35 @@ function dailyReminders() {
                 }
             } catch (err) { Logger.log('Zoom reminder error: ' + err.message); }
         });
-        b.zoomReminderSent = new Date().toISOString();
+        zoomUpdates[b.id] = { zoomReminderSent: new Date().toISOString() };
     });
 
+    // ── Merge onto a fresh read, then write — all inside the lock ──────
+    // This is the only point where we touch the sheet. Re-reading here
+    // (rather than reusing the `record` from the top of the function)
+    // means any changes made by other users/processes while the SMS/email
+    // sending above was running are preserved; we only apply the specific
+    // per-booking fields this run is responsible for.
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
     try {
-        record = trimRecord(record);
-        writeRecord(record);
+        var freshRecord = readRecord();
+
+        (freshRecord.bookings || []).forEach(function (b) {
+            const upd = roomUpdates[b.id];
+            if (upd) Object.assign(b, upd);
+        });
+        (freshRecord.zoomBookings || []).forEach(function (b) {
+            const upd = zoomUpdates[b.id];
+            if (upd) Object.assign(b, upd);
+        });
+        if (newSmsLogEntries.length) {
+            if (!freshRecord.smsLog) freshRecord.smsLog = [];
+            freshRecord.smsLog = newSmsLogEntries.concat(freshRecord.smsLog);
+        }
+
+        freshRecord = trimRecord(freshRecord);
+        writeRecord(freshRecord);
         Logger.log('Sheet updated and trimmed');
     } finally {
         lock.releaseLock();
