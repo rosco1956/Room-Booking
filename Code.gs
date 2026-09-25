@@ -237,6 +237,17 @@ function htmlToPdfBlob_(html, filename) {
     return pdfBlob;
 }
 
+// Returns a cached Zettle access token, only calling Zettle's token
+// endpoint when the cached one is missing or expired. Zettle tokens
+// last ~2 hours; we cache for 100 minutes to stay safely inside that.
+function getZettleAccessTokenCached() {
+  var cache = CacheService.getScriptCache();
+  var token = cache.get('zettle_access_token');
+  if (token) return token;
+  token = getZettleAccessToken();
+  cache.put('zettle_access_token', token, 6000); // 6000s = 100 min
+  return token;
+}
 
 // ── Main GET handler ─────────────────────────────────────────────────────
 function doGet(e) {
@@ -1152,7 +1163,8 @@ function checkZettlePayments() {
       }
     });
 
-    var accessToken = getZettleAccessToken();
+    writeRecord(record); // persist chase counts before touching Zettle
+    var accessToken = getZettleAccessTokenCached();
     var purchases = fetchRecentZettlePurchases(accessToken);
 
     // Only look at real, non-refund payments
