@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api-ssl.bitly.com https://rest.textmagic.com https://zoom.us https://api.zoom.us https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://api-ssl.bitly.com https://rest.textmagic.com https://zoom.us https://api.zoom.us https://www.gov.uk https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data:;">
 <title>Room Booking</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -724,7 +724,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
               </div>
               <div style="margin-bottom:10px;">
                   <label class="lbl" for="z-client">Client name</label>
-                  <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith" oninput="suggestCategory('z-client','z-cat','z-cat-suggest')" />
+                  <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith" oninput="suggestCategory('z-client','z-cat','z-cat-suggest');prefillReceiptMethod()" />
               </div>
               <!-- Require prepayment (testing — off by default) -->
               <div style="margin-bottom:12px;">
@@ -747,6 +747,16 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
                       <div>
                           <label class="lbl" for="z-prepay-email">Client email</label>
                           <input class="inp" type="email" id="z-prepay-email" placeholder="client@example.com" />
+                      </div>
+                      <div style="margin-top:10px;">
+                          <label class="lbl" for="z-receipt">Send receipt by</label>
+                          <select class="inp" id="z-receipt" onchange="this.dataset.touched='1'">
+                              <option value="none">None</option>
+                              <option value="email">Email</option>
+                              <option value="sms">SMS</option>
+                              <option value="both">Email + SMS</option>
+                          </select>
+                          <div id="z-receipt-hint" style="font-size:11px;color:#8A8479;margin-top:4px;">Sent once, automatically, when payment is received</div>
                       </div>
                   </div>
               </div>
@@ -827,6 +837,15 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
                   <label class="lbl" for="ze-cat">Category (optional)</label>
                   <select class="inp" id="ze-cat">
                       <option value="">— None —</option>
+                  </select>
+              </div>
+              <div style="margin-bottom:14px;display:none;" id="ze-receipt-row">
+                  <label class="lbl" for="ze-receipt">Send receipt by</label>
+                  <select class="inp" id="ze-receipt">
+                      <option value="none">None</option>
+                      <option value="email">Email</option>
+                      <option value="sms">SMS</option>
+                      <option value="both">Email + SMS</option>
                   </select>
               </div>
               <button class="btn-main" onclick="saveZoomEdit()">Save changes</button>
@@ -1917,6 +1936,35 @@ async function doAdd(){
     eEl.textContent='Clash with '+clash.who+' ('+clash.start+'–'+clash.end+').';
     eEl.style.display='block';draw();_addingBooking=false;document.getElementById('sbtn').disabled=false;document.getElementById('sbtn').textContent='Add booking';return;
   }
+  // FIX: repeat bookings. Previously the single-booking path below always ran
+  // and then hit a bare `return;`, so the repeat code never executed and only
+  // the first date was ever created. Repeats now go through
+  // processRepeatBookings (which handles each date, bank holidays and clashes).
+  if(repMode!=='none'){
+    const repDates=getRepDates();
+    const allDates=[date,...repDates];
+    const repId=Date.now();
+    const dur=selMins==='custom'
+      ?(()=>{const[sh,sm]=from.split(':').map(Number),[eh,em]=to.split(':').map(Number);return(eh*60+em)-(sh*60+sm);})()
+      :selMins;
+    const extras={
+      ...(couples&&{couples:true,client1:note,client2:partnerName}),
+      ...(isOnlineSession()&&{isOnlineSession:true})
+    };
+    try{
+      await processRepeatBookings(allDates,from,to,dur,couples?fullNote:note,repId,eEl,oEl,
+        Object.keys(extras).length?extras:null,category);
+      resetCouples();
+      resetOnlineSession();
+    }finally{
+      _lastSaveTime=Date.now();
+      _addingBooking=false;
+      const sb=document.getElementById('sbtn');
+      sb.disabled=false; sb.textContent='Add booking'; sb.style.background=col(S.me).fg;
+    }
+    return;
+  }
+
   // Add directly to server — server does final clash check
   const newBooking={id:Date.now(),who:S.me,date,start:from,end:to,
     note:couples?fullNote:note,
@@ -1968,22 +2016,7 @@ async function doAdd(){
     document.getElementById('sbtn').textContent='Add booking';
     _addingBooking=false;
   }
-  return;
-  // (repeat bookings handled below via processRepeatBookings)
-  /*REPEAT_PLACEHOLDER*/
 
-  // Build list of all dates (main + repeats)
-  const repDates=getRepDates();
-  const allDates=[date,...repDates];
-  const repId=repMode!=='none'?Date.now():null;
-  const dur=selMins==='custom'?
-    (()=>{const[sh,sm]=from.split(':').map(Number),[eh,em]=to.split(':').map(Number);return(eh*60+em)-(sh*60+sm);})()
-    :selMins;
-
-  // Process all dates - handle clashes interactively
-  // Pass couples data so confirmation SMS sends to both clients
-  const couplesData=couples?{couples:true,client1:note,client2:partnerName}:null;
-  await processRepeatBookings(allDates,from,to,dur,couples?fullNote:note,repId,eEl,oEl,couplesData,category);
 }
 
 let _cancelBookingId=null;
@@ -2851,10 +2884,22 @@ function renderSeries(){
 }
 
 async function cancelSeries(repId){
-  const count=S.bookings.filter(b=>b.repeatId===repId).length;
+  const count=S.bookings.filter(b=>String(b.repeatId)===String(repId)).length;
   if(!confirm('Cancel all '+count+' bookings in this series?')) return;
-  S.bookings=S.bookings.filter(b=>b.repeatId!==repId);
-  await save(); draw(); renderSeries();
+  // FIX: previously this only removed bookings locally and called save(),
+  // which never touches bookings on the server — so they came back on refresh.
+  const ids=S.bookings.filter(b=>String(b.repeatId)===String(repId)).map(b=>b.id);
+  S.bookings=S.bookings.filter(b=>String(b.repeatId)!==String(repId));
+  ids.forEach(id=>{_deletedIds.add(id);_localBookings.delete(id);});
+  _saveDeletedIds();
+  _lastSaveTime=Date.now();
+  draw(); renderSeries(); renderCosts();
+  let failed=0;
+  for(const id of ids){
+    try{ await gasAction({action:'deleteBooking',id}); }catch(e){ failed++; }
+  }
+  if(failed) syncUI(false,failed+' of '+ids.length+' series deletes failed — tap Refresh to check',true);
+  else confirmSaved(S.bookings.length);
 }
 
 // ── Clients ───────────────────────────────────────────────────────────────
@@ -3050,6 +3095,38 @@ function toggleZoomPrepay(){
   header.style.background=on?'#FFF3CD':'#F7F5F0';
   header.style.borderColor=on?'#C9A84C':'transparent';
   document.getElementById('z-prepay-label').textContent=on?'💳 Prepayment required':'Require prepayment';
+  if(on) prefillReceiptMethod();
+}
+
+// ── Receipt preference, remembered per client ────────────────────────────
+// Uses the most recent Zoom booking for this client that had a receipt
+// choice (works across devices), falling back to this device's memory.
+const RECEIPT_LABELS={email:'Email',sms:'SMS',both:'Email + SMS'};
+function _receiptPrefs(){
+  try{ return JSON.parse(localStorage.getItem('rb_receipt_pref')||'{}'); }catch(e){ return {}; }
+}
+function rememberReceiptMethod(client,method){
+  const k=(client||'').trim().toLowerCase(); if(!k) return;
+  const prefs=_receiptPrefs(); prefs[k]=method;
+  try{ localStorage.setItem('rb_receipt_pref',JSON.stringify(prefs)); }catch(e){}
+}
+function lastReceiptMethodForClient(client){
+  const k=(client||'').trim().toLowerCase(); if(!k) return null;
+  const prev=(S.zoomBookings||[])
+    .filter(b=>b.receiptMethod&&(b.client1||b.note||'').trim().toLowerCase()===k)
+    .sort((a,b)=>(b.updated||'').localeCompare(a.updated||''))[0];
+  if(prev) return prev.receiptMethod;
+  return _receiptPrefs()[k]||null;
+}
+function prefillReceiptMethod(){
+  const sel=document.getElementById('z-receipt');
+  const hint=document.getElementById('z-receipt-hint');
+  if(!sel||sel.dataset.touched==='1') return; // don't override a manual choice
+  const last=lastReceiptMethodForClient(document.getElementById('z-client').value);
+  sel.value=last||'none';
+  if(hint) hint.textContent=last&&last!=='none'
+    ?'Last used for this client · sent once when payment is received'
+    :'Sent once, automatically, when payment is received';
 }
 function isZoomPrepay(){return document.getElementById('z-prepay-toggle').checked;}
 
@@ -3069,7 +3146,8 @@ async function _attemptCreateZoomMeeting(zb, durationMins, onAttempt){
     ...(zb.requirePrepay&&{
       requirePrepay:'1',
       expectedAmount:zb.expectedAmount,
-      clientEmail:zb.clientEmail||''
+      clientEmail:zb.clientEmail||'',
+      receiptMethod:zb.receiptMethod||'none'
     })
   });
   let lastErr=null;
@@ -3113,6 +3191,7 @@ async function doZoomBooking(){
   const requirePrepay=isZoomPrepay();
   const expectedAmount=requirePrepay?parseFloat(document.getElementById('z-prepay-amount').value||''):null;
   const clientEmail=requirePrepay?document.getElementById('z-prepay-email').value.trim():'';
+  const receiptMethod=requirePrepay?(document.getElementById('z-receipt').value||'none'):'none';
   if(requirePrepay&&(!expectedAmount||expectedAmount<=0)){
     eEl.textContent='Please enter the expected fee for prepayment.';eEl.style.display='block';return;
   }
@@ -3156,7 +3235,7 @@ async function doZoomBooking(){
     topic:topic, client1:client, client2:couples?client2:'',
     couples:couples&&!!client2,
     ...(category&&{category}),
-    ...(requirePrepay&&{requirePrepay:true,expectedAmount,clientEmail,paymentStatus:'awaiting'}),
+    ...(requirePrepay&&{requirePrepay:true,expectedAmount,clientEmail,receiptMethod,paymentStatus:'awaiting'}),
     zoomJoinUrl:'', zoomShortUrl:'', zoomPassword:'',
     zoomStartUrl:'', isZoom:true, pending:true,
     updated:new Date().toISOString()
@@ -3200,6 +3279,7 @@ async function doZoomBooking(){
     }
     renderZoomList();
     oEl.style.display='block';
+    if(requirePrepay) rememberReceiptMethod(client,receiptMethod);
     // Reset form
     document.getElementById('z-client').value='';
     document.getElementById('z-topic').value='';
@@ -3218,6 +3298,8 @@ async function doZoomBooking(){
     document.getElementById('z-prepay-header').style.background='#F7F5F0';
     document.getElementById('z-prepay-header').style.borderColor='transparent';
     document.getElementById('z-prepay-label').textContent='Require prepayment';
+    const zr=document.getElementById('z-receipt');
+    zr.value='none'; delete zr.dataset.touched;
     // Try to shorten URL via Bitly directly
     const bitlyToken=localStorage.getItem('rb_bitly_'+S.me);
     if(bitlyToken&&updated.zoomJoinUrl&&!updated.zoomShortUrl.includes('bit.ly')){
@@ -3295,7 +3377,11 @@ async function _retryPendingZoom(){
         // Re-attempt creation itself (not just re-saving the blank
         // placeholder), otherwise a booking with no real join URL or
         // password silently "succeeds" without a meeting existing.
-        const {found}=await _attemptCreateZoomMeeting(zb, zoomDurMins);
+        // FIX: use this booking's own length, not whatever the form is set to now
+        const [rsh,rsm]=(zb.start||'00:00').split(':').map(Number);
+        const [reh,rem]=(zb.end||zb.start||'00:00').split(':').map(Number);
+        const retryDur=((reh*60+rem)-(rsh*60+rsm))||60;
+        const {found}=await _attemptCreateZoomMeeting(zb, retryDur);
         if(found&&found.zoomJoinUrl){
           S.zoomBookings=S.zoomBookings.filter(b=>
             !(String(b.id)===String(zb.pendingId||zb.id)||String(b.pendingId)===String(zb.pendingId||zb.id)));
@@ -3460,6 +3546,8 @@ function selZoomEditDur(btn){
         document.getElementById('ze-client').value = zb.client1 || zb.note || '';
         document.getElementById('ze-topic').value = rawTopic;
         document.getElementById('ze-cat').value = zb.category || '';
+        document.getElementById('ze-receipt-row').style.display = zb.requirePrepay ? 'block' : 'none';
+        document.getElementById('ze-receipt').value = zb.receiptMethod || 'none';
         document.getElementById('ze-err').style.display = 'none';
         // Set duration buttons
         document.querySelectorAll('#zoom-edit-modal .dur-btn').forEach(b => {
@@ -3494,8 +3582,12 @@ async function saveZoomEdit(){
   const end=p2(Math.floor(endMins/60)%24)+':'+p2(endMins%60);
   const topic=topicRaw+' for '+client;
 
+  const receiptMethod=zb.requirePrepay?(document.getElementById('ze-receipt').value||'none'):zb.receiptMethod;
   S.zoomBookings[idx]={...zb, date, start, end, client1:client,
-    note:client, topic, category:category||undefined, updated:new Date().toISOString()};
+    note:client, topic, category:category||undefined,
+    ...(zb.requirePrepay&&{receiptMethod}),
+    updated:new Date().toISOString()};
+  if(zb.requirePrepay) rememberReceiptMethod(client,receiptMethod);
   _localZoomBookings.set(String(_zoomEditId), S.zoomBookings[idx]);
   _lastSaveTime=Date.now();
 
@@ -3596,12 +3688,20 @@ function renderZoomList(){
     // Reflects whichever email actually went out most recently: a chase
     // reminder if one has been sent, otherwise the original payment-link email.
     const sentAt=zb.chaseCount?fmtSent(zb.lastChaseSentAt):fmtSent(zb.paymentLinkSentAt);
+    const rMethod=zb.receiptMethod||'none';
+    const fmtTime=iso=>new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const receiptLine=!zb.requirePrepay||rMethod==='none'?''
+      :zb.receiptSentAt
+        ?` · 🧾 Receipt sent by ${xe(zb.receiptSentVia||RECEIPT_LABELS[rMethod])} · ${fmtTime(zb.receiptSentAt)}${zb.receiptError?` <span style="color:#C0392B;">(⚠️ ${xe(zb.receiptError)})</span>`:''}`
+        :zb.receiptError
+          ?` <span style="color:#C0392B;">· ⚠️ Receipt not sent: ${xe(zb.receiptError)}</span>`
+          :` · 🧾 Receipt by ${RECEIPT_LABELS[rMethod]} pending`;
     return`<div style="border:1px solid ${notReal?'#E8A33D':chaseExhausted?'#C0392B':(awaitingPay||ambiguous)?'#C9A84C':'#E5E0D8'};border-radius:12px;overflow:hidden;margin-bottom:10px;">
       ${notReal?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⚠️ Not yet created in Zoom — retrying automatically. No join link or password exists yet.</div>`:''}
       ${ambiguous?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ Payment ambiguous for ${d} at ${zb.start} — two or more matching payments found. Confirm manually below.</div>`
         :chaseExhausted?`<div style="padding:6px 16px;background:#FDECEA;font-size:12px;color:#C0392B;">⚠️ No response after 3 reminders (£${zb.expectedAmount}) for the ${d} session at ${zb.start} — no further automatic emails will be sent. Chase manually or delete the booking.</div>`
         :awaitingPay?`<div style="padding:6px 16px;background:#FFF3CD;font-size:12px;color:#6B4C00;">⏳ Awaiting payment (£${zb.expectedAmount}) for ${d} at ${zb.start}${sentAt?(zb.chaseCount?' · reminder '+zb.chaseCount+' of 3 sent '+sentAt:' · link sent '+sentAt):''} — Zoom link held back until payment is matched.</div>`
-        :isPaid?`<div style="padding:6px 16px;background:#D8F3DC;font-size:12px;color:#1B4332;">✅ Paid for ${d} at ${zb.start} — confirmation sent${zb.confirmationSentAt?'':' automatically'}.</div>`:''}
+        :isPaid?`<div style="padding:6px 16px;background:#D8F3DC;font-size:12px;color:#1B4332;">✅ Paid for ${d} at ${zb.start} — confirmation sent${zb.confirmationSentAt?'':' automatically'}.${receiptLine}</div>`:''}
       <div style="padding:12px 16px;background:#F7F5F0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div style="width:34px;height:34px;border-radius:50%;background:#E8F4FD;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📹</div>
         <div style="flex:1;min-width:0;">
@@ -3632,6 +3732,11 @@ function renderZoomList(){
             style="padding:5px 10px;font-size:11px;border:1px solid #C9A84C;border-radius:6px;background:#FFF3CD;color:#6B4C00;cursor:pointer;">
             ✉️ SMS
           </button>`}
+          ${isPaid?`
+          <button onclick="resendZoomReceipt('${zb.id}')"
+            style="padding:5px 10px;font-size:11px;border:1px solid #52B788;border-radius:6px;background:#fff;color:#1B4332;cursor:pointer;">
+            🧾 ${zb.receiptSentAt?'Resend receipt':'Send receipt'}
+          </button>`:''}
           <button onclick="bookRoomForZoom('${zb.id}')"
             style="padding:5px 10px;font-size:11px;border:1px solid #52B788;border-radius:6px;background:#D8F3DC;color:#1B4332;cursor:pointer;">
             🏢 Book room
@@ -3707,6 +3812,31 @@ async function markZoomPaidManually(zbId){
   }catch(e){
     alert('Error marking as paid: '+e.message);
   }
+}
+
+// Manual send/resend of the payment receipt from the Zoom card.
+async function resendZoomReceipt(zbId){
+  const zb=S.zoomBookings.find(b=>String(b.id)===String(zbId));
+  if(!zb){alert('Booking not found.');return;}
+  let method=zb.receiptMethod||'none';
+  if(method==='none'){
+    const pick=prompt('No receipt option set for '+(zb.note||zb.client1)+'.\nType email, sms or both:','email');
+    if(!pick) return;
+    method=pick.trim().toLowerCase();
+    if(!RECEIPT_LABELS[method]){alert('Please type email, sms or both.');return;}
+  }
+  if(!confirm((zb.receiptSentAt?'Resend':'Send')+' receipt to '+(zb.note||zb.client1)+' by '+RECEIPT_LABELS[method]+'?')) return;
+  try{
+    const r=await xhrFetch(GAS+'?'+new URLSearchParams({action:'sendReceipt',id:zb.id,receiptMethod:method}));
+    const j=await r.json();
+    if(j.ok){
+      rememberReceiptMethod(zb.client1||zb.note,method);
+      alert('🧾 Receipt sent by '+(j.receiptSentVia||RECEIPT_LABELS[method])+(j.receiptError?'\n\nNote: '+j.receiptError:''));
+      await load(); renderZoomList();
+    }else{
+      alert('Receipt failed: '+(j.error||'unknown error'));
+    }
+  }catch(e){ alert('Error sending receipt: '+e.message); }
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────
@@ -4337,6 +4467,7 @@ async function autoSendReminders(){ // Runs on page load between 8-9am; also han
       const clientNames=b.couples&&b.client1&&b.client2
         ?[b.client1,b.client2]
         :[b.note];
+      let lastSentPhone=''; // FIX: `contact` only exists inside the loop below
 
       for(const clientName of clientNames){
         const normClient=clientName.trim().toLowerCase();
@@ -4376,6 +4507,7 @@ async function autoSendReminders(){ // Runs on page load between 8-9am; also han
         if(sj.ok){
           // Mark this specific client as sent
           localStorage.setItem(clientKey,'sent_'+new Date().toISOString());
+          lastSentPhone=contact.phone;
           console.log('✓ Auto SMS sent to',clientName,'for',b.who,'on',b.date);
         } else {
           localStorage.removeItem(clientKey);
@@ -4397,7 +4529,7 @@ async function autoSendReminders(){ // Runs on page load between 8-9am; also han
         }
         if(!S.smsLog) S.smsLog=[];
         S.smsLog.unshift({id:Date.now(),who:b.who,date:b.date,start:b.start,
-          clientName:b.note||'',phone:contact.phone||'',emailAddr:'',sentAt:new Date().toISOString(),auto:true,type:'remind'});
+          clientName:b.note||'',phone:lastSentPhone||'',emailAddr:'',sentAt:new Date().toISOString(),auto:true,type:'remind'});
         localStorage.setItem(bookingKey,'sent_'+new Date().toISOString());
         await save();
       } else {
@@ -4480,8 +4612,9 @@ function renderSMSLog(){
   el.innerHTML=all.length?all.map(entry=>{
     const c=col(entry.who);
     const d=new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-    const isEmail=entry.type==='zoom-email';
-    const typeLabel=entry.type==='cancelled'?'❌ Cancellation'
+    const isEmail=entry.type==='zoom-email'||(entry.type==='receipt'&&!!entry.emailAddr);
+    const typeLabel=entry.type==='receipt'?'🧾 Receipt'
+      :entry.type==='cancelled'?'❌ Cancellation'
       :entry.type==='zoom-email'?'📧 Zoom email'
       :entry.type==='zoom-confirm'?'📹 Zoom SMS'
       :entry.auto?'🤖 Auto-reminder'

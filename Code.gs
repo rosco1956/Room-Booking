@@ -30,8 +30,13 @@ function readRecord() {
         if (cell === '' || cell === null || cell === undefined) break;
         combined += String(cell);
     }
-    try { return JSON.parse(combined || '{}'); }
-    catch (e) { return {}; }
+    if (!combined) {
+        throw new Error('readRecord: sheet returned no data — refusing to continue so nothing gets overwritten');
+    }
+    try { return JSON.parse(combined); }
+    catch (e) {
+        throw new Error('readRecord: stored data could not be parsed (' + combined.length + ' chars) — refusing to continue so nothing gets overwritten');
+    }
 }
 
 function writeRecord(record) {
@@ -98,7 +103,8 @@ function trimRecord(record) {
 }
 
 // ── MONTHLY INVOICE FEATURE — top-level functions ──────────────────────────
-// Fixed rate per booking, per practitioner. Edit these to your real rates.
+// Hourly rate per practitioner (£ per hour of room time) — invoices charge
+// hours × rate, see buildInvoiceHtml_. Edit these to your real rates.
 const INVOICE_RATES = {
     'Rosswell': 12,
     'Donna': 12,
@@ -382,7 +388,20 @@ function doGetInner(e) {
                     const existing = record.zoomBookings || [];
                     const existingById = {};
                     existing.forEach(function (b) { existingById[String(b.id)] = b; });
-                    settings.zoomBookings.forEach(function (b) { existingById[String(b.id)] = b; });
+                    settings.zoomBookings.forEach(function (b) {
+                        // Payment/receipt fields are only ever set by the server
+                        // (checkZettlePayments, markZoomPaid, sendReceipt etc). A
+                        // stale copy from the browser must never reset them —
+                        // otherwise a paid booking could flip back to 'awaiting'
+                        // and get matched, confirmed and receipted a second time.
+                        var prev = existingById[String(b.id)];
+                        if (prev) {
+                            SERVER_OWNED_ZOOM_FIELDS.forEach(function (f) {
+                                if (prev[f] !== undefined && prev[f] !== null && prev[f] !== '') b[f] = prev[f];
+                            });
+                        }
+                        existingById[String(b.id)] = b;
+                    });
                     record.zoomBookings = Object.values(existingById);
                 }
                 record = trimRecord(record);
@@ -400,6 +419,13 @@ function doGetInner(e) {
             lock.waitLock(10000);
             try {
                 const body = JSON.parse(decodeURIComponent(e.parameter.data || '{}'));
+                const current = readRecord();
+                const currentCount = (current.bookings || []).length;
+                const incomingCount = (body.bookings || []).length;
+                if (currentCount > 10 && incomingCount < currentCount * 0.5) {
+                    Logger.log('save BLOCKED: would drop bookings from ' + currentCount + ' to ' + incomingCount);
+                    return fail('Save blocked: would reduce bookings from ' + currentCount + ' to ' + incomingCount);
+                }
                 writeRecord(body);
                 return ok({});
             } finally {
@@ -564,6 +590,7 @@ if (action === 'createZoom') {
       const requirePrepay  = e.parameter.requirePrepay==='1';
       const expectedAmount = requirePrepay ? parseFloat(e.parameter.expectedAmount||'0') : null;
       const clientEmail    = requirePrepay ? decodeURIComponent(e.parameter.clientEmail||'') : '';
+      const receiptMethod  = requirePrepay ? normaliseReceiptMethod_(e.parameter.receiptMethod) : 'none';
       if (!who||!date) return fail('Missing who or date');
       if (requirePrepay && (!expectedAmount || expectedAmount<=0)) return fail('Missing expectedAmount for prepayment booking');
       if (requirePrepay && !clientEmail) return fail('Missing clientEmail for prepayment booking');
@@ -620,6 +647,7 @@ if (action === 'createZoom') {
             requirePrepay:  true,
             expectedAmount: expectedAmount,
             clientEmail:    clientEmail,
+            receiptMethod:  receiptMethod,
             paymentStatus:  'awaiting'
           } : {})
         };
@@ -707,9 +735,39 @@ if (action === 'createZoom') {
           }
         }
 
+        if (!zb2.receiptSentAt) {
+          try { sendPaymentReceiptInternal(zb2, record3); }
+          catch (e3) { Logger.log('markZoomPaid: receipt failed for '+id+': '+e3.message); }
+        }
+
         record3 = trimRecord(record3);
         writeRecord(record3);
         return ok(zb2);
+      } finally {
+        lock.releaseLock();
+      }
+    } catch(err) { return fail(err.message); }
+  }
+
+  if (action === 'sendReceipt') {
+    // Manual resend from the Zoom card. Ignores receiptSentAt on purpose —
+    // you pressed the button, so it sends again.
+    try {
+      const id = parseInt(e.parameter.id||'0');
+      if (!id) return fail('Missing id');
+      const lock = LockService.getScriptLock();
+      lock.waitLock(10000);
+      try {
+        var record5 = readRecord();
+        var zb5 = (record5.zoomBookings||[]).find(function(b){ return b.id === id; });
+        if (!zb5) return fail('Booking not found');
+        if (zb5.paymentStatus !== 'paid') return fail('Booking is not marked as paid yet');
+        if (e.parameter.receiptMethod) zb5.receiptMethod = normaliseReceiptMethod_(e.parameter.receiptMethod);
+        if ((zb5.receiptMethod||'none') === 'none') return fail('No receipt method set for this booking');
+        const res = sendPaymentReceiptInternal(zb5, record5);
+        writeRecord(trimRecord(record5));
+        if (!res || (!res.email && !res.phone)) return fail('Receipt not sent: ' + ((res && res.errors.join('; ')) || 'unknown error'));
+        return ok(zb5);
       } finally {
         lock.releaseLock();
       }
@@ -1221,6 +1279,13 @@ function checkZettlePayments() {
       } else {
         Logger.log('No clientEmail on booking ' + b.id + ', cannot auto-send confirmation');
       }
+
+      // Receipt — once only. receiptSentAt is checked inside the script
+      // lock, so a re-run or retry of this poller can't send a second one.
+      if (!b.receiptSentAt) {
+        try { sendPaymentReceiptInternal(b, record); }
+        catch (e) { Logger.log('Receipt failed for booking ' + b.id + ': ' + e.message); }
+      }
     });
 
     record = trimRecord(record);
@@ -1282,6 +1347,145 @@ function sendZoomConfirmationEmailInternal(b) {
 // function from the time-driven trigger, not through doGetInner at all.
 // reminderNumber: 0 = initial request, 1-3 = chase reminders (wording
 // escalates slightly).
+// ── Payment receipts ─────────────────────────────────────────────────────
+// Fields only the server sets on Zoom bookings — see saveSettings merge.
+const SERVER_OWNED_ZOOM_FIELDS = [
+  'paymentStatus', 'paidAt', 'zettlePurchaseUuid', 'manualPaymentOverride',
+  'confirmationSentAt', 'paymentLink', 'paymentLinkSentAt', 'chaseCount',
+  'lastChaseSentAt', 'paymentChaseExhausted', 'receiptSentAt', 'receiptSentVia'
+];
+
+function normaliseReceiptMethod_(m) {
+  m = String(m || 'none').toLowerCase();
+  return ['none', 'email', 'sms', 'both'].indexOf(m) > -1 ? m : 'none';
+}
+
+// Sends a payment receipt by email, SMS or both, according to
+// b.receiptMethod. Must be called inside the script lock with the record
+// that is about to be written, so the receiptSentAt flag and the comms-log
+// entries are saved in the same write.
+// SMS uses the practitioner's TextMagic credentials from Script
+// Properties (the same ones dailyReminders uses — see setCredentials).
+// Returns { email, phone, errors } or null if no receipt was requested.
+function sendPaymentReceiptInternal(b, record) {
+  var method = normaliseReceiptMethod_(b.receiptMethod);
+  if (method === 'none') return null;
+
+  var props = PropertiesService.getScriptProperties();
+  var tz = Session.getScriptTimeZone();
+  var tmMobile = props.getProperty('tm_mobile_' + b.who) || '07498218609';
+  var clientName = b.client1 || b.note || '';
+  var firstName = clientName.split(' ')[0] || 'there';
+  var sessionDate = Utilities.formatDate(new Date(b.date + 'T12:00:00'), tz, 'EEE d MMM yyyy');
+  var paidDate = Utilities.formatDate(new Date(b.paidAt || new Date()), tz, 'd MMM yyyy');
+  var amount = '£' + Number(b.expectedAmount || 0).toFixed(2);
+  var category = b.category ? ' (' + b.category + ')' : '';
+
+  var result = { email: '', phone: '', errors: [] };
+
+  // ── Email ──
+  if (method === 'email' || method === 'both') {
+    if (!b.clientEmail) {
+      result.errors.push('no client email');
+    } else {
+      try {
+        var subject = 'Receipt: payment for your session with ' + b.who;
+        var html =
+          '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1A1814;">' +
+          '<div style="background:#1A1814;padding:24px 28px;border-radius:8px 8px 0 0;">' +
+          '<h2 style="color:#fff;margin:0;font-size:18px;">🧾 Payment Receipt</h2>' +
+          '</div>' +
+          '<div style="background:#f9f8f6;padding:28px;border-radius:0 0 8px 8px;border:1px solid #E5E0D8;border-top:none;">' +
+          '<p style="margin:0 0 8px;">Hi ' + firstName + ',</p>' +
+          '<p style="margin:0 0 20px;">Thank you — your payment has been received. Please keep this email as your receipt.</p>' +
+          '<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #E5E0D8;border-radius:8px;font-size:14px;">' +
+          '<tr><td style="padding:10px 16px;color:#8A8479;">Client</td><td style="padding:10px 16px;text-align:right;">' + clientName + '</td></tr>' +
+          '<tr><td style="padding:10px 16px;color:#8A8479;border-top:1px solid #F0EDE8;">Session</td><td style="padding:10px 16px;text-align:right;border-top:1px solid #F0EDE8;">Zoom session with ' + b.who + category + '</td></tr>' +
+          '<tr><td style="padding:10px 16px;color:#8A8479;border-top:1px solid #F0EDE8;">Date &amp; time</td><td style="padding:10px 16px;text-align:right;border-top:1px solid #F0EDE8;">' + sessionDate + ' at ' + b.start + '</td></tr>' +
+          '<tr><td style="padding:10px 16px;color:#8A8479;border-top:1px solid #F0EDE8;">Date paid</td><td style="padding:10px 16px;text-align:right;border-top:1px solid #F0EDE8;">' + paidDate + '</td></tr>' +
+          '<tr><td style="padding:12px 16px;font-weight:bold;border-top:2px solid #1A1814;">Amount paid</td><td style="padding:12px 16px;text-align:right;font-weight:bold;border-top:2px solid #1A1814;">' + amount + '</td></tr>' +
+          '</table>' +
+          '<p style="margin:20px 0 0;font-size:13px;color:#8A8479;">If you have any questions please call <strong>' + tmMobile + '</strong>.</p>' +
+          '<p style="margin:16px 0 0;font-size:14px;">Kind regards,<br><strong>' + b.who + '</strong></p>' +
+          '</div></div>';
+        var plain =
+          'Hi ' + firstName + ',\n\n' +
+          'Thank you — your payment has been received. Please keep this email as your receipt.\n\n' +
+          'Client: ' + clientName + '\n' +
+          'Session: Zoom session with ' + b.who + category + '\n' +
+          'Date & time: ' + sessionDate + ' at ' + b.start + '\n' +
+          'Date paid: ' + paidDate + '\n' +
+          'Amount paid: ' + amount + '\n\n' +
+          'If you have any questions please call ' + tmMobile + '.\n\n' +
+          'Kind regards,\n' + b.who;
+        GmailApp.sendEmail(b.clientEmail, subject, plain, { htmlBody: html });
+        result.email = b.clientEmail;
+      } catch (e) {
+        result.errors.push('email failed: ' + e.message);
+      }
+    }
+  }
+
+  // ── SMS ──
+  if (method === 'sms' || method === 'both') {
+    var tmUser = props.getProperty('tm_user_' + b.who) || '';
+    var tmKey = props.getProperty('tm_key_' + b.who) || '';
+    if (!tmUser || !tmKey) {
+      result.errors.push('no TextMagic credentials for ' + b.who);
+    } else if (!clientName) {
+      result.errors.push('no client name to look up');
+    } else {
+      try {
+        var searchR = UrlFetchApp.fetch(TM + '/contacts/search?limit=5&page=1&query=' + encodeURIComponent(clientName), {
+          method: 'GET', headers: { 'X-TM-Username': tmUser, 'X-TM-Key': tmKey }, muteHttpExceptions: true
+        });
+        var phone = '';
+        if (searchR.getResponseCode() === 200) {
+          var contacts = JSON.parse(searchR.getContentText()).resources || [];
+          var match = contacts.find(function (c) { return nameMatches(c, clientName); });
+          if (match) phone = match.phone || '';
+        }
+        if (!phone) {
+          result.errors.push('no mobile found in TextMagic for ' + clientName);
+        } else {
+          var text = 'Hi ' + firstName + ', payment of ' + amount + ' received ' + paidDate +
+            ' for your Zoom session with ' + b.who + ' on ' + sessionDate + ' at ' + b.start +
+            '. Thank you - this is your receipt. Reply STOP to opt out.';
+          var sendR = UrlFetchApp.fetch(TM + '/messages', {
+            method: 'POST', headers: { 'X-TM-Username': tmUser, 'X-TM-Key': tmKey },
+            contentType: 'application/x-www-form-urlencoded',
+            payload: { text: text, phones: phone }, muteHttpExceptions: true
+          });
+          if (sendR.getResponseCode() === 201) result.phone = phone;
+          else result.errors.push('SMS failed: HTTP ' + sendR.getResponseCode());
+        }
+      } catch (e) {
+        result.errors.push('SMS failed: ' + e.message);
+      }
+    }
+  }
+
+  var now = new Date().toISOString();
+  if (result.email || result.phone) {
+    b.receiptSentAt = now;
+    b.receiptSentVia = [result.email ? 'Email' : '', result.phone ? 'SMS' : ''].filter(Boolean).join(' + ');
+  }
+  if (result.errors.length) b.receiptError = result.errors.join('; ');
+  else delete b.receiptError;
+
+  // Comms log entries (shown in the Reminders tab)
+  if (record) {
+    if (!record.smsLog) record.smsLog = [];
+    var base = { who: b.who, date: b.date, start: b.start, clientName: clientName, sentAt: now, auto: true, type: 'receipt' };
+    if (result.phone) record.smsLog.unshift(Object.assign({ id: Date.now(), phone: result.phone, emailAddr: '' }, base));
+    if (result.email) record.smsLog.unshift(Object.assign({ id: Date.now() + 1, phone: '', emailAddr: result.email }, base));
+  }
+
+  Logger.log('Receipt for booking ' + b.id + ': ' + (b.receiptSentVia || 'not sent') +
+    (result.errors.length ? ' | ' + result.errors.join('; ') : ''));
+  return result;
+}
+
 function sendPaymentRequestEmailInternal(p) {
   const isChase = p.reminderNumber > 0;
   const subject = isChase
