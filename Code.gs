@@ -530,6 +530,13 @@ function doGetInner(e) {
     }
     // ── END MONTHLY INVOICE FEATURE doGet wiring ────────────────────────
 
+if (action === 'ical' || action === 'zoomical') {
+  const calKey = PropertiesService.getScriptProperties().getProperty('CAL_KEY');
+  if (!calKey || e.parameter.key !== calKey) {
+    return ContentService.createTextOutput('Forbidden');
+  }
+}
+
     if (action === 'ical') {
         try {
             const who = e.parameter.who || '';
