@@ -3,7 +3,7 @@
 // Current Apps Script deployment ID.
 // Set GAS_ID as a variable in Cloudflare (Worker → Settings → Variables and Secrets)
 // to change it without editing code. This constant is only the fallback.
-const DEFAULT_GAS_ID = "AKfycbwoOOf_52JVPTf52qruZZNURaeDLBvFDTarqxC27rMY1nL5dlzwkG2ZOnOMYLXtaOQ";
+const DEFAULT_GAS_ID = "PASTE_CURRENT_DEPLOYMENT_ID_HERE";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +84,15 @@ var worker_default = {
     //   /calendar?who=Rosswell&type=zoom  → Zoom feed (action=zoomical)
     if (url.pathname === "/calendar" || url.pathname === "/calendar.ics") {
       const params = new URLSearchParams(url.search);
+      // Secret key check — CAL_KEY is a Secret set in Cloudflare.
+      const calKey = env && env.CAL_KEY;
+      if (!calKey || params.get("key") !== calKey) {
+        return new Response("Forbidden", {
+          status: 403,
+          headers: { "Content-Type": "text/plain; charset=utf-8" }
+        });
+      }
+      // key stays in params so GAS can check it too
       const type = params.get("type");
       params.delete("type");
       params.set("action", type === "zoom" ? "zoomical" : "ical");
