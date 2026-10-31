@@ -3684,7 +3684,7 @@ async function saveZoomEdit(){
 
 function subscribeZoomCal(){
   if(!S.me){showWho();return;}
-  const url=GAS+'?action=zoomical&who='+encodeURIComponent(S.me);
+    const url = location.origin + GAS + '?action=zoomical&who=' + encodeURIComponent(S.me) + '&key=' + encodeURIComponent(CAL_KEY);
   // Show modal with copy button and instructions
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -4193,8 +4193,9 @@ let icsWho=[], icsPeriod='future';
 // ── Webcal subscription ───────────────────────────────────────────────────
 let icsSubWho=null;
 
-function getSubURL(who){
-  return GAS+'?action=ical&who='+encodeURIComponent(who);
+const CAL_KEY = 'ZaYxEBF2_Ob_mvwRMKTx_9SlLxO8wPvz';
+function getSubURL(who) {
+    return location.origin + GAS + '?action=ical&who=' + encodeURIComponent(who) + '&key=' + encodeURIComponent(CAL_KEY);
 }
 
 function getWebcalURL(who){
