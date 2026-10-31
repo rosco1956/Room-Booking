@@ -1210,7 +1210,8 @@ async function load(spin=true){
     // Auto-send 2-day reminders if SMS enabled
     // Auto reminders handled by Apps Script daily trigger only
     // Count completed appointments that weren't cancelled
-    checkCompletedAppointments();
+      checkCompletedAppointments();
+
   }catch(e){
     const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if(isMobile){
@@ -2959,6 +2960,22 @@ function getClientData(){
   return Object.values(clients).sort((a,b)=>b.totalVisits-a.totalVisits);
 }
 
+
+async function loadHousehold(ci, name) {
+    const box = document.getElementById('hh-' + ci); if (!box) return;
+    const note = t => '<span style="font-size:12px;color:#8A8479;">' + t + '</span>';
+    const tm = getTM();
+    if (!tm.enabled || !tm.user || !tm.key) { box.innerHTML = note('Turn on SMS in My SMS settings to look up TextMagic.'); return; }
+    box.innerHTML = note('Looking up…');
+    try {
+        const j = await gasAction({ action: 'tmClientHousehold', tmUser: tm.user, tmKey: tm.key, name: name });
+        if (!j.found) { box.innerHTML = note('Not found in TextMagic'); return; }
+        if (!j.items.length) { box.innerHTML = note('No intake form details yet'); return; }
+        box.innerHTML = j.items.map(it => '<span style="display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;background:#EDE7F6;color:#3D1C5A;margin:2px 4px 2px 0;">' +
+            xe(it.type) + (it.ref ? ' · ' + xe(it.ref) : '') + (it.also ? ' · with ' + xe(it.also) : '') + '</span>').join('');
+    } catch (e) { box.innerHTML = note('Lookup failed: ' + xe(e.message)); }
+}
+
 function renderClients(){
   const el=document.getElementById('clients-body'); if(!el)return;
   const q=(document.getElementById('client-search')||{}).value||'';
@@ -2972,7 +2989,7 @@ function renderClients(){
   }
 
   const today=ds(new Date());
-  el.innerHTML=clients.map(c=>{
+    el.innerHTML = clients.map((c, ci) => {
     const last=c.lastVisit;
     const next=c.nextVisit;
     const lastD=last?new Date(last.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):'No past visits';
@@ -3000,6 +3017,7 @@ function renderClients(){
           <div style="font-size:12px;color:#8A8479;">
             ${c.totalVisits===1?'First visit':'Returning client'}
           </div>
+          <div id="hh-${ci}" style="margin-top:4px;"><button type="button" data-name="${xe(c.name).replace(/"/g, '&quot;')}" onclick="loadHousehold(${ci},this.dataset.name)" style="padding:3px 10px;font-size:11px;border:1px solid #E5E0D8;border-radius:99px;background:#fff;color:#8A8479;cursor:pointer;font-family:inherit;">👪 Household info</button></div>
         </div>
         <!-- Visit count badge -->
         <div style="text-align:center;flex-shrink:0;">
