@@ -471,6 +471,11 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
                   </select>
                   <div id="fcat-suggest" style="display:none;margin-top:6px;"></div>
               </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="fref">Household reference (optional)</label>
+                  <input class="inp" type="text" id="fref" placeholder="e.g. C-2026-001" />
+                  <div style="font-size:11px;color:#8A8479;margin-top:4px;">Confirmations and reminders go to everyone in TextMagic with this reference.</div>
+              </div>
               <div style="margin-bottom:12px;">
                   <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleCouples()">
                       <div style="flex:1;">
@@ -1797,6 +1802,7 @@ async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl
   S.bookings.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
   document.getElementById('fnt').value='';
   document.getElementById('fcat').value='';
+  document.getElementById('fref').value='';
   setRep('none');
   const msg=added===1?'Booking added ✓':added+' bookings added ✓';
   oEl.textContent=msg;
@@ -1903,7 +1909,8 @@ async function doAdd(){
   const from=document.getElementById('ffr').value;
   const to=getEnd();
   const note=document.getElementById('fnt').value.trim();
-  const category=document.getElementById('fcat').value||'';
+  const category = document.getElementById('fcat').value || '';
+  const householdRef = document.getElementById('fref').value.trim();
   const partnerName=isCouples()?getPartnerName():'';
   const fullNote=note&&partnerName?note+' & '+partnerName:note;
   const couples=isCouples()&&note&&partnerName;
@@ -1954,7 +1961,8 @@ async function doAdd(){
       :selMins;
     const extras={
       ...(couples&&{couples:true,client1:note,client2:partnerName}),
-      ...(isOnlineSession()&&{isOnlineSession:true})
+      ...(isOnlineSession()&&{isOnlineSession:true}),
+      ...(householdRef&&{householdRef})
     };
     try{
       await processRepeatBookings(allDates,from,to,dur,couples?fullNote:note,repId,eEl,oEl,
@@ -1974,6 +1982,7 @@ async function doAdd(){
   const newBooking={id:Date.now(),who:S.me,date,start:from,end:to,
     note:couples?fullNote:note,
     ...(category&&{category}),
+    ...(householdRef&&{householdRef}),
     ...(couples&&{couples:true,client1:note,client2:partnerName}),
     ...(isOnlineSession()&&{isOnlineSession:true}),
     updated:new Date().toISOString()};
@@ -1986,6 +1995,7 @@ async function doAdd(){
     _lastSaveTime=Date.now();
     document.getElementById('fnt').value='';
     document.getElementById('fcat').value='';
+    document.getElementById('fref').value='';
     oEl.style.display='block';
     setTimeout(()=>oEl.style.display='none',3000);
     draw();renderCosts();
@@ -2141,7 +2151,8 @@ function openEdit(id){
   document.getElementById('e-end-display').textContent=b.end;
   const stampEl=document.getElementById('edit-stamp');
   if(stampEl)stampEl.textContent=b.updated?'Last edited '+fmtStamp(b.updated):'';
-  document.getElementById('e-cat').value=b.category||'';
+    document.getElementById('e-cat').value = b.category || '';
+    document.getElementById('e-ref').value = b.householdRef || '';
   setEditOnline(!!b.isOnlineSession);
   document.getElementById('edit-modal').classList.remove('off');
 }
@@ -2194,7 +2205,8 @@ async function saveEdit(){
     const editedNote=editCouples?note+' & '+partner:note;
     const updated={...S.bookings[idx],date,start:from,end:to,
       note:editedNote,
-      category:category||undefined,
+        category: category || undefined,
+        householdRef: document.getElementById('e-ref').value.trim() || undefined,
       couples:editCouples?true:undefined,
       client1:editCouples?note:undefined,
       client2:editCouples?partner:undefined,
@@ -4545,7 +4557,7 @@ async function autoSendReminders(){ // Runs on page load between 8-9am; also han
   const today=ds(new Date());
 
   const due=S.bookings.filter(b=>
-    b.who===S.me&&b.date===target&&b.note&&!b.smsSent&&!b.autoSent&&!b.isOnlineSession
+      b.who === S.me && b.date === target && b.note && !b.smsSent && !b.autoSent && !b.isOnlineSession && !b.householdRef
   );
   if(!due.length) return;
 
@@ -4834,6 +4846,13 @@ function renderOptOuts(){
       <button onclick="removeOptOut('${xe(o.phone)}')" style="color:#CCC;font-size:18px;border:none;background:none;cursor:pointer;padding:2px 6px;">×</button>
     </div>`).join('');
 }
+async function sendConfirmationSMS(booking) {
+    if (!booking) return;
+    if (booking.who !== S.me) return;
+    const tm = getTM();
+    if (!tm.enabled || !tm.user || !tm.key) return;
+    if (booking.householdRef) { sendToHousehold(booking, 'confirm'); return; }
+    if (!booking.note) return;
 
 // ── Confirmation SMS ──────────────────────────────────────────────────────
 function smsConfirmText(booking,clientName,mobile){
@@ -4898,7 +4917,8 @@ function openSMS(id){
     return;
   }
   if(!tm.user||!tm.key){alert('No TextMagic credentials set. Go to People tab > My SMS settings.');openTM();return;}
-  const b=S.bookings.find(x=>x.id===id);if(!b)return;
+    const b = S.bookings.find(x => x.id === id); if (!b) return;
+    if (b.householdRef) { sendToHousehold(b, 'remind'); return; }
   _cpBid=id;
   _cpMode='remind';
   // For couples bookings, search for first person individually
