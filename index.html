@@ -4846,14 +4846,6 @@ function renderOptOuts(){
       <button onclick="removeOptOut('${xe(o.phone)}')" style="color:#CCC;font-size:18px;border:none;background:none;cursor:pointer;padding:2px 6px;">×</button>
     </div>`).join('');
 }
-async function sendConfirmationSMS(booking) {
-    if (!booking) return;
-    if (booking.who !== S.me) return;
-    const tm = getTM();
-    if (!tm.enabled || !tm.user || !tm.key) return;
-    if (booking.householdRef) { sendToHousehold(booking, 'confirm'); return; }
-    if (!booking.note) return;
-
 // ── Confirmation SMS ──────────────────────────────────────────────────────
 function smsConfirmText(booking,clientName,mobile){
   const d=new Date(booking.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
@@ -4867,6 +4859,7 @@ async function sendConfirmationSMS(booking){
   if(booking.who!==S.me) return;
   const tm=getTM();
   if(!tm.enabled||!tm.user||!tm.key) return;
+  if(booking.householdRef && typeof sendToHousehold==='function'){ sendToHousehold(booking,'confirm'); return; }
   if(!booking.note) return;
   if(!document.getElementById('cp-modal').classList.contains('off')) return;
 
@@ -4918,7 +4911,7 @@ function openSMS(id){
   }
   if(!tm.user||!tm.key){alert('No TextMagic credentials set. Go to People tab > My SMS settings.');openTM();return;}
     const b = S.bookings.find(x => x.id === id); if (!b) return;
-    if (b.householdRef) { sendToHousehold(b, 'remind'); return; }
+    if (b.householdRef && typeof sendToHousehold==='function') { sendToHousehold(b, 'remind'); return; }
   _cpBid=id;
   _cpMode='remind';
   // For couples bookings, search for first person individually
