@@ -88,16 +88,8 @@ function fail(msg) { return corsOutput({ ok: false, error: msg }); }
 
 // ── Trim helpers ─────────────────────────────────────────────────────────
 function trimRecord(record) {
-    const todayStr = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const cutoff = Utilities.formatDate(oneYearAgo, 'Europe/London', 'yyyy-MM-dd');
-    if (record.zoomBookings) {
-        record.zoomBookings = record.zoomBookings.filter(function (b) { return b.date >= cutoff; });
-    }
-    if (record.bookings) {
-        record.bookings = record.bookings.filter(function (b) { return b.date >= cutoff; });
-    }
+   // Old bookings are no longer dropped here. archiveOldBookings() (Archive.gs)
+    // moves them to the archive spreadsheet each month, so nothing is lost.
     if (record.smsLog) record.smsLog = record.smsLog.slice(0, 20);
     return record;
 }
@@ -253,6 +245,78 @@ function getZettleAccessTokenCached() {
   token = getZettleAccessToken();
   cache.put('zettle_access_token', token, 6000); // 6000s = 100 min
   return token;
+}
+
+// ── Households (couples / families) ─────────────────────────────────────
+// The intake Worker stores each adult's householdRef (e.g. C-2026-010) in
+// their TextMagic contact's Company field. Everyone sharing a ref is one
+// household; confirmations and reminders go to each of them.
+// Returns [{ id, name, firstName, phone, email }].
+var _householdCache_ = {};
+function findHouseholdContacts_(ref, tmUser, tmKey) {
+    const want = String(ref || '').trim().toLowerCase();
+    if (!want || !tmUser || !tmKey) return [];
+    const cacheKey = tmUser + '|' + want;
+    if (_householdCache_[cacheKey]) return _householdCache_[cacheKey];
+
+    const headers = { 'X-TM-Username': tmUser, 'X-TM-Key': tmKey };
+    const matches = function (c) { return String(c.companyName || '').trim().toLowerCase() === want; };
+    var found = [];
+
+    // 1. Quick search (TextMagic's search may or may not cover Company)
+    try {
+        const r = UrlFetchApp.fetch(TM + '/contacts/search?limit=50&page=1&query=' + encodeURIComponent(ref), {
+            method: 'GET', headers: headers, muteHttpExceptions: true
+        });
+        if (r.getResponseCode() === 200) found = (JSON.parse(r.getContentText()).resources || []).filter(matches);
+    } catch (err) { Logger.log('Household search error: ' + err.message); }
+
+    // 2. Fallback: page through all contacts and match Company exactly
+    if (!found.length) {
+        for (var page = 1; page <= 30; page++) {
+            try {
+                const r2 = UrlFetchApp.fetch(TM + '/contacts?limit=100&page=' + page, {
+                    method: 'GET', headers: headers, muteHttpExceptions: true
+                });
+                if (r2.getResponseCode() !== 200) break;
+                const d = JSON.parse(r2.getContentText());
+                found = found.concat((d.resources || []).filter(matches));
+                if (!d.pageCount || page >= d.pageCount) break;
+            } catch (err) { Logger.log('Household list error: ' + err.message); break; }
+        }
+    }
+
+    const seen = {};
+    const people = found
+        .filter(function (c) { return c.phone || c.email; })
+        .filter(function (c) { if (seen[c.id]) return false; seen[c.id] = true; return true; })
+        .map(function (c) {
+            const first = (c.firstName || '').trim();
+            return {
+                id: c.id,
+                name: (first + ' ' + (c.lastName || '').trim()).trim(),
+                firstName: first || 'there',
+                phone: c.phone || '',
+                email: c.email || ''
+            };
+        });
+    _householdCache_[cacheKey] = people;
+    return people;
+}
+
+// Finds the household ref for a client by name (their contact's Company).
+// For "Terry & Sam" style names, the first name in the pair is used.
+function findHouseholdRefForName_(name, tmUser, tmKey) {
+    const first = String(name || '').split('&')[0].trim();
+    if (!first) return '';
+    const r = UrlFetchApp.fetch(TM + '/contacts/search?limit=10&page=1&query=' + encodeURIComponent(first), {
+        method: 'GET', headers: { 'X-TM-Username': tmUser, 'X-TM-Key': tmKey }, muteHttpExceptions: true
+    });
+    if (r.getResponseCode() !== 200) return '';
+    const c = (JSON.parse(r.getContentText()).resources || []).find(function (x) {
+        return nameMatches(x, first) && String(x.companyName || '').trim();
+    });
+    return c ? String(c.companyName).trim() : '';
 }
 
 // ── Main GET handler ─────────────────────────────────────────────────────
@@ -598,6 +662,7 @@ if (action === 'createZoom') {
       const expectedAmount = requirePrepay ? parseFloat(e.parameter.expectedAmount||'0') : null;
       const clientEmail    = requirePrepay ? decodeURIComponent(e.parameter.clientEmail||'') : '';
       const receiptMethod  = requirePrepay ? normaliseReceiptMethod_(e.parameter.receiptMethod) : 'none';
+      const householdRef   = String(e.parameter.householdRef||'').trim();
       if (!who||!date) return fail('Missing who or date');
       if (requirePrepay && (!expectedAmount || expectedAmount<=0)) return fail('Missing expectedAmount for prepayment booking');
       if (requirePrepay && !clientEmail) return fail('Missing clientEmail for prepayment booking');
@@ -648,6 +713,7 @@ if (action === 'createZoom') {
           zoomStartUrl: meeting.startUrl,
           isZoom:       true,
           updated:      new Date().toISOString(),
+          ...(householdRef ? { householdRef: householdRef } : {}),
           // Prepayment fields — omitted entirely when requirePrepay is off,
           // so existing bookings/behaviour are completely unaffected.
           ...(requirePrepay ? {
@@ -891,6 +957,59 @@ if (action === 'createZoom') {
         } catch (err) { return fail(err.message); }
     }
 
+    // action=householdMembers — params: tmUser, tmKey, and ref OR name.
+    // Returns { ref, members: [{ name, firstName, phone, email }] }.
+    if (action === 'householdMembers') {
+        try {
+            const tmUser = e.parameter.tmUser || '', tmKey = e.parameter.tmKey || '';
+            if (!tmUser || !tmKey) return fail('Missing TextMagic credentials');
+            var ref = String(e.parameter.ref || '').trim();
+            if (!ref && e.parameter.name) ref = findHouseholdRefForName_(e.parameter.name, tmUser, tmKey);
+            if (!ref) return ok({ ref: '', members: [] });
+            return ok({ ref: ref, members: findHouseholdContacts_(ref, tmUser, tmKey) });
+        } catch (err) { return fail(err.message); }
+    }
+
+    if (action === 'tmClientHousehold') {
+        try {
+            const name = e.parameter.name || '';
+            if (!name) return fail('No name');
+            const sr = tmGet(e, '/contacts/search?limit=5&page=1&query=' + encodeURIComponent(name));
+            if (sr.getResponseCode() !== 200) return fail('Contact search failed');
+            const contacts = (JSON.parse(sr.getContentText()).resources || []).filter(function (c) {
+                return nameMatches(c, name);
+            });
+            if (!contacts.length) return ok({ found: false, items: [] });
+
+            const nr = tmGet(e, '/contacts/' + contacts[0].id + '/notes?limit=50&page=1');
+            if (nr.getResponseCode() !== 200) return fail('Could not read notes (HTTP ' + nr.getResponseCode() + ')');
+            const notes = JSON.parse(nr.getContentText()).resources || [];
+
+            const seen = {};
+            const items = [];
+            notes.forEach(function (n) {
+                const text = String(n.note || n.text || '');
+                const head = text.match(/^(.+?) intake form/m);
+                if (!head) return; // not a note written by the Worker
+                const refM = text.match(/^Household reference: (.+?)\.?$/m);
+                const alsoM = text.match(/^Also on this form: (.+?)\.?$/m);
+                const key = head[1] + '|' + (refM ? refM[1] : '');
+                if (seen[key]) return;
+                seen[key] = true;
+                items.push({
+                    type: head[1].trim(),
+                    ref: refM ? refM[1].trim() : '',
+                    also: alsoM ? alsoM[1].trim() : ''
+                });
+            });
+            return ok({ found: true, items: items });
+        } catch (err) { return fail(err.message); }
+    }
+
+    if (action === 'searchArchive') {
+        try { return ok(searchArchive_(e.parameter)); }
+        catch (err) { return fail(err.message); }
+    }
     return fail('Unknown action: ' + action);
 }
 
@@ -976,7 +1095,36 @@ function dailyReminders() {
         const tmKey = props.getProperty('tm_key_' + b.who) || '';
         const tmMobile = props.getProperty('tm_mobile_' + b.who) || '07498218609';
         if (!tmUser || !tmKey) { Logger.log('Skipping ' + b.who + ' - no TM credentials'); return; }
-
+        
+        if (b.householdRef) {
+            const dRef = Utilities.formatDate(new Date(b.date + 'T12:00:00'), Session.getScriptTimeZone(), 'EEE d MMM yyyy');
+            var sentCount = 0;
+            findHouseholdContacts_(b.householdRef, tmUser, tmKey).forEach(function (p) {
+                if (!p.phone) return;
+                const text = 'Note: Hi ' + p.firstName + ', you have an appt with ' + b.who +
+                    ' in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on ' +
+                    dRef + ' at ' + b.start + '. Call ' + tmMobile + '. Reply STOP to opt out.';
+                try {
+                    const sendR = UrlFetchApp.fetch(TM + '/messages', {
+                        method: 'POST', headers: { 'X-TM-Username': tmUser, 'X-TM-Key': tmKey },
+                        contentType: 'application/x-www-form-urlencoded',
+                        payload: { text: text, phones: p.phone }, muteHttpExceptions: true
+                    });
+                    if (sendR.getResponseCode() === 201) {
+                        sentCount++;
+                        newSmsLogEntries.unshift({
+                            id: Date.now() + sentCount, who: b.who, date: b.date, start: b.start,
+                            clientName: p.firstName, phone: p.phone, sentAt: new Date().toISOString(), auto: true, type: 'remind'
+                        });
+                    } else {
+                        Logger.log('Household SMS failed: HTTP ' + sendR.getResponseCode());
+                    }
+                } catch (err) { Logger.log('Household SMS error: ' + err.message); }
+            });
+            if (sentCount > 0) roomUpdates[b.id] = { autoSent: new Date().toISOString() };
+            else Logger.log('Household reminder: nobody reached for ' + b.householdRef);
+            return;
+        }
         var clients = (b.couples && b.client1 && b.client2) ? [b.client1, b.client2] : [b.note || ''];
         const d = Utilities.formatDate(new Date(b.date + 'T12:00:00'), Session.getScriptTimeZone(), 'EEE d MMM yyyy');
 
@@ -1044,6 +1192,18 @@ function dailyReminders() {
         var clients = (b.couples && b.client1 && b.client2) ? [b.client1, b.client2] : [b.note || ''];
         const d = Utilities.formatDate(new Date(b.date + 'T12:00:00'), Session.getScriptTimeZone(), 'EEE d MMM yyyy');
         const joinUrl = b.zoomShortUrl || b.zoomJoinUrl;
+
+        // Household booking: remind every adult with this ref (SMS + email)
+        if (b.householdRef) {
+            const members = findHouseholdContacts_(b.householdRef, tmUser, tmKey);
+            members.forEach(function (p) {
+                try { sendZoomReminderTo_(b, p.firstName, p.phone, p.email, d, joinUrl, tmUser, tmKey, tmMobile); }
+                catch (err) { Logger.log('Household Zoom reminder error: ' + err.message); }
+            });
+            if (members.length) zoomUpdates[b.id] = { zoomReminderSent: new Date().toISOString() };
+            else Logger.log('Household Zoom reminder: nobody found for ' + b.householdRef);
+            return;
+        }
 
         clients.forEach(function (clientName) {
             if (!clientName) return;
@@ -1305,8 +1465,56 @@ function checkZettlePayments() {
 // Shared confirmation-email sender, usable both from the createZoom action
 // (invoice-later categories, sent immediately) and from checkZettlePayments
 // (prepay categories, sent once payment is matched).
+// Sends one Zoom reminder (SMS and/or email) to one person.
+function sendZoomReminderTo_(b, first, phone, email, d, joinUrl, tmUser, tmKey, tmMobile) {
+    if (phone) {
+        const smsText = 'Note: Hi ' + first + ', your Zoom session with ' + b.who + ' is on ' + d + ' at ' + b.start +
+            '. Join: ' + joinUrl + '. Call ' + tmMobile + ' to cancel. Reply STOP to opt out.';
+        const smsR = UrlFetchApp.fetch(TM + '/messages', {
+            method: 'POST', headers: { 'X-TM-Username': tmUser, 'X-TM-Key': tmKey },
+            contentType: 'application/x-www-form-urlencoded',
+            payload: { text: smsText, phones: phone }, muteHttpExceptions: true
+        });
+        Logger.log('Zoom SMS HTTP ' + smsR.getResponseCode() + ' to ' + first);
+    }
+    if (email) {
+        var NL2 = '\n';
+        const subject = 'Reminder: Zoom session with ' + b.who + ' on ' + d;
+        const body2 = 'Hi ' + first + ',' + NL2 + NL2 +
+            'This is a reminder that your Zoom session with ' + b.who + ' is on ' + d + ' at ' + b.start + '.' + NL2 + NL2 +
+            'Join here: ' + joinUrl + NL2 + NL2 +
+            'To cancel call ' + tmMobile + '.' + NL2 + NL2 +
+            'Kind regards,' + NL2 + b.who;
+        try { GmailApp.sendEmail(email, subject, body2); Logger.log('Zoom email sent to ' + email); }
+        catch (ge) { Logger.log('Email error: ' + ge.message); }
+    }
+}
+
+// Sends the Zoom confirmation email to the booking's client email and, for
+// household bookings, to every adult in the household who has an email.
 function sendZoomConfirmationEmailInternal(b) {
-  var firstName = (b.note || '').split(' ')[0] || 'there';
+  var recipients = [];
+  var seen = {};
+  function addRecipient(email, first) {
+    var k = String(email || '').trim().toLowerCase();
+    if (!k || seen[k]) return;
+    seen[k] = true;
+    recipients.push({ email: String(email).trim(), firstName: first || 'there' });
+  }
+  addRecipient(b.clientEmail, (b.note || '').split(' ')[0]);
+  if (b.householdRef) {
+    var props = PropertiesService.getScriptProperties();
+    var tmUser = props.getProperty('tm_user_' + b.who) || '';
+    var tmKey = props.getProperty('tm_key_' + b.who) || '';
+    try {
+      findHouseholdContacts_(b.householdRef, tmUser, tmKey).forEach(function (p) { addRecipient(p.email, p.firstName); });
+    } catch (err) { Logger.log('Household confirmation lookup failed: ' + err.message); }
+  }
+  if (!recipients.length) throw new Error('No email address for confirmation');
+  recipients.forEach(function (r) { sendZoomConfirmationEmailTo_(b, r.email, r.firstName); });
+}
+
+function sendZoomConfirmationEmailTo_(b, toEmail, firstName) {
   var d = Utilities.formatDate(new Date(b.date + 'T12:00:00'), Session.getScriptTimeZone(), 'EEE d MMM yyyy');
   var joinUrl = b.zoomShortUrl || b.zoomJoinUrl;
   var tmMobile = PropertiesService.getScriptProperties().getProperty('tm_mobile_' + b.who) || '07498218609';
@@ -1343,7 +1551,7 @@ function sendZoomConfirmationEmailInternal(b) {
     'If you need to cancel please call ' + tmMobile + '.\n\n' +
     'Kind regards,\n' + b.who;
 
-  GmailApp.sendEmail(b.clientEmail, subject, plain, { htmlBody: html });
+  GmailApp.sendEmail(toEmail, subject, plain, { htmlBody: html });
 }
 
 // Shared HTML/plain-text builder for the payment-request email, used both
