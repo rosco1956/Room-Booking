@@ -462,7 +462,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
               </div>
               <div style="margin-bottom:10px;">
                   <label class="lbl" for="fnt">Client name</label>
-                  <input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith" oninput="suggestCategory('fnt','fcat','fcat-suggest')" />
+                  <input class="inp" type="text" id="fnt" placeholder="e.g. Sam Smith" oninput="suggestCategory('fnt','fcat','fcat-suggest');hhDetect('fnt','fref','fref-hint')" />
               </div>
               <div style="margin-bottom:10px;">
                   <label class="lbl" for="fcat">Category (optional)</label>
@@ -473,8 +473,8 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
               </div>
               <div style="margin-bottom:10px;">
                   <label class="lbl" for="fref">Household reference (optional)</label>
-                  <input class="inp" type="text" id="fref" placeholder="e.g. C-2026-001" />
-                  <div style="font-size:11px;color:#8A8479;margin-top:4px;">Confirmations and reminders go to everyone in TextMagic with this reference.</div>
+                  <input class="inp" type="text" id="fref" placeholder="e.g. C-2026-001" oninput="hhRefTyped('fref','fref-hint')" />
+                  <div id="fref-hint" style="font-size:11px;color:#8A8479;margin-top:4px;">Filled in automatically when the client belongs to a household. Confirmations and reminders go to everyone in TextMagic with this reference.</div>
               </div>
               <div style="margin-bottom:12px;">
                   <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleCouples()">
@@ -729,7 +729,12 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
               </div>
               <div style="margin-bottom:10px;">
                   <label class="lbl" for="z-client">Client name</label>
-                  <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith" oninput="suggestCategory('z-client','z-cat','z-cat-suggest');prefillReceiptMethod()" />
+                  <input class="inp" type="text" id="z-client" placeholder="e.g. Sam Smith" oninput="suggestCategory('z-client','z-cat','z-cat-suggest');prefillReceiptMethod();hhDetect('z-client','z-ref','z-ref-hint')" />
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="z-ref">Household reference (optional)</label>
+                  <input class="inp" type="text" id="z-ref" placeholder="e.g. C-2026-001" oninput="hhRefTyped('z-ref','z-ref-hint')" />
+                  <div id="z-ref-hint" style="font-size:11px;color:#8A8479;margin-top:4px;">Filled in automatically when the client belongs to a household. Confirmations and reminders go to everyone with this reference.</div>
               </div>
               <!-- Require prepayment (testing — off by default) -->
               <div style="margin-bottom:12px;">
@@ -1803,6 +1808,7 @@ async function processRepeatBookings(allDates,from,to,durMins,note,repId,eEl,oEl
   document.getElementById('fnt').value='';
   document.getElementById('fcat').value='';
   document.getElementById('fref').value='';
+  hhResetHint('fref-hint');
   setRep('none');
   const msg=added===1?'Booking added ✓':added+' bookings added ✓';
   oEl.textContent=msg;
@@ -1996,6 +2002,7 @@ async function doAdd(){
     document.getElementById('fnt').value='';
     document.getElementById('fcat').value='';
     document.getElementById('fref').value='';
+    hhResetHint('fref-hint');
     oEl.style.display='block';
     setTimeout(()=>oEl.style.display='none',3000);
     draw();renderCosts();
@@ -3259,6 +3266,7 @@ async function _attemptCreateZoomMeeting(zb, durationMins, onAttempt){
     client:zb.client1||'',
     client2:zb.client2||'',
     couples:zb.couples?'1':'0',
+    ...(zb.householdRef&&{householdRef:zb.householdRef}),
     ...(zb.requirePrepay&&{
       requirePrepay:'1',
       expectedAmount:zb.expectedAmount,
@@ -3295,6 +3303,7 @@ async function doZoomBooking(){
   const category=document.getElementById('z-cat').value||'';
   const couples=document.getElementById('z-couples-toggle').checked;
   const client2=couples?(document.getElementById('z-client2').value.trim()):'';
+  const householdRef=document.getElementById('z-ref').value.trim();
   const topicRaw=(document.getElementById('z-topic').value.trim())||'Session';
   const topic=topicRaw+' for '+(couples&&client2?client+' & '+client2:client);
   const eEl=document.getElementById('zoom-err');
@@ -3351,6 +3360,7 @@ async function doZoomBooking(){
     topic:topic, client1:client, client2:couples?client2:'',
     couples:couples&&!!client2,
     ...(category&&{category}),
+    ...(householdRef&&{householdRef}),
     ...(requirePrepay&&{requirePrepay:true,expectedAmount,clientEmail,receiptMethod,paymentStatus:'awaiting'}),
     zoomJoinUrl:'', zoomShortUrl:'', zoomPassword:'',
     zoomStartUrl:'', isZoom:true, pending:true,
@@ -3398,6 +3408,8 @@ async function doZoomBooking(){
     if(requirePrepay) rememberReceiptMethod(client,receiptMethod);
     // Reset form
     document.getElementById('z-client').value='';
+    document.getElementById('z-ref').value='';
+    hhResetHint('z-ref-hint');
     document.getElementById('z-topic').value='';
     document.getElementById('z-cat').value='';
     document.getElementById('z-couples-toggle').checked=false;
@@ -3568,6 +3580,7 @@ async function sendZoomConfirmation(zb){
     alert('Zoom meeting created! Enable SMS in People tab to send confirmation to client.');
     return;
   }
+  if(zb.householdRef){ sendToHousehold(zb,'zoom-confirm'); return; }
   const clientName=zb.client1||zb.note||'';
   if(!clientName){console.warn('No client name on zoom booking');return;}
   // Ensure modal is reset before opening
@@ -4846,6 +4859,167 @@ function renderOptOuts(){
       <button onclick="removeOptOut('${xe(o.phone)}')" style="color:#CCC;font-size:18px;border:none;background:none;cursor:pointer;padding:2px 6px;">×</button>
     </div>`).join('');
 }
+// ── Households (couples / families) ───────────────────────────────────────
+// Each adult's TextMagic contact holds the householdRef (e.g. C-2026-010) in
+// its Company field. Typing a client name looks up their ref and fills in the
+// Household reference box; confirmations and reminders then go to everyone
+// with that ref.
+const _hhTimers={}, _hhSeq={};
+const HH_DEFAULT_HINT={
+  'fref-hint':'Filled in automatically when the client belongs to a household. Confirmations and reminders go to everyone in TextMagic with this reference.',
+  'z-ref-hint':'Filled in automatically when the client belongs to a household. Confirmations and reminders go to everyone with this reference.'
+};
+function hhResetHint(hintId){
+  const h=document.getElementById(hintId); if(!h) return;
+  h.style.color='#8A8479';
+  h.textContent=HH_DEFAULT_HINT[hintId]||'';
+}
+async function hhLookup(params){
+  const tm=getTM();
+  if(!tm.user||!tm.key) return null;
+  const q=new URLSearchParams({action:'householdMembers',tmUser:tm.user,tmKey:tm.key,...params});
+  const r=await gasFetch(GAS+'?'+q);
+  const j=await r.json();
+  if(!j.ok) throw new Error(j.error||'Household lookup failed');
+  return {ref:j.ref||'',members:j.members||[]};
+}
+function hhRenderHint(hintId,ref,members){
+  const h=document.getElementById(hintId); if(!h) return;
+  if(!ref){hhResetHint(hintId);return;}
+  if(!members.length){
+    h.style.color='#B8860B';
+    h.textContent='⚠️ Nobody in TextMagic has '+ref+' in their Company field yet — messages will fall back to the normal contact picker.';
+    return;
+  }
+  const list=members.map(m=>m.name+' ('+[m.phone&&'SMS',m.email&&'email'].filter(Boolean).join(' + ')+')').join(', ');
+  h.style.color='#2E7D32';
+  h.textContent='👪 Household '+ref+': '+list+'. Everyone listed gets confirmations and reminders.';
+}
+// Client name typed → find their household ref
+function hhDetect(nameId,refId,hintId){
+  clearTimeout(_hhTimers[refId]);
+  _hhTimers[refId]=setTimeout(async()=>{
+    const nameEl=document.getElementById(nameId), refEl=document.getElementById(refId);
+    if(!nameEl||!refEl) return;
+    const name=nameEl.value.trim();
+    // Don't overwrite a reference typed in by hand
+    if(refEl.value.trim()&&refEl.dataset.auto!=='1') return;
+    if(name.length<3){
+      if(refEl.dataset.auto==='1'){refEl.value='';refEl.dataset.auto='0';hhResetHint(hintId);}
+      return;
+    }
+    const seq=(_hhSeq[refId]||0)+1; _hhSeq[refId]=seq;
+    try{
+      const res=await hhLookup({name});
+      if(!res||_hhSeq[refId]!==seq) return; // a newer lookup is running
+      if(res.ref){
+        refEl.value=res.ref; refEl.dataset.auto='1';
+        hhRenderHint(hintId,res.ref,res.members);
+      }else if(refEl.dataset.auto==='1'){
+        refEl.value=''; refEl.dataset.auto='0'; hhResetHint(hintId);
+      }
+    }catch(e){console.warn('Household lookup:',e.message);}
+  },900);
+}
+// Reference typed by hand → show who is in that household
+function hhRefTyped(refId,hintId){
+  const refEl=document.getElementById(refId); if(!refEl) return;
+  refEl.dataset.auto='0';
+  clearTimeout(_hhTimers[refId]);
+  _hhTimers[refId]=setTimeout(async()=>{
+    const ref=refEl.value.trim();
+    if(!ref){hhResetHint(hintId);return;}
+    const seq=(_hhSeq[refId]||0)+1; _hhSeq[refId]=seq;
+    try{
+      const res=await hhLookup({ref});
+      if(res&&_hhSeq[refId]===seq) hhRenderHint(hintId,res.ref,res.members);
+    }catch(e){console.warn('Household lookup:',e.message);}
+  },900);
+}
+
+// Sends a confirmation / reminder to every adult in the booking's household.
+// mode: 'confirm' | 'remind' (room bookings, SMS) or 'zoom-confirm' (SMS + email).
+async function sendToHousehold(bk,mode){
+  const tm=getTM();
+  if(!tm.enabled||!tm.user||!tm.key){alert('SMS is not set up for '+S.me+'. Go to People tab > My SMS settings.');return;}
+  const isZoom=mode==='zoom-confirm';
+  if(isZoom&&bk.requirePrepay&&bk.paymentStatus!=='paid'){
+    alert('Zoom meeting created for household '+bk.householdRef+'. As this session needs prepayment, the Zoom link will be emailed to the household automatically once payment is received.');
+    return;
+  }
+  let res;
+  try{ res=await hhLookup({ref:bk.householdRef}); }
+  catch(e){ alert('Could not look up household '+bk.householdRef+': '+e.message); return; }
+  const all=(res&&res.members)||[];
+  const optedOut=all.filter(m=>m.phone&&isOptedOut(m.phone));
+  const members=all.map(m=>({...m,sms:!!m.phone&&!isOptedOut(m.phone),mail:isZoom&&!!m.email}))
+    .filter(m=>m.sms||m.mail);
+
+  const fallback=()=>{
+    const plain={...bk,householdRef:''};
+    if(mode==='remind') openSMS(bk.id,true);
+    else if(isZoom) sendZoomConfirmation(plain);
+    else sendConfirmationSMS(plain);
+  };
+  if(!members.length){
+    if(confirm('Nobody in TextMagic has '+bk.householdRef+' in their Company field'+(optedOut.length?' (or they have opted out)':'')+'.\n\nUse the normal contact picker instead?')) fallback();
+    return;
+  }
+
+  const label=mode==='remind'?'reminder':isZoom?'Zoom confirmation':'confirmation';
+  const lines=members.map(m=>'• '+m.name+' — '+[m.sms&&'SMS',m.mail&&'email'].filter(Boolean).join(' + '));
+  if(optedOut.length) lines.push('(Not texting '+optedOut.map(m=>m.name).join(', ')+' — opted out)');
+  if(!confirm('Send '+label+' to household '+bk.householdRef+'?\n\n'+lines.join('\n'))) return;
+
+  const mobile=tm.mobile||'07498218609';
+  const d=new Date(bk.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const dEmail=new Date(bk.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const link=bk.zoomShortUrl||bk.zoomJoinUrl||'';
+  const textFor=first=>isZoom
+    ?'Hi '+first+', your Zoom session with '+bk.who+' is confirmed for '+d+' at '+bk.start+'. Join: '+link+'. Call '+mobile+' to cancel. Reply STOP to opt out.'
+    :mode==='confirm'
+      ?'Hi '+first+', your appt with '+bk.who+' is confirmed for '+d+' at '+bk.start+', Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD. Call '+mobile+' to cancel. Reply STOP to opt out.'
+      :'Note: Hi '+first+', you have an appt with '+bk.who+' in Room 34, Canute Suite, Royal Mail House, Terminus Ter, Southampton SO14 3FD on '+d+' at '+bk.start+'. Call '+mobile+'. Reply STOP to opt out.';
+
+  if(!S.smsLog) S.smsLog=[];
+  const sent=[], failed=[];
+  let n=0;
+  for(const m of members){
+    const first=m.firstName||'there';
+    if(m.sms){
+      try{
+        const j=await (await gasFetch(GAS+'?'+new URLSearchParams({action:'tmSend',tmUser:tm.user,tmKey:tm.key,text:textFor(first),phones:m.phone}))).json();
+        if(!j.ok) throw new Error(j.error||'failed');
+        sent.push(m.name+' (SMS)');
+        S.smsLog.unshift({id:Date.now()+(n++),who:bk.who||'',date:bk.date||'',start:bk.start||'',clientName:m.name,phone:m.phone,emailAddr:'',sentAt:new Date().toISOString(),auto:false,type:mode});
+      }catch(e){failed.push(m.name+' SMS: '+e.message);}
+    }
+    if(m.mail){
+      try{
+        const j=await gasAction({action:'sendZoomEmail',to:m.email,firstName:first,who:bk.who||'',date:dEmail,start:bk.start||'',joinUrl:link,mobile});
+        sent.push(m.name+' (email)');
+        S.smsLog.unshift({id:Date.now()+(n++),who:bk.who||'',date:bk.date||'',start:bk.start||'',clientName:m.name,phone:'',emailAddr:m.email,sentAt:new Date().toISOString(),auto:false,type:'zoom-email'});
+      }catch(e){failed.push(m.name+' email: '+e.message);}
+    }
+  }
+
+  if(sent.length){
+    if(isZoom){
+      try{ await save(); }catch(e){ console.warn('Save after household send:',e.message); }
+    }else{
+      const i=S.bookings.findIndex(x=>x.id===bk.id);
+      if(i>-1){
+        S.bookings[i].smsSent=new Date().toISOString();
+        updateBookingOnServer(S.bookings[i]).catch(e=>console.warn('smsSent update:',e.message));
+      }
+      draw();
+    }
+    if(typeof renderSMSTab==='function') renderSMSTab();
+  }
+  alert((sent.length?'✓ '+label.charAt(0).toUpperCase()+label.slice(1)+' sent to: '+sent.join(', '):'Nothing was sent.')+
+    (failed.length?'\n\n⚠️ Problems:\n'+failed.join('\n'):''));
+}
+
 // ── Confirmation SMS ──────────────────────────────────────────────────────
 function smsConfirmText(booking,clientName,mobile){
   const d=new Date(booking.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
@@ -4859,7 +5033,7 @@ async function sendConfirmationSMS(booking){
   if(booking.who!==S.me) return;
   const tm=getTM();
   if(!tm.enabled||!tm.user||!tm.key) return;
-  if(booking.householdRef && typeof sendToHousehold==='function'){ sendToHousehold(booking,'confirm'); return; }
+  if(booking.householdRef){ sendToHousehold(booking,'confirm'); return; }
   if(!booking.note) return;
   if(!document.getElementById('cp-modal').classList.contains('off')) return;
 
@@ -4902,7 +5076,7 @@ async function sendConfirmationSMS(booking){
 // ── Contact picker ────────────────────────────────────────────────────────
 let _cpBid=null,_cpMode='remind',_tmCache=null,_tmCacheKey='';
 
-function openSMS(id){
+function openSMS(id, skipHousehold){
   if(!S.me){showWho();return;}
   const tm=getTM();
   if(!tm.enabled){
@@ -4911,7 +5085,7 @@ function openSMS(id){
   }
   if(!tm.user||!tm.key){alert('No TextMagic credentials set. Go to People tab > My SMS settings.');openTM();return;}
     const b = S.bookings.find(x => x.id === id); if (!b) return;
-    if (b.householdRef && typeof sendToHousehold==='function') { sendToHousehold(b, 'remind'); return; }
+    if (b.householdRef && !skipHousehold) { sendToHousehold(b, 'remind'); return; }
   _cpBid=id;
   _cpMode='remind';
   // For couples bookings, search for first person individually
