@@ -3260,7 +3260,8 @@ function isZoomPrepay(){return document.getElementById('z-prepay-toggle').checke
 async function _attemptCreateZoomMeeting(zb, durationMins, onAttempt){
   const params=new URLSearchParams({
     action:'createZoom', who:zb.who,
-    topic:zb.topic||'Session',
+      topic: zb.topic || 'Session',
+      category: zb.category || '',
     date:zb.date, start:zb.start, duration:durationMins,
     pendingId:zb.pendingId||zb.id,
     client:zb.client1||'',
