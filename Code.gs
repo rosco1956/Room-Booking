@@ -490,7 +490,10 @@ function doGetInner(e) {
                     Logger.log('save BLOCKED: would drop bookings from ' + currentCount + ' to ' + incomingCount);
                     return fail('Save blocked: would reduce bookings from ' + currentCount + ' to ' + incomingCount);
                 }
-                writeRecord(body);
+                // Keep anything the caller did not send (above all zoomBookings,
+                // which the room-booking fallback never includes). Without this,
+                // a full save replaced the whole sheet and wiped every Zoom booking.
+                writeRecord(Object.assign({}, current, body));
                 return ok({});
             } finally {
                 lock.releaseLock();
@@ -658,6 +661,7 @@ if (action === 'createZoom') {
       const client    = decodeURIComponent(e.parameter.client||'');
       const client2   = decodeURIComponent(e.parameter.client2||'');
       const couples   = e.parameter.couples==='1';
+      const category  = e.parameter.category||'';
       const requirePrepay  = e.parameter.requirePrepay==='1';
       const expectedAmount = requirePrepay ? parseFloat(e.parameter.expectedAmount||'0') : null;
       const clientEmail    = requirePrepay ? decodeURIComponent(e.parameter.clientEmail||'') : '';
@@ -703,6 +707,8 @@ if (action === 'createZoom') {
           start:        start,
           end:          endTime,
           note:         note,
+          topic:        topic,
+          ...(category ? {category: category} : {}),
           client1:      client,
           client2:      client2,
           couples:      couples&&!!client2,
@@ -854,6 +860,65 @@ if (action === 'createZoom') {
             if (!who || !meetingId) return fail('Missing who or meetingId');
             deleteZoomMeeting(who, meetingId);
             return ok({});
+        } catch (err) { return fail(err.message); }
+    }
+
+    // Saves ONE Zoom booking (an edit made in the app). The old way sent the
+    // whole zoomBookings list in a single web address, which went over the
+    // 16 KB limit once there were about a dozen bookings and failed silently.
+    // Updates an existing booking only: it never creates one, so a stale
+    // browser cannot bring back a booking that was deleted.
+    if (action === 'saveZoomBooking') {
+        try {
+            const incomingZ = JSON.parse(decodeURIComponent(e.parameter.booking || '{}'));
+            if (!incomingZ || !incomingZ.id) return fail('Missing booking id');
+            const lock = LockService.getScriptLock();
+            lock.waitLock(10000);
+            try {
+                var recZ = readRecord();
+                var listZ = recZ.zoomBookings || [];
+                var idxZ = -1;
+                for (var iz = 0; iz < listZ.length; iz++) {
+                    if (String(listZ[iz].id) === String(incomingZ.id)) { idxZ = iz; break; }
+                }
+                if (idxZ === -1) return fail('Booking not found on the server (it may have been deleted)');
+                var prevZ = listZ[idxZ];
+                // Payment and receipt fields belong to the server. A copy held
+                // by the browser may be out of date and must never reset them.
+                SERVER_OWNED_ZOOM_FIELDS.forEach(function (f) {
+                    if (prevZ[f] !== undefined && prevZ[f] !== null && prevZ[f] !== '') incomingZ[f] = prevZ[f];
+                });
+                delete incomingZ.pending; // browser-only flag
+                listZ[idxZ] = incomingZ;
+                recZ.zoomBookings = listZ;
+                writeRecord(trimRecord(recZ));
+                return ok({ booking: incomingZ });
+            } finally {
+                lock.releaseLock();
+            }
+        } catch (err) { return fail(err.message); }
+    }
+
+    // Really removes a Zoom booking from the sheet. Before this existed the app
+    // only hid a deleted booking on that one device, so it stayed in the sheet:
+    // still chased for payment, still in the calendar feed, and it came back
+    // on other devices. Removing an id that is already gone is not an error.
+    if (action === 'removeZoomBooking') {
+        try {
+            const rid = String(e.parameter.id || '');
+            if (!rid) return fail('Missing id');
+            const lock = LockService.getScriptLock();
+            lock.waitLock(10000);
+            try {
+                var recR = readRecord();
+                var beforeR = (recR.zoomBookings || []).length;
+                recR.zoomBookings = (recR.zoomBookings || []).filter(function (b) { return String(b.id) !== rid; });
+                var removedR = beforeR - recR.zoomBookings.length;
+                if (removedR) writeRecord(trimRecord(recR));
+                return ok({ removed: removedR, count: recR.zoomBookings.length });
+            } finally {
+                lock.releaseLock();
+            }
         } catch (err) { return fail(err.message); }
     }
 

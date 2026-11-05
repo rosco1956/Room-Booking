@@ -3398,9 +3398,9 @@ async function doZoomBooking(){
     S.zoomBookings.push(updated);
     _localZoomBookings.set(String(updated.id), updated);
     try{
-      await saveZoom();
+      await saveZoomBooking(updated);
     }catch(e){
-      console.warn('saveZoom failed after creation — adding to pending queue');
+      console.warn('saveZoomBooking failed after creation — adding to pending queue');
       _addPendingZoom(updated);
       syncUI(false,'⚠️ Zoom save failed — will retry automatically',true);
     }
@@ -3442,9 +3442,9 @@ async function doZoomBooking(){
           const bj=await br.json();
           if(bj.link){
             updated.zoomShortUrl=bj.link;
-            const uidx=S.zoomBookings.findIndex(b=>String(b.id)===String(pendingId));
+            const uidx=S.zoomBookings.findIndex(b=>String(b.id)===String(updated.id));
             if(uidx>-1) S.zoomBookings[uidx].zoomShortUrl=bj.link;
-            await saveZoom();
+            await saveZoomBooking(updated);
             renderZoomList();
           }
         }
@@ -3519,7 +3519,7 @@ async function _retryPendingZoom(){
             zoomShortUrl:found.zoomShortUrl||found.zoomJoinUrl,
             zoomPassword:found.zoomPassword||'', zoomStartUrl:found.zoomStartUrl||''};
           S.zoomBookings.push(updated);
-          try{ await saveZoom(); }catch(e){ console.warn('saveZoom after retry-created meeting failed:',e.message); }
+          try{ await saveZoomBooking(updated); }catch(e){ console.warn('saveZoomBooking after retry-created meeting failed:',e.message); }
           _removePendingZoom(zb.id);
           console.log('Pending Zoom meeting actually created on retry');
         } else {
@@ -3538,40 +3538,22 @@ setInterval(()=>{
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden&&localStorage.getItem('rb_pin_ok')==='1') _retryPendingZoom();
 });
-async function saveZoom(){
-  if(!S.smsLog) S.smsLog=[];
-  if(!S.zoomBookings) S.zoomBookings=[];
-  const payload={
-    people:S.people.map(p=>({name:typeof p==='string'?p:p.name})),
-    rate:S.rate,
-    smsLog:S.smsLog.slice(0,50),
-    waitingList:S.waitingList||[],
-    appPin:S.appPin||'1234',
-    zoomBookings:S.zoomBookings
-  };
-  const encoded=encodeURIComponent(JSON.stringify(payload));
-  console.log('Saving zoom bookings:',S.zoomBookings.length);
-  // saveSettings payload grows with zoomBookings/smsLog/people/waitingList and can
-  // exceed what GAS's doGet can reliably parse as a query string, causing GAS to
-  // return non-JSON (HTML error) instead of a JSON response. The no-cors send hits
-  // the same endpoint but doesn't try to read/parse the response, so it isn't
-  // affected by that failure mode — use it as the primary path instead of wasting
-  // 3 retries (~15s) on xhrFetch first.
-  try{
-    await fetch(GAS+'?action=saveSettings&data='+encoded,{mode:'no-cors',redirect:'follow'});
-    console.log('saveZoom no-cors sent');
-    return {ok:true};
-  }catch(e){
-    console.warn('saveZoom no-cors failed, trying xhrFetch:',e.message);
-    try{
-      const j=await gasAction({action:'saveSettings',data:encoded});
-      console.log('saveZoom result:',j);
-      return j;
-    }catch(e2){
-      console.error('saveZoom both methods failed:',e2.message);
-      throw e2;
-    }
-  }
+// Saves ONE Zoom booking and waits for the server to confirm it.
+// The old saveZoom() sent the whole list of Zoom bookings in one web address.
+// Past roughly a dozen bookings that address was over Cloudflare's 16 KB limit,
+// the request was rejected, and because it was sent in a mode that cannot see
+// errors the app always reported success. Topic, category and every edit were
+// silently dropped. This sends one booking (a few KB) and throws if the server
+// does not confirm, so a failure is always visible.
+async function saveZoomBooking(zb){
+  const j=await gasAction({action:'saveZoomBooking',booking:encodeURIComponent(JSON.stringify(zb))});
+  const saved=j.booking||zb;
+  // Adopt the server's copy: it carries payment fields only the server sets.
+  const i=(S.zoomBookings||[]).findIndex(b=>String(b.id)===String(saved.id));
+  if(i>-1) S.zoomBookings[i]=saved;
+  // The server has it now, so the browser-only copy is no longer needed.
+  _localZoomBookings.delete(String(saved.id));
+  return j;
 }
 
 async function sendZoomConfirmation(zb){
@@ -3623,11 +3605,18 @@ async function deleteZoomBooking(id){
   _localZoomBookings.delete(String(id));
   console.log('Remaining zoom bookings:',S.zoomBookings.length);
   try{
-    await saveZoom();
-    console.log('saveZoom completed');
+    // Really remove it from the sheet. Before this the app only hid it on this
+    // device, so it stayed in the sheet and was still chased for payment.
+    await gasAction({action:'removeZoomBooking',id:String(id)});
+    console.log('Zoom booking removed on server');
   }catch(e){
-    console.error('saveZoom failed:',e.message);
-    alert('Delete failed: '+e.message);
+    console.error('removeZoomBooking failed:',e.message);
+    // Put it back so what you see matches what is actually saved.
+    _deletedZoomIds.delete(String(id));
+    _saveDeletedZoomIds();
+    S.zoomBookings.push(zb);
+    renderZoomList();
+    alert('Could not delete this booking, so it has been put back: '+e.message+'\n\nPlease try again.');
     return;
   }
   renderZoomList();
@@ -3722,7 +3711,12 @@ async function saveZoomEdit(){
   _lastSaveTime=Date.now();
 
   closeZoomEdit();
-  await saveZoom();
+  try{
+    await saveZoomBooking(S.zoomBookings[idx]);
+  }catch(e){
+    console.error('saveZoomBooking failed after edit:',e.message);
+    alert('Your change could not be saved to the server: '+e.message+'\n\nIt shows on this device only and will be lost when you refresh. Please open Edit and save again.');
+  }
   renderZoomList();
 }
 
