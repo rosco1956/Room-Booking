@@ -419,15 +419,16 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
   </div>
 
   <div class="tb-bar">
-    <button class="tb on" id="tb-book"   onclick="goTab('book')">📅 Book</button>
-    <button class="tb"    id="tb-view"   onclick="goTab('view')">🗂 Bookings</button>
-    <button class="tb"    id="tb-costs"  onclick="goTab('costs')">💷 Costs</button>
-    <button class="tb"    id="tb-sms"    onclick="goTab('sms')"><span id="sms-tab-lbl">📱 Reminders</span></button>
-    <button class="tb"    id="tb-series"  onclick="goTab('series')">🔁 Series</button>
-    <button class="tb"    id="tb-reports" onclick="goTab('reports')">📊 Reports</button>
-    <button class="tb"    id="tb-zoom"    onclick="goTab('zoom')">📹 Zoom</button>
-    <button class="tb"    id="tb-clients" onclick="goTab('clients')">🧑 Clients</button>
-    <button class="tb"    id="tb-people"  onclick="goTab('people')">👥 People</button>
+      <button class="tb on" id="tb-book" onclick="goTab('book')">📅 Book</button>
+      <button class="tb" id="tb-view" onclick="goTab('view')">🗂 Bookings</button>
+      <button class="tb" id="tb-costs" onclick="goTab('costs')">💷 Costs</button>
+      <button class="tb" id="tb-sms" onclick="goTab('sms')"><span id="sms-tab-lbl">📱 Reminders</span></button>
+      <button class="tb" id="tb-series" onclick="goTab('series')">🔁 Series</button>
+      <button class="tb" id="tb-reports" onclick="goTab('reports')">📊 Reports</button>
+      <button class="tb" id="tb-zoom" onclick="goTab('zoom')">📹 Zoom</button>
+      <button class="tb" id="tb-clients" onclick="goTab('clients')">🧑 Clients</button>
+      <button class="tb" id="tb-people" onclick="goTab('people')">👥 People</button>
+      <button class="tb" id="tb-links" onclick="goTab('links')">🔗 Links</button>
   </div>
 
   <div class="dg">
@@ -873,6 +874,30 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
               <div id="archive-results" style="margin-top:10px;"></div>
           </div>
           <div id="clients-body"></div>
+      </div>
+
+      <!-- LINKS -->
+      <div id="pane-links" style="display:none;">
+          <div class="card" style="margin-bottom:16px;">
+              <div style="font-size:17px;font-weight:500;margin-bottom:12px;">Create a form link</div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl">Form</label>
+                  <div class="pr" style="flex-wrap:wrap;">
+                      <button class="p on" id="lk-individual" onclick="setLinkType('individual')">Individual</button>
+                      <button class="p" id="lk-couple" onclick="setLinkType('couple')">Couple</button>
+                      <button class="p" id="lk-household" onclick="setLinkType('household')">Household</button>
+                  </div>
+              </div>
+              <div style="margin-bottom:10px;">
+                  <label class="lbl" for="lk-note">Note for your records</label>
+                  <input class="inp" type="text" id="lk-note" placeholder="e.g. initials, or first names" />
+                  <div style="font-size:11px;color:#8A8479;margin-top:4px;">Stays in this app only. It is never put in the link.</div>
+              </div>
+              <button class="btn-main" id="lk-btn" onclick="createLink()">Create link</button>
+              <div id="lk-result" style="display:none;margin-top:12px;padding:12px 14px;background:#F7F5F0;border-radius:8px;"></div>
+          </div>
+          <input class="inp" type="text" id="lk-search" placeholder="🔍 Search links…" oninput="renderLinks()" style="margin-bottom:10px;" />
+          <div id="lk-list"></div>
       </div>
 
       <!-- PEOPLE -->
@@ -2526,34 +2551,36 @@ function drawMonth(){
 }
 
 // Tabs
-function goTab(t){
-  S.tab=t;
-  ['book','view','costs','sms','series','reports','zoom','clients','people'].forEach(k=>{
-    document.getElementById('tb-'+k).className='tb'+(k===t?' on':'');
-    document.getElementById('pane-'+k).style.display=k===t?'block':'none';
-  });
-  if(window.innerWidth>=700){
-    document.getElementById('pane-book').style.display='block';
-    document.getElementById('pane-view').style.display=(t==='people'||t==='costs'||t==='sms'||t==='series'||t==='reports'||t==='zoom'||t==='clients')?'none':'block';
-    document.getElementById('pane-costs').style.display=t==='costs'?'block':'none';
-    document.getElementById('pane-sms').style.display=t==='sms'?'block':'none';
-    document.getElementById('pane-series').style.display=t==='series'?'block':'none';
-    document.getElementById('pane-reports').style.display=t==='reports'?'block':'none';
-    document.getElementById('pane-zoom').style.display=t==='zoom'?'block':'none';
-    document.getElementById('pane-clients').style.display=t==='clients'?'block':'none';
-    document.getElementById('pane-people').style.display=t==='people'?'block':'none';
-  }
-  renderLegend();
-  if(t==='view'){load();draw();}
-  if(t==='costs')renderCosts();
-  if(t==='sms'){load();renderSMSTab();}
-  if(t==='series'){load();renderSeries();}
-  if(t === 'reports') { load(); renderReports(); initInvoiceForm();}
-  if(t==='clients'){load();renderClientPersonRow();renderClients();}
-  if(t==='zoom'){load();renderZoomList();initZoomForm();}
+ffunction goTab(t){
+    S.tab = t;
+    ['book', 'view', 'costs', 'sms', 'series', 'reports', 'zoom', 'clients', 'people', 'links'].forEach(k => {
+        document.getElementById('tb-' + k).className = 'tb' + (k === t ? ' on' : '');
+        document.getElementById('pane-' + k).style.display = k === t ? 'block' : 'none';
+    });
+    if (window.innerWidth >= 700) {
+        document.getElementById('pane-book').style.display = 'block';
+        document.getElementById('pane-view').style.display = (t === 'people' || t === 'costs' || t === 'sms' || t === 'series' || t === 'reports' || t === 'zoom' || t === 'clients' || t === 'links') ? 'none' : 'block';
+        document.getElementById('pane-costs').style.display = t === 'costs' ? 'block' : 'none';
+        document.getElementById('pane-sms').style.display = t === 'sms' ? 'block' : 'none';
+        document.getElementById('pane-series').style.display = t === 'series' ? 'block' : 'none';
+        document.getElementById('pane-reports').style.display = t === 'reports' ? 'block' : 'none';
+        document.getElementById('pane-zoom').style.display = t === 'zoom' ? 'block' : 'none';
+        document.getElementById('pane-clients').style.display = t === 'clients' ? 'block' : 'none';
+        document.getElementById('pane-people').style.display = t === 'people' ? 'block' : 'none';
+        document.getElementById('pane-links').style.display = t === 'links' ? 'block' : 'none';
+    }
+    renderLegend();
+    if (t === 'view') { load(); draw(); }
+    if (t === 'costs') renderCosts();
+    if (t === 'sms') { load(); renderSMSTab(); }
+    if (t === 'series') { load(); renderSeries(); }
+    if (t === 'reports') { load(); renderReports(); initInvoiceForm(); }
+    if (t === 'clients') { load(); renderClientPersonRow(); renderClients(); }
+    if (t === 'zoom') { load(); renderZoomList(); initZoomForm(); }
+    if (t === 'links') { renderLinks(); loadLinks().then(renderLinks); }
 }
 window.addEventListener('resize',()=>{
-  if(window.innerWidth>=700&&S.tab!=='people'&&S.tab!=='costs'&&S.tab!=='sms'&&S.tab!=='series'&&S.tab!=='reports'&&S.tab!=='zoom'&&S.tab!=='clients'){
+    if (window.innerWidth >= 700 && S.tab !== 'people' && S.tab !== 'costs' && S.tab !== 'sms' && S.tab !== 'series' && S.tab !== 'reports' && S.tab !== 'zoom' && S.tab !== 'clients' && S.tab !== 'links'){
     document.getElementById('pane-book').style.display='block';
     document.getElementById('pane-view').style.display='block';
   }
@@ -2924,6 +2951,105 @@ async function cancelSeries(repId){
   }
   if(failed) syncUI(false,failed+' of '+ids.length+' series deletes failed — tap Refresh to check',true);
   else confirmSaved(S.bookings.length);
+}
+
+// ── Form links ────────────────────────────────────────────────────────────
+let _linkType = 'individual', _links = [];
+const LINK_LABELS = { individual: 'Individual', couple: 'Couple', household: 'Household' };
+
+function setLinkType(t) {
+    _linkType = t;
+    ['individual', 'couple', 'household'].forEach(k => {
+        const el = document.getElementById('lk-' + k);
+        if (el) el.className = 'p' + (k === t ? ' on' : '');
+    });
+}
+
+// Single attempt on purpose: a retry could use up a second reference number.
+async function linkAction(params) {
+    const r = await xhrFetch(GAS + '?' + new URLSearchParams(params));
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'Server error');
+    return j;
+}
+
+async function loadLinks() {
+    try {
+        const j = await gasAction({ action: 'listLinks' });
+        _links = j.links || [];
+    } catch (e) {
+        const el = document.getElementById('lk-list');
+        if (el && !_links.length) el.innerHTML = '<p style="color:#C0392B;font-size:13px;padding:10px;">Could not load links: ' + xe(e.message) + '</p>';
+    }
+}
+
+async function createLink() {
+    if (!S.me) { showWho(); return; }
+    const btn = document.getElementById('lk-btn'), res = document.getElementById('lk-result');
+    const note = document.getElementById('lk-note').value.trim();
+    btn.disabled = true; btn.textContent = 'Creating…';
+    try {
+        const j = await linkAction({ action: 'createLink', type: _linkType, note: note, who: S.me });
+        const l = j.link;
+        _links.unshift(l);
+        document.getElementById('lk-note').value = '';
+        res.style.display = 'block';
+        res.innerHTML = '<div style="font-size:12px;color:#8A8479;margin-bottom:2px;">New reference</div>' +
+            '<div style="font-size:20px;font-weight:500;margin-bottom:8px;">' + xe(l.ref) + '</div>' +
+            '<div style="font-size:12px;font-family:monospace;word-break:break-all;margin-bottom:10px;">' + xe(l.url) + '</div>' +
+            '<button type="button" onclick="copyLink(' + l.id + ',this)" style="padding:8px 16px;border:none;border-radius:8px;background:#1A1814;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;">Copy link</button>';
+        renderLinks();
+    } catch (e) {
+        res.style.display = 'block';
+        res.innerHTML = '<span style="color:#C0392B;font-size:13px;">Could not create link: ' + xe(e.message) + '</span>';
+    } finally {
+        btn.disabled = false; btn.textContent = 'Create link';
+    }
+}
+
+function copyLink(id, btn) {
+    const l = _links.find(x => x.id === id); if (!l) return;
+    navigator.clipboard.writeText(l.url).then(() => {
+        if (btn) { const o = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(() => btn.textContent = o, 1500); }
+    }).catch(() => prompt('Copy this link:', l.url));
+}
+
+async function toggleLinkSent(id) {
+    const l = _links.find(x => x.id === id); if (!l) return;
+    const want = !l.sent;
+    try {
+        const j = await linkAction({ action: 'markLinkSent', id: id, sent: want ? '1' : '0' });
+        l.sent = want; l.sentAt = j.link.sentAt;
+    } catch (e) { alert('Could not update: ' + e.message); }
+    renderLinks();
+}
+
+function renderLinks() {
+    const el = document.getElementById('lk-list'); if (!el) return;
+    const q = ((document.getElementById('lk-search') || {}).value || '').trim().toLowerCase();
+    const rows = _links.filter(l => !q || (l.ref + ' ' + l.note + ' ' + l.who + ' ' + (LINK_LABELS[l.type] || '')).toLowerCase().includes(q));
+    if (!rows.length) {
+        el.innerHTML = '<div style="text-align:center;padding:24px;color:#8A8479;font-size:13px;">' + (q ? 'No links match "' + xe(q) + '"' : 'No links created yet') + '</div>';
+        return;
+    }
+    el.innerHTML = rows.map(l => {
+        const d = new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const c = col(l.who);
+        return '<div style="border:1px solid #E5E0D8;border-radius:12px;padding:12px 14px;margin-bottom:10px;">' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
+            '<span style="font-size:15px;font-weight:500;">' + xe(l.ref) + '</span>' +
+            '<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#EDE7F6;color:#3D1C5A;">' + xe(LINK_LABELS[l.type] || l.type) + '</span>' +
+            '<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:' + c.bg + ';color:' + c.fg + ';">' + xe(l.who || '') + '</span>' +
+            '<span style="font-size:12px;color:#8A8479;margin-left:auto;">' + d + '</span>' +
+            '</div>' +
+            (l.note ? '<div style="font-size:13px;margin-bottom:4px;">' + xe(l.note) + '</div>' : '') +
+            '<div style="font-size:11px;font-family:monospace;color:#8A8479;word-break:break-all;margin-bottom:8px;">' + xe(l.url) + '</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button type="button" onclick="copyLink(' + l.id + ',this)" style="padding:6px 12px;font-size:12px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#1A1814;cursor:pointer;font-family:inherit;">Copy link</button>' +
+            '<button type="button" onclick="toggleLinkSent(' + l.id + ')" style="padding:6px 12px;font-size:12px;border:1px solid ' + (l.sent ? '#95D5B2' : '#E5E0D8') + ';border-radius:6px;background:' + (l.sent ? '#D8F3DC' : '#fff') + ';color:' + (l.sent ? '#1B4332' : '#8A8479') + ';cursor:pointer;font-family:inherit;">' + (l.sent ? '✓ Sent' : 'Mark as sent') + '</button>' +
+            '</div>' +
+            '</div>';
+    }).join('');
 }
 
 // ── Clients ───────────────────────────────────────────────────────────────
