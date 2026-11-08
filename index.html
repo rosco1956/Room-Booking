@@ -316,77 +316,81 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
 
 <!-- Edit booking modal -->
 <div class="modal-bg off" id="edit-modal">
-  <div class="modal">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
-      <div style="font-size:17px;font-weight:500;">Edit booking</div>
-      <div style="font-size:11px;color:#8A8479;" id="edit-stamp"></div>
-    </div>
-    <div class="fm e" id="eerr"></div>
-    <div style="margin-bottom:10px;"><label class="lbl" for="e-date">Date</label><input class="inp" type="date" id="e-date"/></div>
-    <div style="margin-bottom:10px;"><label class="lbl" for="e-from">Start time</label><input class="inp" type="time" id="e-from" oninput="calcEditEnd()"/></div>
-    <div style="margin-bottom:10px;">
-      <label class="lbl">Duration</label>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-        <button type="button" class="dur-btn" data-mins="15"     onclick="selEditDur(this)">15 min</button>
-        <button type="button" class="dur-btn" data-mins="30"     onclick="selEditDur(this)">30 min</button>
-        <button type="button" class="dur-btn" data-mins="45"     onclick="selEditDur(this)">45 min</button>
-        <button type="button" class="dur-btn" data-mins="60"     onclick="selEditDur(this)">1 hr</button>
-        <button type="button" class="dur-btn" data-mins="90"     onclick="selEditDur(this)">1.5 hr</button>
-        <button type="button" class="dur-btn" data-mins="120"    onclick="selEditDur(this)">2 hr</button>
-        <button type="button" class="dur-btn" data-mins="180"    onclick="selEditDur(this)">3 hr</button>
-        <button type="button" class="dur-btn" data-mins="custom" onclick="selEditDur(this)">Custom</button>
-      </div>
-    </div>
-    <div style="margin-bottom:10px;display:none;" id="e-custom-row">
-      <label class="lbl" for="e-to">Custom end time</label>
-      <input class="inp" type="time" id="e-to" oninput="editDurFromEnd()"/>
-    </div>
-    <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;">
-      <span style="color:#8A8479;">Ends at</span><strong id="e-end-display">—</strong>
-    </div>
-    <div style="margin-bottom:10px;"><label class="lbl" for="e-note">Client name</label><input class="inp" type="text" id="e-note" placeholder="e.g. Sam Smith"/></div>
-    <div style="margin-bottom:10px;">
-      <label class="lbl" for="e-cat">Category (optional)</label>
-      <select class="inp" id="e-cat">
-        <option value="">— None —</option>
-      </select>
-    </div>
-    <div style="margin-bottom:14px;">
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleEditCouples()">
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:500;">Couples appointment</div>
-          <div style="font-size:11px;color:#8A8479;margin-top:1px;">Both partners receive reminders</div>
+    <div class="modal">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-size:17px;font-weight:500;">Edit booking</div>
+            <div style="font-size:11px;color:#8A8479;" id="edit-stamp"></div>
         </div>
-        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleEditCouples()">
-          <input type="checkbox" id="e-couples-toggle" style="opacity:0;width:0;height:0;"/>
-          <span id="e-couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
-          <span id="e-couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
-        </label>
-      </div>
-      <div id="e-couples-row" style="display:none;margin-top:8px;">
-        <label class="lbl" for="e-note2">Partner name</label>
-        <input class="inp" type="text" id="e-note2" placeholder="e.g. Alex Smith"/>
-      </div>
-    </div>
-    <!-- Online session toggle -->
-    <div style="margin-bottom:14px;">
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#E8F4FD;border:1px solid #B3D7F0;border-radius:8px;cursor:pointer;" onclick="toggleEditOnline()">
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:500;">📹 Online session (Zoom)</div>
-          <div style="font-size:11px;color:#185FA5;margin-top:1px;">Suppresses room SMS — Zoom confirmation sent separately</div>
+        <div class="fm e" id="eerr"></div>
+        <div style="margin-bottom:10px;"><label class="lbl" for="e-date">Date</label><input class="inp" type="date" id="e-date" /></div>
+        <div style="margin-bottom:10px;"><label class="lbl" for="e-from">Start time</label><input class="inp" type="time" id="e-from" oninput="calcEditEnd()" /></div>
+        <div style="margin-bottom:10px;">
+            <label class="lbl">Duration</label>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                <button type="button" class="dur-btn" data-mins="15" onclick="selEditDur(this)">15 min</button>
+                <button type="button" class="dur-btn" data-mins="30" onclick="selEditDur(this)">30 min</button>
+                <button type="button" class="dur-btn" data-mins="45" onclick="selEditDur(this)">45 min</button>
+                <button type="button" class="dur-btn" data-mins="60" onclick="selEditDur(this)">1 hr</button>
+                <button type="button" class="dur-btn" data-mins="90" onclick="selEditDur(this)">1.5 hr</button>
+                <button type="button" class="dur-btn" data-mins="120" onclick="selEditDur(this)">2 hr</button>
+                <button type="button" class="dur-btn" data-mins="180" onclick="selEditDur(this)">3 hr</button>
+                <button type="button" class="dur-btn" data-mins="custom" onclick="selEditDur(this)">Custom</button>
+            </div>
         </div>
-        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleEditOnline()">
-          <input type="checkbox" id="e-online-toggle" style="opacity:0;width:0;height:0;"/>
-          <span id="e-online-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
-          <span id="e-online-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
-        </label>
-      </div>
+        <div style="margin-bottom:10px;display:none;" id="e-custom-row">
+            <label class="lbl" for="e-to">Custom end time</label>
+            <input class="inp" type="time" id="e-to" oninput="editDurFromEnd()" />
+        </div>
+        <div style="margin-bottom:12px;padding:10px 14px;background:#F7F5F0;border-radius:8px;font-size:14px;display:flex;justify-content:space-between;">
+            <span style="color:#8A8479;">Ends at</span><strong id="e-end-display">—</strong>
+        </div>
+        <div style="margin-bottom:10px;"><label class="lbl" for="e-note">Client name</label><input class="inp" type="text" id="e-note" placeholder="e.g. Sam Smith" /></div>
+        <div style="margin-bottom:10px;">
+            <label class="lbl" for="e-cat">Category (optional)</label>
+            <select class="inp" id="e-cat">
+                <option value="">— None —</option>
+            </select>
+        </div>
+        <div style="margin-bottom:10px;">
+            <label class="lbl" for="e-ref">Household reference (optional)</label>
+            <input class="inp" type="text" id="e-ref" placeholder="e.g. C-2026-001" />
+        </div>
+        <div style="margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleEditCouples()">
+                <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:500;">Couples appointment</div>
+                    <div style="font-size:11px;color:#8A8479;margin-top:1px;">Both partners receive reminders</div>
+                </div>
+                <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleEditCouples()">
+                    <input type="checkbox" id="e-couples-toggle" style="opacity:0;width:0;height:0;" />
+                    <span id="e-couples-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+                    <span id="e-couples-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+                </label>
+            </div>
+            <div id="e-couples-row" style="display:none;margin-top:8px;">
+                <label class="lbl" for="e-note2">Partner name</label>
+                <input class="inp" type="text" id="e-note2" placeholder="e.g. Alex Smith" />
+            </div>
+        </div>
+        <!-- Online session toggle -->
+        <div style="margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#E8F4FD;border:1px solid #B3D7F0;border-radius:8px;cursor:pointer;" onclick="toggleEditOnline()">
+                <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:500;">📹 Online session (Zoom)</div>
+                    <div style="font-size:11px;color:#185FA5;margin-top:1px;">Suppresses room SMS — Zoom confirmation sent separately</div>
+                </div>
+                <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleEditOnline()">
+                    <input type="checkbox" id="e-online-toggle" style="opacity:0;width:0;height:0;" />
+                    <span id="e-online-track" style="position:absolute;inset:0;border-radius:12px;background:#E5E0D8;transition:background .2s;"></span>
+                    <span id="e-online-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+                </label>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button onclick="closeEdit()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;color:#8A8479;">Cancel</button>
+            <button onclick="saveEdit()" style="flex:2;padding:11px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Save changes</button>
+        </div>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="closeEdit()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:8px;background:#fff;font-size:14px;cursor:pointer;color:#8A8479;">Cancel</button>
-      <button onclick="saveEdit()" style="flex:2;padding:11px;background:#1A1814;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Save changes</button>
-    </div>
-  </div>
 </div>
 
 <!-- Main app -->
@@ -2551,7 +2555,7 @@ function drawMonth(){
 }
 
 // Tabs
-ffunction goTab(t){
+function goTab(t){
     S.tab = t;
     ['book', 'view', 'costs', 'sms', 'series', 'reports', 'zoom', 'clients', 'people', 'links'].forEach(k => {
         document.getElementById('tb-' + k).className = 'tb' + (k === t ? ' on' : '');
