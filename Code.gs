@@ -4,6 +4,12 @@
 const SHEET_NAME = 'Data';
 const TM = 'https://rest.textmagic.com/api/v2';
 
+const LINK_FORMS = {
+    individual: { id: '263006795316358', prefix: 'I' },
+    couple:     { id: '263016015485351', prefix: 'C' },
+    household:  { id: '263016348192355', prefix: 'H' }
+};
+
 function getSheet() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName(SHEET_NAME);
@@ -272,7 +278,7 @@ function findHouseholdContacts_(ref, tmUser, tmKey) {
     } catch (err) { Logger.log('Household search error: ' + err.message); }
 
     // 2. Fallback: page through all contacts and match Company exactly
-    if (!found.length) {
+        if (!found.length && /^[a-z]-\d{4}-\d{3}$/i.test(String(ref).trim())) {
         for (var page = 1; page <= 30; page++) {
             try {
                 const r2 = UrlFetchApp.fetch(TM + '/contacts?limit=100&page=' + page, {
@@ -1071,6 +1077,84 @@ if (action === 'createZoom') {
         } catch (err) { return fail(err.message); }
     }
 
+    if (action === 'createLink') {
+        try {
+            const type = String(e.parameter.type || '').toLowerCase();
+            const form = LINK_FORMS[type];
+            if (!form) return fail('Unknown form type');
+            const note = String(e.parameter.note || '').slice(0, 120);
+            const who = String(e.parameter.who || '');
+            const lock = LockService.getScriptLock();
+            lock.waitLock(10000);
+            try {
+                var recL = readRecord();
+                if (!recL.links) recL.links = [];
+                if (!recL.linkCounters) recL.linkCounters = {};
+                const year = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy');
+                const key = form.prefix + '-' + year;
+                var n = recL.linkCounters[key] || 0;
+                var ref;
+                do {
+                    n++;
+                    ref = key + '-' + String(n).padStart(3, '0');
+                } while (recL.links.some(function (l) { return l.ref === ref; }));
+                recL.linkCounters[key] = n;
+                const link = {
+                    id: Date.now(), ref: ref, type: type, note: note, who: who,
+                    createdAt: new Date().toISOString(), sent: false,
+                    url: 'https://form.jotform.com/' + form.id + '?householdRef=' + encodeURIComponent(ref)
+                };
+                recL.links.unshift(link);
+                writeRecord(recL);
+                return ok({ link: link });
+            } finally { lock.releaseLock(); }
+        } catch (err) { return fail(err.message); }
+    }
+
+    if (action === 'listLinks') {
+        try {
+            const recL2 = readRecord();
+            return ok({ links: (recL2.links || []).slice(0, 300) });
+        } catch (err) { return fail(err.message); }
+    }
+
+    // action=updateLinkNote — params: id, note. Corrects the "Note for your records".
+    if (action === 'updateLinkNote') {
+        try {
+            const id = parseInt(e.parameter.id || '0');
+            const note = String(e.parameter.note || '').trim().slice(0, 120);
+            const lock = LockService.getScriptLock();
+            lock.waitLock(10000);
+            try {
+                var recL4 = readRecord();
+                const l = (recL4.links || []).find(function (x) { return x.id === id; });
+                if (!l) return fail('Link not found');
+                l.note = note;
+                writeRecord(recL4);
+                return ok({ link: l });
+            } finally { lock.releaseLock(); }
+        } catch (err) { return fail(err.message); }
+    }
+
+    if (action === 'markLinkSent') {
+        try {
+            const id = parseInt(e.parameter.id || '0');
+            const sent = e.parameter.sent === '1';
+            const lock = LockService.getScriptLock();
+            lock.waitLock(10000);
+            try {
+                var recL3 = readRecord();
+                const l = (recL3.links || []).find(function (x) { return x.id === id; });
+                if (!l) return fail('Link not found');
+                l.sent = sent;
+                l.sentAt = sent ? new Date().toISOString() : undefined;
+                writeRecord(recL3);
+                return ok({ link: l });
+            } finally { lock.releaseLock(); }
+        } catch (err) { return fail(err.message); }
+    }
+
+
     if (action === 'searchArchive') {
         try { return ok(searchArchive_(e.parameter)); }
         catch (err) { return fail(err.message); }
@@ -1398,134 +1482,246 @@ function fetchRecentZettlePurchases(accessToken) {
   return JSON.parse(resp.getContentText()).purchases || [];
 }
 
-// Main poller — run this on a time-driven trigger every 10-15 minutes.
+// ── Zettle payment poller ────────────────────────────────────────────────
+// Run on a time-driven trigger every 10-15 minutes (trigger function name
+// stays "checkZettlePayments", so the existing trigger keeps working).
+//
+// Design: every slow or hang-prone step (Zettle API calls, Gmail sends)
+// happens WITHOUT the script lock. The lock is only held for the brief
+// fresh-read -> update -> write step, so the app stays responsive for
+// everyone even if Google or Zettle stalls for half an hour.
 function checkZettlePayments() {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  // Run guard: never let two runs overlap (e.g. if one hangs for 30 min).
+  // Self-expires after 30 min in case a run is killed mid-way.
+  var cache = CacheService.getScriptCache();
+  if (cache.get('zettle_run_active')) {
+    Logger.log('Previous checkZettlePayments run still active - skipping this run.');
+    return;
+  }
+  cache.put('zettle_run_active', '1', 1800);
   try {
-    var record = readRecord();
-    var zoomBookings = record.zoomBookings || [];
+    checkZettlePaymentsInner_();
+  } finally {
+    cache.remove('zettle_run_active');
+  }
 
-    // Bookings still waiting on payment
-    var awaiting = zoomBookings.filter(function(b) {
-      return b.isZoom && b.paymentStatus === 'awaiting';
-    });
-    if (!awaiting.length) { Logger.log('No bookings awaiting payment.'); return; }
+  // Only surface an error (and a Google failure email) if Zettle has been
+  // unreachable for 3+ runs in a row - one-off blips stay quiet.
+  var failCount = parseInt(PropertiesService.getScriptProperties().getProperty('zettle_fail_count') || '0', 10);
+  if (failCount >= 3) {
+    throw new Error('Zettle has been unreachable for ' + failCount + ' runs in a row - check the Executions log.');
+  }
+}
 
-    // ── Chase reminders (max 3, ~24h apart, 8am-8pm only) ────────────
-    // Only for bookings where the initial payment-link email has
-    // actually been sent (paymentLinkSentAt set) and the link itself
-    // was saved. Chases stop permanently after 3 — no further emails,
-    // the booking just sits flagged for you to handle manually.
-    var currentHour = parseInt(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'H'));
-    var withinSendingHours = currentHour >= 8 && currentHour < 20;
+function checkZettlePaymentsInner_() {
+  var props = PropertiesService.getScriptProperties();
 
-    awaiting.forEach(function(b) {
-      if (!b.paymentLinkSentAt || !b.paymentLink) return; // link never sent yet
-      var chaseCount = b.chaseCount || 0;
-      if (chaseCount >= 3) return; // exhausted — no more automatic emails
-      var lastSent = b.lastChaseSentAt || b.paymentLinkSentAt;
-      var hoursSince = (Date.now() - new Date(lastSent).getTime()) / 3600000;
-      if (hoursSince < 24) return; // not due yet
-      if (!withinSendingHours) return; // due, but outside 8am-8pm — wait for a run inside the window
+  // ── 1. Snapshot read (no lock) ───────────────────────────────────────
+  var snapshot = readRecord();
+  var allZoom = snapshot.zoomBookings || [];
+  var awaiting = allZoom.filter(function (b) {
+    return b.isZoom && b.paymentStatus === 'awaiting';
+  });
+  if (!awaiting.length) {
+    props.deleteProperty('zettle_fail_count');
+    Logger.log('No bookings awaiting payment.');
+    return;
+  }
 
-      var tmMobile = PropertiesService.getScriptProperties().getProperty('tm_mobile_' + b.who) || '07498218609';
-      var firstName = (b.note || b.client1 || '').split(' ')[0] || 'there';
-      var d = Utilities.formatDate(new Date(b.date + 'T12:00:00'), Session.getScriptTimeZone(), 'EEE d MMM yyyy');
-      var nextChaseNumber = chaseCount + 1;
+  // Purchases already linked to a paid booking can never match again.
+  var claimed = {};
+  allZoom.forEach(function (b) {
+    if (b.zettlePurchaseUuid) claimed[b.zettlePurchaseUuid] = true;
+  });
 
-      try {
-        sendPaymentRequestEmailInternal({
-          to: b.clientEmail, firstName: firstName, who: b.who,
-          date: d, start: b.start, paymentLink: b.paymentLink,
-          amount: b.expectedAmount, mobile: tmMobile,
-          reminderNumber: nextChaseNumber
-        });
-        b.chaseCount = nextChaseNumber;
-        b.lastChaseSentAt = new Date().toISOString();
-        Logger.log('Sent chase reminder '+nextChaseNumber+'/3 for booking '+b.id);
-        if (nextChaseNumber >= 3) {
-          b.paymentChaseExhausted = true;
-          Logger.log('Booking '+b.id+' has now had 3 reminders with no payment — no further automatic emails will be sent.');
-        }
-      } catch (e) {
-        Logger.log('Chase reminder failed for booking '+b.id+': '+e.message);
-      }
-    });
+  // ── 2. Fetch Zettle purchases (no lock) ──────────────────────────────
+  var purchases = null;
+  if (awaiting.some(function (b) { return b.expectedAmount; })) {
+    try {
+      var token = getZettleAccessTokenCached();
+      purchases = fetchRecentZettlePurchases(token);
+      props.deleteProperty('zettle_fail_count');
+    } catch (e) {
+      var fails = parseInt(props.getProperty('zettle_fail_count') || '0', 10) + 1;
+      props.setProperty('zettle_fail_count', String(fails));
+      Logger.log('Zettle fetch failed (' + fails + ' in a row): ' + e.message);
+      // If Zettle rejected the token, drop it so the next run fetches a fresh one
+      if (/\b401\b/.test(e.message)) CacheService.getScriptCache().remove('zettle_access_token');
+      // Carry on - chase reminders don't need Zettle.
+    }
+  }
 
-    writeRecord(record); // persist chase counts before touching Zettle
-    var accessToken = getZettleAccessTokenCached();
-    var purchases = fetchRecentZettlePurchases(accessToken);
+  // ── 3. Work out what needs doing (no lock) ───────────────────────────
+  var paidMatches = {};  // bookingId -> purchase uuid
+  var ambiguous = {};    // bookingId -> candidate list
 
-    // Only look at real, non-refund payments
-    var candidates = purchases.filter(function(p) { return !p.refund && p.amount > 0; });
+  if (purchases) {
+    var candidates = purchases.filter(function (p) { return !p.refund && p.amount > 0; });
+    awaiting.forEach(function (b) {
+      if (!b.expectedAmount) { Logger.log('Booking ' + b.id + ' has no expectedAmount, skipping'); return; }
+      var expectedMinor = Math.round(b.expectedAmount * 100);
+      // Zoom booking ids are creation timestamps - a payment can't predate
+      // the booking (1h slack for clock differences).
+      var createdMs = (typeof b.id === 'number' && b.id > 1600000000000) ? b.id : 0;
 
-    // Track which purchase UUIDs already matched a booking this run,
-    // so two bookings never claim the same purchase.
-    var claimed = {};
-
-    awaiting.forEach(function(b) {
-      var expected = b.expectedAmount; // pounds, set at booking creation
-      if (!expected) { Logger.log('Booking ' + b.id + ' has no expectedAmount, skipping'); return; }
-      var expectedMinor = Math.round(expected * 100);
-
-      var matches = candidates.filter(function(p) {
-        return !claimed[p.purchaseUUID1 || p.purchaseUUID] && p.amount === expectedMinor;
+      var matches = candidates.filter(function (p) {
+        var uuid = p.purchaseUUID1 || p.purchaseUUID;
+        if (claimed[uuid] || p.amount !== expectedMinor) return false;
+        if (createdMs && p.timestamp && new Date(p.timestamp).getTime() < createdMs - 3600000) return false;
+        return true;
       });
 
-      if (matches.length === 0) {
-        return; // no payment yet, keep waiting
-      }
-      if (matches.length > 1) {
-        // Ambiguous: two+ unclaimed purchases at the same amount.
-        // Flag for manual confirmation rather than guessing.
-        b.paymentAmbiguous = true;
-        b.paymentCandidates = matches.map(function(p) {
+      if (matches.length === 1) {
+        var uuid = matches[0].purchaseUUID1 || matches[0].purchaseUUID;
+        claimed[uuid] = true;
+        paidMatches[b.id] = uuid;
+      } else if (matches.length > 1) {
+        ambiguous[b.id] = matches.map(function (p) {
           return { uuid: p.purchaseUUID1 || p.purchaseUUID, timestamp: p.timestamp, amount: p.amount };
         });
         Logger.log('Ambiguous payment match for booking ' + b.id + ' (' + matches.length + ' candidates)');
+      }
+    });
+  }
+
+  // Chase reminders: max 3, ~24h apart, 8am-8pm only
+  var hour = parseInt(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'H'), 10);
+  var withinSendingHours = hour >= 8 && hour < 20;
+  var chaseDue = {}; // bookingId -> next chase number
+  if (withinSendingHours) {
+    awaiting.forEach(function (b) {
+      if (paidMatches[b.id]) return; // just paid - no chase
+      if (!b.paymentLinkSentAt || !b.paymentLink || !b.clientEmail) return;
+      var count = b.chaseCount || 0;
+      if (count >= 3) return;
+      var last = b.lastChaseSentAt || b.paymentLinkSentAt;
+      if ((Date.now() - new Date(last).getTime()) / 3600000 < 24) return;
+      chaseDue[b.id] = count + 1;
+    });
+  }
+
+  if (!Object.keys(paidMatches).length && !Object.keys(ambiguous).length && !Object.keys(chaseDue).length) {
+    Logger.log('Nothing to update this run.');
+    return;
+  }
+
+  // ── 4. Commit: brief lock, fresh read, re-check, write ───────────────
+  // Nothing is emailed until this succeeds, so a busy lock simply means
+  // the next run tries again - no duplicates, no lost updates.
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) {
+    Logger.log('Lock busy - nothing committed or sent; next run will retry.');
+    return;
+  }
+  var toConfirm = [];
+  var toChase = [];
+  try {
+    var fresh = readRecord();
+    var now = new Date().toISOString();
+    (fresh.zoomBookings || []).forEach(function (b) {
+      // Paid manually / edited / deleted since the snapshot? Leave it alone.
+      if (!b.isZoom || b.paymentStatus !== 'awaiting') return;
+
+      if (paidMatches[b.id]) {
+        b.paymentStatus = 'paid';
+        b.paidAt = now;
+        b.zettlePurchaseUuid = paidMatches[b.id];
+        delete b.paymentAmbiguous;
+        delete b.paymentCandidates;
+        if (b.clientEmail) {
+          b.confirmationSentAt = now;
+          toConfirm.push(JSON.parse(JSON.stringify(b)));
+        } else {
+          Logger.log('No clientEmail on booking ' + b.id + ', cannot auto-send confirmation');
+        }
         return;
       }
 
-      // Exactly one match — confirm it
-      var purchase = matches[0];
-      var uuid = purchase.purchaseUUID1 || purchase.purchaseUUID;
-      claimed[uuid] = true;
-
-      b.paymentStatus = 'paid';
-      b.paidAt = new Date().toISOString();
-      b.zettlePurchaseUuid = uuid;
-      delete b.paymentAmbiguous;
-      delete b.paymentCandidates;
-
-      Logger.log('Matched payment for booking ' + b.id + ' -> purchase ' + uuid);
-
-      // Fire the Zoom confirmation email now that payment is confirmed
-      if (b.clientEmail) {
-        try {
-          sendZoomConfirmationEmailInternal(b);
-          b.confirmationSentAt = new Date().toISOString();
-        } catch (e) {
-          Logger.log('Failed to send confirmation for booking ' + b.id + ': ' + e.message);
-        }
-      } else {
-        Logger.log('No clientEmail on booking ' + b.id + ', cannot auto-send confirmation');
+      if (ambiguous[b.id]) {
+        b.paymentAmbiguous = true;
+        b.paymentCandidates = ambiguous[b.id];
       }
 
-      // Receipt — once only. receiptSentAt is checked inside the script
-      // lock, so a re-run or retry of this poller can't send a second one.
-      if (!b.receiptSentAt) {
-        try { sendPaymentReceiptInternal(b, record); }
-        catch (e) { Logger.log('Receipt failed for booking ' + b.id + ': ' + e.message); }
+      // Only chase if nothing else has changed the chase count meanwhile
+      if (chaseDue[b.id] && (b.chaseCount || 0) === chaseDue[b.id] - 1) {
+        var prevLast = b.lastChaseSentAt || null;
+        b.chaseCount = chaseDue[b.id];
+        b.lastChaseSentAt = now;
+        if (b.chaseCount >= 3) b.paymentChaseExhausted = true;
+        toChase.push({ booking: JSON.parse(JSON.stringify(b)), number: b.chaseCount, prevLast: prevLast });
       }
     });
-
-    record = trimRecord(record);
-    writeRecord(record);
+    writeRecord(trimRecord(fresh));
   } finally {
     lock.releaseLock();
   }
+
+  // ── 5. Send emails (no lock) ─────────────────────────────────────────
+  var failures = {}; // bookingId -> details
+  toConfirm.forEach(function (b) {
+    try {
+      sendZoomConfirmationEmailInternal(b);
+      Logger.log('Matched payment for booking ' + b.id + ' -> purchase ' + b.zettlePurchaseUuid + '; confirmation sent');
+    } catch (e) {
+      failures[b.id] = { confirmationError: e.message };
+      Logger.log('Confirmation email failed for booking ' + b.id + ': ' + e.message);
+    }
+  });
+
+  toChase.forEach(function (c) {
+    var b = c.booking;
+    try {
+      sendPaymentRequestEmailInternal({
+        to: b.clientEmail,
+        firstName: (b.note || b.client1 || '').split(' ')[0] || 'there',
+        who: b.who,
+        date: Utilities.formatDate(new Date(b.date + 'T12:00:00'), Session.getScriptTimeZone(), 'EEE d MMM yyyy'),
+        start: b.start,
+        paymentLink: b.paymentLink,
+        amount: b.expectedAmount,
+        mobile: props.getProperty('tm_mobile_' + b.who) || '07498218609',
+        reminderNumber: c.number
+      });
+      Logger.log('Sent chase reminder ' + c.number + '/3 for booking ' + b.id);
+    } catch (e) {
+      failures[b.id] = failures[b.id] || {};
+      failures[b.id].chaseError = e.message;
+      failures[b.id].chaseNumber = c.number;
+      failures[b.id].prevLast = c.prevLast;
+      Logger.log('Chase reminder failed for booking ' + b.id + ': ' + e.message);
+    }
+  });
+
+  // ── 6. Roll back anything whose email didn't go (brief lock) ─────────
+  // So a failed chase is retried next run, and a failed confirmation is
+  // visible on the booking rather than wrongly marked as sent.
+  if (Object.keys(failures).length) {
+    if (lock.tryLock(20000)) {
+      try {
+        var rec = readRecord();
+        (rec.zoomBookings || []).forEach(function (b) {
+          var f = failures[b.id];
+          if (!f) return;
+          if (f.confirmationError) {
+            delete b.confirmationSentAt;
+            b.confirmationError = f.confirmationError;
+          }
+          if (f.chaseError && b.chaseCount === f.chaseNumber) {
+            b.chaseCount = f.chaseNumber - 1;
+            if (f.prevLast) b.lastChaseSentAt = f.prevLast; else delete b.lastChaseSentAt;
+            delete b.paymentChaseExhausted;
+          }
+        });
+        writeRecord(trimRecord(rec));
+      } finally {
+        lock.releaseLock();
+      }
+    } else {
+      Logger.log('Could not record email failures (lock busy): ' + JSON.stringify(failures));
+    }
+  }
 }
+
 
 // Shared confirmation-email sender, usable both from the createZoom action
 // (invoice-later categories, sent immediately) and from checkZettlePayments

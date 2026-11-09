@@ -113,7 +113,8 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
         <span id="tm-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
       </label>
     </div>
-    <p style="font-size:13px;color:#8A8479;margin-bottom:12px;">Get your API key from <a href="https://app.textmagic.com/settings/api" target="_blank" style="color:#185FA5;">app.textmagic.com</a></p>
+    <p style="font-size: 13px; color: #8A8479;}
+    margin-bottom:12px;">Get your API key from <a href="https://app.textmagic.com/settings/api" target="_blank" style="color:#185FA5;">app.textmagic.com</a></p>
     <div style="margin-bottom:10px;"><label class="lbl" for="tm-user">TextMagic username</label><input class="inp" type="text" id="tm-user" placeholder="your@email.com"/></div>
     <div style="margin-bottom:10px;"><label class="lbl" for="tm-key">API key</label><input class="inp" type="password" id="tm-key" placeholder="Your API key"/></div>
     <div style="margin-bottom:10px;"><label class="lbl" for="tm-mobile">Your callback mobile number</label><input class="inp" type="tel" id="tm-mobile" placeholder="e.g. 07498218609"/><div style="font-size:11px;color:#8A8479;margin-top:4px;">This number appears in the SMS so clients can call you back.</div></div>
@@ -484,7 +485,7 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
                         <input class="inp" type="text" id="fref" placeholder="e.g. C-2026-001" oninput="hhRefTyped('fref','fref-hint')" />
                         <div id="fref-hint" style="font-size:11px;color:#8A8479;margin-top:4px;">Filled in automatically when the client belongs to a household. Confirmations and reminders go to everyone in TextMagic with this reference.</div>
                     </div>
-                    <div style="margin-bottom:12px;">
+                    <div id="couples-wrap" style="margin-bottom:12px;">
                         <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleCouples()">
                             <div style="flex:1;">
                                 <div style="font-size:13px;font-weight:500;">Couples appointment</div>
@@ -789,8 +790,8 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
                         </select>
                         <div id="z-cat-suggest" style="display:none;margin-top:6px;"></div>
                     </div>
-                    <!-- Couples option -->
-                    <div style="margin-bottom:12px;">
+                    <!-- Couples option (hidden when a C-/H- household reference is set) -->
+                    <div id="z-couples-wrap" style="margin-bottom:12px;">
                         <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleZoomCouples()">
                             <div style="flex:1;"><div style="font-size:13px;font-weight:500;">Couples session</div></div>
                             <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleZoomCouples()">
@@ -1946,12 +1947,15 @@ async function doAdd(){
   const date=document.getElementById('fdt').value;
   const from=document.getElementById('ffr').value;
   const to=getEnd();
-  const note=document.getElementById('fnt').value.trim();
+  const typedNote=document.getElementById('fnt').value.trim();
   const category = document.getElementById('fcat').value || '';
   const householdRef = document.getElementById('fref').value.trim();
-  const partnerName=isCouples()?getPartnerName():'';
-  const fullNote=note&&partnerName?note+' & '+partnerName:note;
-  const couples=isCouples()&&note&&partnerName;
+  const hhNames=hhBookingNames('fref',typedNote);
+  // C-/H- household: the names come from the household, not the Couples switch
+  const note=hhNames?hhNames.client1:typedNote;
+  const partnerName=hhNames?hhNames.client2:(isCouples()?getPartnerName():'');
+  const fullNote=hhNames?hhNames.note:(note&&partnerName?note+' & '+partnerName:note);
+  const couples=hhNames?hhNames.couples:(isCouples()&&note&&partnerName);
   const eEl=document.getElementById('ferr'),oEl=document.getElementById('fok');
   eEl.style.display='none';oEl.style.display='none';
   if(!date||!from||!to){eEl.textContent='Please fill in date and times.';eEl.style.display='block';_addingBooking=false;document.getElementById('sbtn').disabled=false;document.getElementById('sbtn').textContent='Add booking';return;}
@@ -2003,7 +2007,7 @@ async function doAdd(){
       ...(householdRef&&{householdRef})
     };
     try{
-      await processRepeatBookings(allDates,from,to,dur,couples?fullNote:note,repId,eEl,oEl,
+      await processRepeatBookings(allDates,from,to,dur,(couples||hhNames)?fullNote:note,repId,eEl,oEl,
         Object.keys(extras).length?extras:null,category);
       resetCouples();
       resetOnlineSession();
@@ -2018,7 +2022,7 @@ async function doAdd(){
 
   // Add directly to server — server does final clash check
   const newBooking={id:Date.now(),who:S.me,date,start:from,end:to,
-    note:couples?fullNote:note,
+    note:(couples||hhNames)?fullNote:note,
     ...(category&&{category}),
     ...(householdRef&&{householdRef}),
     ...(couples&&{couples:true,client1:note,client2:partnerName}),
@@ -3021,6 +3025,20 @@ function copyLink(id, btn) {
     }).catch(() => prompt('Copy this link:', l.url));
 }
 
+// Correct the "Note for your records" on a link already created.
+async function editLinkNote(id) {
+    const l = _links.find(x => x.id === id); if (!l) return;
+    const next = prompt('Note for your records (' + l.ref + '):', l.note || '');
+    if (next === null) return; // cancelled
+    const note = next.trim().slice(0, 120);
+    if (note === (l.note || '')) return;
+    try {
+        const j = await linkAction({ action: 'updateLinkNote', id: id, note: note });
+        l.note = j.link.note;
+    } catch (e) { alert('Could not update the note: ' + e.message); }
+    renderLinks();
+}
+
 async function toggleLinkSent(id) {
     const l = _links.find(x => x.id === id); if (!l) return;
     const want = !l.sent;
@@ -3053,6 +3071,7 @@ function renderLinks() {
             '<div style="font-size:11px;font-family:monospace;color:#8A8479;word-break:break-all;margin-bottom:8px;">' + xe(l.url) + '</div>' +
             '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
             '<button type="button" onclick="copyLink(' + l.id + ',this)" style="padding:6px 12px;font-size:12px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#1A1814;cursor:pointer;font-family:inherit;">Copy link</button>' +
+            '<button type="button" onclick="editLinkNote(' + l.id + ')" style="padding:6px 12px;font-size:12px;border:1px solid #E5E0D8;border-radius:6px;background:#fff;color:#1A1814;cursor:pointer;font-family:inherit;">✏️ ' + (l.note ? 'Edit note' : 'Add note') + '</button>' +
             '<button type="button" onclick="toggleLinkSent(' + l.id + ')" style="padding:6px 12px;font-size:12px;border:1px solid ' + (l.sent ? '#95D5B2' : '#E5E0D8') + ';border-radius:6px;background:' + (l.sent ? '#D8F3DC' : '#fff') + ';color:' + (l.sent ? '#1B4332' : '#8A8479') + ';cursor:pointer;font-family:inherit;">' + (l.sent ? '✓ Sent' : 'Mark as sent') + '</button>' +
             '</div>' +
             '</div>';
@@ -3433,13 +3452,17 @@ async function doZoomBooking(){
   if(!S.me){showWho();return;}
   const date   =document.getElementById('z-date').value;
   const start  =document.getElementById('z-from').value;
-  const client =document.getElementById('z-client').value.trim();
+  const typedClient=document.getElementById('z-client').value.trim();
   const category=document.getElementById('z-cat').value||'';
-  const couples=document.getElementById('z-couples-toggle').checked;
-  const client2=couples?(document.getElementById('z-client2').value.trim()):'';
   const householdRef=document.getElementById('z-ref').value.trim();
+  // C-/H- household: who attends comes from the household, not the Couples switch
+  const hhNames=hhBookingNames('z-ref',typedClient);
+  const client=hhNames?hhNames.client1:typedClient;
+  const couples=hhNames?hhNames.couples:document.getElementById('z-couples-toggle').checked;
+  const client2=hhNames?hhNames.client2:(couples?(document.getElementById('z-client2').value.trim()):'');
+  const displayName=hhNames?hhNames.note:(couples&&client2?client+' & '+client2:client);
   const topicRaw=(document.getElementById('z-topic').value.trim())||'Session';
-  const topic=topicRaw+' for '+(couples&&client2?client+' & '+client2:client);
+  const topic=topicRaw+' for '+displayName;
   const eEl=document.getElementById('zoom-err');
   const oEl=document.getElementById('zoom-ok');
   eEl.style.display='none'; oEl.style.display='none';
@@ -3490,7 +3513,7 @@ async function doZoomBooking(){
   const placeholder={
     id:pendingId, pendingId:pendingId,
     who:S.me, date, start, end:zEndTime,
-    note:couples&&client2?client+' & '+client2:client,
+    note:displayName,
     topic:topic, client1:client, client2:couples?client2:'',
     couples:couples&&!!client2,
     ...(category&&{category}),
@@ -3524,7 +3547,7 @@ async function doZoomBooking(){
       pendingId:pendingId,
       pending:false,
       topic:found.topic||placeholder.topic||topic,
-      note:found.note||placeholder.note,
+      note:placeholder.note||found.note,
       zoomShortUrl:found.zoomShortUrl||found.zoomJoinUrl,
       zoomPassword:found.zoomPassword||'',
       zoomStartUrl:found.zoomStartUrl||''};
@@ -4997,10 +5020,45 @@ const HH_DEFAULT_HINT={
   'fref-hint':'Filled in automatically when the client belongs to a household. Confirmations and reminders go to everyone in TextMagic with this reference.',
   'z-ref-hint':'Filled in automatically when the client belongs to a household. Confirmations and reminders go to everyone with this reference.'
 };
+const _hhMembers={};
+// Couples switch for each form's household-reference box
+const HH_COUPLES={
+  'fref': {wrap:'couples-wrap', toggle:'couples-toggle', flip:()=>toggleCouples()},
+  'z-ref':{wrap:'z-couples-wrap', toggle:'z-couples-toggle', flip:()=>toggleZoomCouples()}
+};
+const HH_HINT_TO_REF={'fref-hint':'fref','z-ref-hint':'z-ref'};
+function hhIsGroupRef(ref){ return /^[CH]-/i.test(String(ref||'').trim()); }
+// A couple (C-) or household (H-) reference already says who attends,
+// so the Couples switch is hidden and switched off.
+function hhSyncCouples(refId){
+  const cfg=HH_COUPLES[refId], refEl=document.getElementById(refId);
+  if(!cfg||!refEl) return;
+  const group=hhIsGroupRef(refEl.value);
+  const wrap=document.getElementById(cfg.wrap);
+  if(wrap) wrap.style.display=group?'none':'';
+  const tg=document.getElementById(cfg.toggle);
+  if(group&&tg&&tg.checked) cfg.flip();
+}
+// Booking name for a C-/H- household, built from the adults in it.
+// Returns null when the reference isn't a couple/household one.
+function hhBookingNames(refId,typedName){
+  const refEl=document.getElementById(refId);
+  const ref=refEl?refEl.value.trim():'';
+  if(!hhIsGroupRef(ref)) return null;
+  const known=_hhMembers[refId];
+  let names=(known&&known.ref.toLowerCase()===ref.toLowerCase())?known.members.map(m=>m.name).filter(Boolean):[];
+  const t=(typedName||'').trim().toLowerCase();
+  if(t) names.sort((a,b)=>(b.toLowerCase()===t)-(a.toLowerCase()===t)); // typed client first
+  if(names.length===2) return {note:names[0]+' & '+names[1],couples:true,client1:names[0],client2:names[1]};
+  if(names.length>2) return {note:names.join(' & '),couples:false,client1:names[0],client2:''};
+  return {note:typedName||names[0]||'',couples:false,client1:typedName||names[0]||'',client2:''};
+}
 function hhResetHint(hintId){
   const h=document.getElementById(hintId); if(!h) return;
   h.style.color='#8A8479';
   h.textContent=HH_DEFAULT_HINT[hintId]||'';
+  const refId=HH_HINT_TO_REF[hintId];
+  if(refId){ delete _hhMembers[refId]; hhSyncCouples(refId); }
 }
 async function hhLookup(params){
   const tm=getTM();
@@ -5014,6 +5072,8 @@ async function hhLookup(params){
 function hhRenderHint(hintId,ref,members){
   const h=document.getElementById(hintId); if(!h) return;
   if(!ref){hhResetHint(hintId);return;}
+  const refId=HH_HINT_TO_REF[hintId];
+  if(refId){ _hhMembers[refId]={ref,members}; hhSyncCouples(refId); }
   if(!members.length){
     h.style.color='#B8860B';
     h.textContent='⚠️ Nobody in TextMagic has '+ref+' in their Company field yet — messages will fall back to the normal contact picker.';
@@ -5053,6 +5113,8 @@ function hhDetect(nameId,refId,hintId){
 function hhRefTyped(refId,hintId){
   const refEl=document.getElementById(refId); if(!refEl) return;
   refEl.dataset.auto='0';
+  delete _hhMembers[refId];
+  hhSyncCouples(refId);
   clearTimeout(_hhTimers[refId]);
   _hhTimers[refId]=setTimeout(async()=>{
     const ref=refEl.value.trim();
