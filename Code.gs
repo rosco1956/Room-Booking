@@ -589,6 +589,30 @@ function doGetInner(e) {
         } catch (err) { return fail(err.message); }
     }
 
+    // Adjusts the TextMagic "Appointments" count by delta (-1 when a counted
+    // session is marked Did Not Attend, +1 when that DNA is removed).
+    // Separate from tmIncrementAppts so an older index.html can never send
+    // a delta that an older Code.gs would mistake for a plain increment.
+    if (action === 'tmAdjustAppts') {
+        try {
+            const contactIdA = e.parameter.contactId || '';
+            const deltaA = parseInt(e.parameter.delta || '0', 10);
+            if (!contactIdA) return fail('No contactId');
+            if (deltaA !== 1 && deltaA !== -1) return fail('delta must be 1 or -1');
+            const rA = tmGet(e, '/contacts/' + contactIdA);
+            if (rA.getResponseCode() !== 200) return fail('Contact not found');
+            const contactA = JSON.parse(rA.getContentText());
+            const apptFieldA = (contactA.customFields || []).find(function (f) { return f.name === 'Appointments'; });
+            if (!apptFieldA) return fail('No Appointments field on contact');
+            const currentA = parseInt(apptFieldA.value || '0', 10) || 0;
+            const newCountA = Math.max(0, currentA + deltaA);
+            var apptPayloadA = {};
+            apptPayloadA['customFieldValues[' + apptFieldA.userCustomFieldId + ']'] = String(newCountA);
+            tmPost(e, '/contacts/' + contactIdA, apptPayloadA);
+            return ok({ appointments: newCountA });
+        } catch (err) { return fail(err.message); }
+    }
+
     // ── MONTHLY INVOICE FEATURE — doGet wiring ──────────────────────────
     if (action === 'invoice') {
         try {
