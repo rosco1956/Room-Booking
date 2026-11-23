@@ -2380,7 +2380,7 @@ function drawList(){
           <div style="font-size:10px;font-weight:600;color:${c.fg};opacity:.8;">${durLabel}</div>
         </div>
         <div style="flex:1;min-width:0;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:14px;font-weight:500;">${xe(b.who)}</div>
+          <div style="font-size:14px;font-weight:500;">${xe(b.who)}${isOwner?' <span style="font-size:11px;opacity:.7;" title="You can edit this booking">✏️</span>':''}</div>
           <div style="font-size:13px;color:#8A8479;margin-top:2px;">${xe(b.start)} – ${xe(b.end)}${b.note?'<div style="font-size:12px;color:#8A8479;margin-top:2px;font-style:italic;">'+xe(b.note)+'</div>':''}</div>
           ${showCat&&b.category?`<div style="margin-top:3px;"><span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:99px;background:#F0EDE8;color:#5C564E;">${xe(b.category)}</span></div>`:''}
           ${cost?`<div style="font-size:12px;font-weight:500;margin-top:3px;">${cost}</div>`:''}
@@ -2488,7 +2488,7 @@ function drawWeek(){
       const tipText=b.who+(b.note?' — '+b.note:'')+' ('+b.start+'–'+b.end+')';
       const catTag=b.category?`<div style="font-size:7px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${xe(b.category)}</div>`:'';
       evHtml+=`<div class="wk-ev" style="position:absolute;top:${top}px;height:${ht}px;left:${colLeft+2}px;width:${colWidth-4}px;background:${c.bg};color:${c.fg};border-left:2px solid ${c.mid};cursor:${canEdit?'pointer':'default'};z-index:5;"
-        ${canEdit?`onclick="openEdit(${b.id})"`:''} onmouseenter="showTip(event,'${tipText.replace(/'/g,"\'")}');event.stopPropagation();" onmousemove="moveTip(event)" onmouseleave="hideTip()"><div style="display:flex;justify-content:space-between;"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${xe(b.who)}</div>${canEdit&&ht>=24?'<div style="font-size:9px;opacity:.7;">✏️</div>':''}</div>${ht>=28?`<div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>`:''}${ht>=40?catTag:''}</div>`;
+        ${canEdit?`onclick="openEdit(${b.id})"`:''} onmouseenter="showTip(event,'${tipText.replace(/'/g,"\'")}');event.stopPropagation();" onmousemove="moveTip(event)" onmouseleave="hideTip()"><div style="display:flex;justify-content:space-between;"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${xe(b.who)}</div>${canEdit?'<div style="font-size:9px;opacity:.7;">✏️</div>':''}</div>${ht>=28?`<div style="font-size:8px;opacity:.8;">${xe(b.start)}–${xe(b.end)}</div>`:''}${ht>=40?catTag:''}</div>`;
     });
   });
   gridEl.insertAdjacentHTML('beforeend',evHtml);
