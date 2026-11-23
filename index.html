@@ -351,6 +351,10 @@ body.dark #search-results{background:#252220;border-color:#3A3530;}
         <option value="">— None —</option>
       </select>
     </div>
+    <div style="margin-bottom:10px;">
+      <label class="lbl" for="e-ref">Household reference (optional)</label>
+      <input class="inp" type="text" id="e-ref" placeholder="e.g. C-2026-001"/>
+    </div>
     <div style="margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F7F5F0;border-radius:8px;cursor:pointer;" onclick="toggleEditCouples()">
         <div style="flex:1;">
@@ -3713,25 +3717,28 @@ async function saveZoomEdit(){
   // Does the real Zoom meeting need changing too?
   const zoomChanged = zb.zoomMeetingId && (zb.date!==date || zb.start!==start || zb.end!==end || zb.topic!==topic);
   if(zb.date!==date || zb.start!==start) S.zoomBookings[idx].zoomReminderSent=false;
+  const zoomDur=_zoomEditDurMins;
 
   closeZoomEdit();
-  let zoomMsg='';
-  if(zoomChanged){
-    try{
-      await gasAction({action:'updateZoom',who:S.me,meetingId:String(zb.zoomMeetingId),topic,date,start,duration:String(_zoomEditDurMins)});
-    }catch(e){
-      zoomMsg='The booking was saved here, but the meeting in Zoom could NOT be updated ('+e.message+'). Zoom still has the old details, so please change it in Zoom yourself.\n\n';
-    }
-  }
+  // 1) Save the booking first, so the edit is never held up by Zoom.
   try{
     await saveZoomBooking(S.zoomBookings[idx]);
   }catch(e){
     console.error('saveZoomBooking failed after edit:',e.message);
-    alert(zoomMsg+'Your change could not be saved to the server: '+e.message+'\n\nIt shows on this device only and will be lost when you refresh. Please open Edit and save again.');
-    zoomMsg='';
+    alert('Your change could not be saved to the server: '+e.message+'\n\nIt shows on this device only and will be lost when you refresh. Please open Edit and save again.');
   }
-  if(zoomMsg) alert(zoomMsg.trim());
   renderZoomList();
+  // 2) Then change the real Zoom meeting (one attempt, in the background).
+  if(zoomChanged){
+    try{
+      const p=new URLSearchParams({action:'updateZoom',who:S.me,meetingId:String(zb.zoomMeetingId),topic,date,start,duration:String(zoomDur)});
+      const r=await xhrFetch(GAS+'?'+p);
+      const j=await r.json();
+      if(!j.ok) throw new Error(j.error||'Server error');
+    }catch(e){
+      alert('Saved here, but the meeting in Zoom could NOT be updated: '+e.message+'\n\nZoom still has the old details, so please change it in Zoom yourself.');
+    }
+  }
 }
 
 function subscribeZoomCal(){
